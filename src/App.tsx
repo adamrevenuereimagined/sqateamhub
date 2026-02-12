@@ -5,10 +5,11 @@ import { Layout } from './components/Layout';
 import { RepDashboard } from './components/RepDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
 import { WeeklySubmissionForm } from './components/WeeklySubmissionForm';
+import { PastSubmissions } from './components/PastSubmissions';
 
 function AppContent() {
   const { session, user, loading } = useAuth();
-  const [currentView, setCurrentView] = useState<'dashboard' | 'weekly' | 'admin'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'weekly' | 'admin' | 'history'>('dashboard');
 
   if (loading) {
     return (
@@ -22,7 +23,7 @@ function AppContent() {
     return <Login />;
   }
 
-  const handleNavigate = (view: 'dashboard' | 'weekly' | 'admin') => {
+  const handleNavigate = (view: 'dashboard' | 'weekly' | 'admin' | 'history') => {
     setCurrentView(view);
   };
 
@@ -31,6 +32,8 @@ function AppContent() {
       switch (currentView) {
         case 'weekly':
           return <WeeklySubmissionForm onBack={() => setCurrentView('dashboard')} />;
+        case 'history':
+          return <PastSubmissions onBack={() => setCurrentView('dashboard')} />;
         default:
           return <RepDashboard onNavigate={handleNavigate} />;
       }

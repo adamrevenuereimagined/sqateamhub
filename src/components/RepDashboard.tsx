@@ -3,7 +3,7 @@ import { supabase, Week } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { FileText, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 
-export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly') => void }) {
+export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly' | 'history') => void }) {
   const { user } = useAuth();
   const [currentWeek, setCurrentWeek] = useState<Week | null>(null);
   const [submissionStatus, setSubmissionStatus] = useState<'not_started' | 'in_progress' | 'submitted'>('not_started');
@@ -115,9 +115,6 @@ export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly') => v
               <p className="text-slate-600">
                 Complete your weekly update by Thursday 5:00 PM PT
               </p>
-              <p className="text-sm text-slate-500 mt-2">
-                One form for all your weekly updates - no more duplicate entry!
-              </p>
             </div>
             {getStatusIcon(submissionStatus)}
           </div>
@@ -126,12 +123,21 @@ export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly') => v
             {getStatusText(submissionStatus)}
           </div>
 
-          <button
-            onClick={() => onNavigate('weekly')}
-            className="w-full bg-emerald-600 text-white py-3 rounded-lg font-medium hover:bg-emerald-700 transition-colors text-lg"
-          >
-            {submissionStatus === 'submitted' ? 'View Submission' : 'Start Your Weekly Update'}
-          </button>
+          <div className="space-y-3">
+            <button
+              onClick={() => onNavigate('weekly')}
+              className="w-full bg-emerald-600 text-white py-3 rounded-lg font-medium hover:bg-emerald-700 transition-colors text-lg"
+            >
+              {submissionStatus === 'submitted' ? 'View Submission' : 'Start Your Weekly Update'}
+            </button>
+
+            <button
+              onClick={() => onNavigate('history')}
+              className="w-full bg-slate-100 text-slate-700 py-3 rounded-lg font-medium hover:bg-slate-200 transition-colors"
+            >
+              View and Edit My Submissions
+            </button>
+          </div>
         </div>
       </div>
 
