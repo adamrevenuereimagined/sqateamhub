@@ -4,8 +4,8 @@ import { LogOut, Home, FileText, Users } from 'lucide-react';
 
 type LayoutProps = {
   children: ReactNode;
-  currentView: 'dashboard' | '1on1' | 'bd-weekly' | 'admin';
-  onNavigate: (view: 'dashboard' | '1on1' | 'bd-weekly' | 'admin') => void;
+  currentView: 'dashboard' | 'weekly' | 'history' | 'admin';
+  onNavigate: (view: 'dashboard' | 'weekly' | 'history' | 'admin') => void;
 };
 
 export function Layout({ children, currentView, onNavigate }: LayoutProps) {
@@ -35,31 +35,17 @@ export function Layout({ children, currentView, onNavigate }: LayoutProps) {
                 </button>
 
                 {!isAdmin && (
-                  <>
-                    <button
-                      onClick={() => onNavigate('1on1')}
-                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                        currentView === '1on1'
-                          ? 'bg-emerald-50 text-emerald-700'
-                          : 'text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      <FileText className="w-4 h-4 inline mr-2" />
-                      Weekly 1:1
-                    </button>
-
-                    <button
-                      onClick={() => onNavigate('bd-weekly')}
-                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                        currentView === 'bd-weekly'
-                          ? 'bg-emerald-50 text-emerald-700'
-                          : 'text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      <Users className="w-4 h-4 inline mr-2" />
-                      BD Weekly
-                    </button>
-                  </>
+                  <button
+                    onClick={() => onNavigate('weekly')}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      currentView === 'weekly'
+                        ? 'bg-emerald-50 text-emerald-700'
+                        : 'text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <FileText className="w-4 h-4 inline mr-2" />
+                    Weekly Submission
+                  </button>
                 )}
 
                 {isAdmin && (
