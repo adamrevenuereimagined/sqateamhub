@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Save, Send, Plus, Trash2, ArrowLeft } from 'lucide-react';
+import { Save, Send, Plus, Trash2, ArrowLeft, Edit2 } from 'lucide-react';
 
 type Week = {
   id: string;
@@ -367,6 +367,10 @@ export function WeeklySubmissionForm({ onBack }: Props) {
     setSelfCare(submission.self_care || '');
     setEnergyLevel(submission.energy_level || 'medium');
     setManagerSupport(submission.manager_support || '');
+  };
+
+  const handleReopenForEditing = () => {
+    setStatus('in_progress');
   };
 
   const handleSave = async (submitNow: boolean = false) => {
@@ -1484,23 +1488,41 @@ export function WeeklySubmissionForm({ onBack }: Props) {
 
       <div className="sticky bottom-0 bg-white border-t border-slate-200 py-4 mt-8 -mx-4 px-4">
         <div className="max-w-4xl mx-auto flex gap-3 justify-end">
-          <button
-            onClick={() => handleSave(false)}
-            disabled={saving || status === 'submitted'}
-            className="flex items-center px-6 py-2.5 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors disabled:opacity-50"
-          >
-            <Save className="w-4 h-4 mr-2" />
-            {status === 'submitted' ? 'Already Submitted' : 'Save Draft'}
-          </button>
+          {status === 'submitted' ? (
+            <>
+              <div className="flex items-center gap-2 text-emerald-600 font-medium">
+                <Send className="w-5 h-5" />
+                Submitted Successfully
+              </div>
+              <button
+                onClick={handleReopenForEditing}
+                className="flex items-center px-6 py-2.5 border border-blue-300 bg-blue-50 text-blue-700 rounded-lg font-medium hover:bg-blue-100 transition-colors"
+              >
+                <Edit2 className="w-4 h-4 mr-2" />
+                Edit Submission
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => handleSave(false)}
+                disabled={saving}
+                className="flex items-center px-6 py-2.5 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors disabled:opacity-50"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {saving ? 'Saving...' : 'Save Draft'}
+              </button>
 
-          <button
-            onClick={() => handleSave(true)}
-            disabled={saving || status === 'submitted'}
-            className="flex items-center px-6 py-2.5 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50"
-          >
-            <Send className="w-4 h-4 mr-2" />
-            {status === 'submitted' ? 'Submitted' : 'Submit'}
-          </button>
+              <button
+                onClick={() => handleSave(true)}
+                disabled={saving}
+                className="flex items-center px-6 py-2.5 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50"
+              >
+                <Send className="w-4 h-4 mr-2" />
+                {saving ? 'Submitting...' : 'Submit'}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

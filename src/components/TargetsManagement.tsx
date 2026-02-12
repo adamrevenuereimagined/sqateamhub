@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase, User, WeeklyActivityTargets } from '../lib/supabase';
-import { Target, Save, X } from 'lucide-react';
+import { Target, Save, X, DollarSign } from 'lucide-react';
 
 type Props = {
   onClose: () => void;
@@ -9,6 +9,7 @@ type Props = {
 export function TargetsManagement({ onClose }: Props) {
   const [reps, setReps] = useState<User[]>([]);
   const [targets, setTargets] = useState<{ [userId: string]: WeeklyActivityTargets }>({});
+  const [quotas, setQuotas] = useState<{ [userId: string]: number }>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -27,6 +28,12 @@ export function TargetsManagement({ onClose }: Props) {
 
       if (repsData) {
         setReps(repsData);
+
+        const quotasMap: { [userId: string]: number } = {};
+        repsData.forEach(rep => {
+          quotasMap[rep.id] = rep.quarterly_quota;
+        });
+        setQuotas(quotasMap);
 
         const { data: targetsData } = await supabase
           .from('weekly_activity_targets')
@@ -57,6 +64,13 @@ export function TargetsManagement({ onClose }: Props) {
     }));
   };
 
+  const updateQuota = (userId: string, value: number) => {
+    setQuotas(prev => ({
+      ...prev,
+      [userId]: value
+    }));
+  };
+
   const saveTargets = async () => {
     setSaving(true);
     try {
@@ -81,10 +95,20 @@ export function TargetsManagement({ onClose }: Props) {
 
         if (error) throw error;
       }
+
+      for (const [userId, quota] of Object.entries(quotas)) {
+        const { error } = await supabase
+          .from('users')
+          .update({ quarterly_quota: quota })
+          .eq('id', userId);
+
+        if (error) throw error;
+      }
+
       onClose();
     } catch (error) {
       console.error('Error saving targets:', error);
-      alert('Failed to save targets. Please try again.');
+      alert('Failed to save targets and quotas. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -137,11 +161,26 @@ export function TargetsManagement({ onClose }: Props) {
 
               return (
                 <div key={rep.id} className="bg-slate-50 rounded-lg p-6 border border-slate-200">
-                  <div className="mb-4">
-                    <h3 className="text-lg font-semibold text-slate-900">{rep.name}</h3>
-                    <p className="text-sm text-slate-600">{rep.email} | Q Quota: ${rep.quarterly_quota.toLocaleString()}</p>
+                  <div className="mb-4 flex items-start justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-900">{rep.name}</h3>
+                      <p className="text-sm text-slate-600">{rep.email}</p>
+                    </div>
+                    <div className="text-right">
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        <DollarSign className="w-4 h-4 inline" />
+                        Quarterly Quota
+                      </label>
+                      <input
+                        type="number"
+                        value={quotas[rep.id] || rep.quarterly_quota}
+                        onChange={(e) => updateQuota(rep.id, parseInt(e.target.value) || 0)}
+                        className="w-40 px-3 py-2 border border-emerald-300 bg-emerald-50 rounded-lg focus:ring-2 focus:ring-emerald-500 font-semibold text-slate-900"
+                      />
+                    </div>
                   </div>
 
+                  <h4 className="text-sm font-semibold text-slate-700 mb-3">Weekly Activity Targets</h4>
                   <div className="grid md:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">

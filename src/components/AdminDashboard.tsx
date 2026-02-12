@@ -28,11 +28,27 @@ type WeeklySubmission = {
   this_week_goal: string;
 };
 
+type AggregatedMetrics = {
+  cold_calls: number;
+  emails: number;
+  li_messages: number;
+  videos: number;
+  decision_maker_connects: number;
+  meetings_booked: number;
+  discovery_calls: number;
+  opportunities_advanced: number;
+  pipeline_coverage_ratio: number;
+  weeksCount: number;
+};
+
 export function AdminDashboard() {
   const [availableWeeks, setAvailableWeeks] = useState<Week[]>([]);
   const [currentWeek, setCurrentWeek] = useState<Week | null>(null);
   const [reps, setReps] = useState<User[]>([]);
   const [submissions, setSubmissions] = useState<{ [userId: string]: WeeklySubmission }>({});
+  const [previousWeekSubmissions, setPreviousWeekSubmissions] = useState<{ [userId: string]: WeeklySubmission }>({});
+  const [mtdMetrics, setMtdMetrics] = useState<AggregatedMetrics | null>(null);
+  const [qtdMetrics, setQtdMetrics] = useState<AggregatedMetrics | null>(null);
   const [expandedReps, setExpandedReps] = useState<{ [userId: string]: boolean }>({});
   const [loading, setLoading] = useState(true);
   const [showTargetsModal, setShowTargetsModal] = useState(false);
@@ -92,12 +108,113 @@ export function AdminDashboard() {
           });
         }
         setSubmissions(submissionsMap);
+
+        const { data: previousWeekData } = await supabase
+          .from('weeks')
+          .select('*')
+          .lt('start_date', currentWeek.start_date)
+          .order('start_date', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (previousWeekData) {
+          const { data: previousSubmissionsData } = await supabase
+            .from('weekly_submissions')
+            .select('*')
+            .eq('week_id', previousWeekData.id);
+
+          const previousSubmissionsMap: { [userId: string]: WeeklySubmission } = {};
+          if (previousSubmissionsData) {
+            previousSubmissionsData.forEach((sub: any) => {
+              previousSubmissionsMap[sub.user_id] = sub;
+            });
+          }
+          setPreviousWeekSubmissions(previousSubmissionsMap);
+        }
+
+        const currentDate = new Date(currentWeek.end_date);
+        const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+        const quarter = Math.floor(currentDate.getMonth() / 3);
+        const quarterStart = new Date(currentDate.getFullYear(), quarter * 3, 1);
+
+        const { data: allWeeks } = await supabase
+          .from('weeks')
+          .select('id, start_date, end_date')
+          .lte('start_date', currentWeek.end_date)
+          .order('start_date', { ascending: true });
+
+        if (allWeeks) {
+          const mtdWeekIds = allWeeks
+            .filter(w => new Date(w.start_date) >= monthStart)
+            .map(w => w.id);
+
+          const qtdWeekIds = allWeeks
+            .filter(w => new Date(w.start_date) >= quarterStart)
+            .map(w => w.id);
+
+          const { data: mtdSubmissions } = await supabase
+            .from('weekly_submissions')
+            .select('*')
+            .in('week_id', mtdWeekIds);
+
+          const { data: qtdSubmissions } = await supabase
+            .from('weekly_submissions')
+            .select('*')
+            .in('week_id', qtdWeekIds);
+
+          if (mtdSubmissions && mtdSubmissions.length > 0) {
+            const mtdAgg = aggregateSubmissions(mtdSubmissions);
+            setMtdMetrics(mtdAgg);
+          }
+
+          if (qtdSubmissions && qtdSubmissions.length > 0) {
+            const qtdAgg = aggregateSubmissions(qtdSubmissions);
+            setQtdMetrics(qtdAgg);
+          }
+        }
       }
     } catch (error) {
       console.error('Error loading dashboard:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const aggregateSubmissions = (submissions: any[]): AggregatedMetrics => {
+    const uniqueWeeks = new Set(submissions.map(s => s.week_id));
+    return {
+      cold_calls: submissions.reduce((sum, s) => sum + (s.cold_calls || 0), 0),
+      emails: submissions.reduce((sum, s) => sum + (s.emails || 0), 0),
+      li_messages: submissions.reduce((sum, s) => sum + (s.li_messages || 0), 0),
+      videos: submissions.reduce((sum, s) => sum + (s.videos || 0), 0),
+      decision_maker_connects: submissions.reduce((sum, s) => sum + (s.decision_maker_connects || 0), 0),
+      meetings_booked: submissions.reduce((sum, s) => sum + (s.meetings_booked || 0), 0),
+      discovery_calls: submissions.reduce((sum, s) => sum + (s.discovery_calls || 0), 0),
+      opportunities_advanced: submissions.reduce((sum, s) => sum + (s.opportunities_advanced || 0), 0),
+      pipeline_coverage_ratio: submissions.reduce((sum, s) => sum + (s.pipeline_coverage_ratio || 0), 0) / submissions.length,
+      weeksCount: uniqueWeeks.size
+    };
+  };
+
+  const calculateChange = (current: number, previous: number): number => {
+    if (previous === 0) return current > 0 ? 100 : 0;
+    return ((current - previous) / previous) * 100;
+  };
+
+  const getTrendIcon = (current: number, previous: number) => {
+    const change = calculateChange(current, previous);
+    if (Math.abs(change) < 0.5) return <TrendingUp className="w-4 h-4 text-slate-400" style={{ transform: 'rotate(90deg)' }} />;
+    return change > 0 ? (
+      <TrendingUp className="w-4 h-4 text-emerald-600" />
+    ) : (
+      <TrendingDown className="w-4 h-4 text-red-600" />
+    );
+  };
+
+  const getTrendColor = (current: number, previous: number): string => {
+    const change = calculateChange(current, previous);
+    if (Math.abs(change) < 0.5) return 'text-slate-600';
+    return change > 0 ? 'text-emerald-600' : 'text-red-600';
   };
 
   const calculateTotals = () => {
@@ -362,6 +479,237 @@ export function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {(Object.keys(previousWeekSubmissions).length > 0 || mtdMetrics || qtdMetrics) && (
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <TrendingUp className="w-6 h-6 text-blue-600" />
+            <h3 className="text-xl font-semibold text-slate-900">Team Performance Trends</h3>
+          </div>
+          <p className="text-sm text-slate-600 mb-6">Track team progress with Week-over-Week, Month-to-Date, and Quarter-to-Date metrics</p>
+
+          <div className="space-y-6">
+            {Object.keys(previousWeekSubmissions).length > 0 && (
+              <div>
+                <h4 className="text-md font-semibold text-slate-900 mb-3">Week-over-Week (WoW)</h4>
+                <p className="text-xs text-slate-500 mb-3">Current week vs previous week comparison</p>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {(() => {
+                    const currentTotals = {
+                      coldCalls: Object.values(submissions).reduce((sum, s) => sum + (s.cold_calls || 0), 0),
+                      emails: Object.values(submissions).reduce((sum, s) => sum + (s.emails || 0), 0),
+                      liMessages: Object.values(submissions).reduce((sum, s) => sum + (s.li_messages || 0), 0),
+                      dmConnects: Object.values(submissions).reduce((sum, s) => sum + (s.decision_maker_connects || 0), 0),
+                      meetings: Object.values(submissions).reduce((sum, s) => sum + (s.meetings_booked || 0), 0),
+                      discovery: Object.values(submissions).reduce((sum, s) => sum + (s.discovery_calls || 0), 0),
+                      oppsAdvanced: Object.values(submissions).reduce((sum, s) => sum + (s.opportunities_advanced || 0), 0)
+                    };
+                    const previousTotals = {
+                      coldCalls: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.cold_calls || 0), 0),
+                      emails: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.emails || 0), 0),
+                      liMessages: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.li_messages || 0), 0),
+                      dmConnects: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.decision_maker_connects || 0), 0),
+                      meetings: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.meetings_booked || 0), 0),
+                      discovery: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.discovery_calls || 0), 0),
+                      oppsAdvanced: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.opportunities_advanced || 0), 0)
+                    };
+
+                    return (
+                      <>
+                        <div className="bg-slate-50 rounded-lg p-4">
+                          <p className="text-sm text-slate-600 mb-2">Cold Calls</p>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-baseline gap-2">
+                              <p className="text-2xl font-bold text-slate-900">{currentTotals.coldCalls}</p>
+                              <p className="text-sm text-slate-500">vs {previousTotals.coldCalls}</p>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {getTrendIcon(currentTotals.coldCalls, previousTotals.coldCalls)}
+                              <span className={`text-sm font-medium ${getTrendColor(currentTotals.coldCalls, previousTotals.coldCalls)}`}>
+                                {Math.abs(calculateChange(currentTotals.coldCalls, previousTotals.coldCalls)).toFixed(0)}%
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-50 rounded-lg p-4">
+                          <p className="text-sm text-slate-600 mb-2">Emails</p>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-baseline gap-2">
+                              <p className="text-2xl font-bold text-slate-900">{currentTotals.emails}</p>
+                              <p className="text-sm text-slate-500">vs {previousTotals.emails}</p>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {getTrendIcon(currentTotals.emails, previousTotals.emails)}
+                              <span className={`text-sm font-medium ${getTrendColor(currentTotals.emails, previousTotals.emails)}`}>
+                                {Math.abs(calculateChange(currentTotals.emails, previousTotals.emails)).toFixed(0)}%
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-50 rounded-lg p-4">
+                          <p className="text-sm text-slate-600 mb-2">LinkedIn Messages</p>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-baseline gap-2">
+                              <p className="text-2xl font-bold text-slate-900">{currentTotals.liMessages}</p>
+                              <p className="text-sm text-slate-500">vs {previousTotals.liMessages}</p>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {getTrendIcon(currentTotals.liMessages, previousTotals.liMessages)}
+                              <span className={`text-sm font-medium ${getTrendColor(currentTotals.liMessages, previousTotals.liMessages)}`}>
+                                {Math.abs(calculateChange(currentTotals.liMessages, previousTotals.liMessages)).toFixed(0)}%
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-50 rounded-lg p-4">
+                          <p className="text-sm text-slate-600 mb-2">DM Connects</p>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-baseline gap-2">
+                              <p className="text-2xl font-bold text-slate-900">{currentTotals.dmConnects}</p>
+                              <p className="text-sm text-slate-500">vs {previousTotals.dmConnects}</p>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {getTrendIcon(currentTotals.dmConnects, previousTotals.dmConnects)}
+                              <span className={`text-sm font-medium ${getTrendColor(currentTotals.dmConnects, previousTotals.dmConnects)}`}>
+                                {Math.abs(calculateChange(currentTotals.dmConnects, previousTotals.dmConnects)).toFixed(0)}%
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-50 rounded-lg p-4">
+                          <p className="text-sm text-slate-600 mb-2">Meetings Booked</p>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-baseline gap-2">
+                              <p className="text-2xl font-bold text-slate-900">{currentTotals.meetings}</p>
+                              <p className="text-sm text-slate-500">vs {previousTotals.meetings}</p>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {getTrendIcon(currentTotals.meetings, previousTotals.meetings)}
+                              <span className={`text-sm font-medium ${getTrendColor(currentTotals.meetings, previousTotals.meetings)}`}>
+                                {Math.abs(calculateChange(currentTotals.meetings, previousTotals.meetings)).toFixed(0)}%
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-50 rounded-lg p-4">
+                          <p className="text-sm text-slate-600 mb-2">Discovery Calls</p>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-baseline gap-2">
+                              <p className="text-2xl font-bold text-slate-900">{currentTotals.discovery}</p>
+                              <p className="text-sm text-slate-500">vs {previousTotals.discovery}</p>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {getTrendIcon(currentTotals.discovery, previousTotals.discovery)}
+                              <span className={`text-sm font-medium ${getTrendColor(currentTotals.discovery, previousTotals.discovery)}`}>
+                                {Math.abs(calculateChange(currentTotals.discovery, previousTotals.discovery)).toFixed(0)}%
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-50 rounded-lg p-4">
+                          <p className="text-sm text-slate-600 mb-2">Opps Advanced</p>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-baseline gap-2">
+                              <p className="text-2xl font-bold text-slate-900">{currentTotals.oppsAdvanced}</p>
+                              <p className="text-sm text-slate-500">vs {previousTotals.oppsAdvanced}</p>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {getTrendIcon(currentTotals.oppsAdvanced, previousTotals.oppsAdvanced)}
+                              <span className={`text-sm font-medium ${getTrendColor(currentTotals.oppsAdvanced, previousTotals.oppsAdvanced)}`}>
+                                {Math.abs(calculateChange(currentTotals.oppsAdvanced, previousTotals.oppsAdvanced)).toFixed(0)}%
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
+
+            {mtdMetrics && (
+              <div>
+                <h4 className="text-md font-semibold text-slate-900 mb-3">Month-to-Date (MTD)</h4>
+                <p className="text-xs text-slate-500 mb-3">Cumulative team totals across {mtdMetrics.weeksCount} week(s) this month</p>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">Cold Calls</p>
+                    <p className="text-2xl font-bold text-slate-900">{mtdMetrics.cold_calls}</p>
+                  </div>
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">Emails</p>
+                    <p className="text-2xl font-bold text-slate-900">{mtdMetrics.emails}</p>
+                  </div>
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">LinkedIn Messages</p>
+                    <p className="text-2xl font-bold text-slate-900">{mtdMetrics.li_messages}</p>
+                  </div>
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">DM Connects</p>
+                    <p className="text-2xl font-bold text-slate-900">{mtdMetrics.decision_maker_connects}</p>
+                  </div>
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">Meetings Booked</p>
+                    <p className="text-2xl font-bold text-slate-900">{mtdMetrics.meetings_booked}</p>
+                  </div>
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">Discovery Calls</p>
+                    <p className="text-2xl font-bold text-slate-900">{mtdMetrics.discovery_calls}</p>
+                  </div>
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">Opps Advanced</p>
+                    <p className="text-2xl font-bold text-slate-900">{mtdMetrics.opportunities_advanced}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {qtdMetrics && (
+              <div>
+                <h4 className="text-md font-semibold text-slate-900 mb-3">Quarter-to-Date (QTD)</h4>
+                <p className="text-xs text-slate-500 mb-3">Cumulative team totals across {qtdMetrics.weeksCount} week(s) this quarter</p>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="bg-emerald-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">Cold Calls</p>
+                    <p className="text-2xl font-bold text-slate-900">{qtdMetrics.cold_calls}</p>
+                  </div>
+                  <div className="bg-emerald-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">Emails</p>
+                    <p className="text-2xl font-bold text-slate-900">{qtdMetrics.emails}</p>
+                  </div>
+                  <div className="bg-emerald-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">LinkedIn Messages</p>
+                    <p className="text-2xl font-bold text-slate-900">{qtdMetrics.li_messages}</p>
+                  </div>
+                  <div className="bg-emerald-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">DM Connects</p>
+                    <p className="text-2xl font-bold text-slate-900">{qtdMetrics.decision_maker_connects}</p>
+                  </div>
+                  <div className="bg-emerald-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">Meetings Booked</p>
+                    <p className="text-2xl font-bold text-slate-900">{qtdMetrics.meetings_booked}</p>
+                  </div>
+                  <div className="bg-emerald-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">Discovery Calls</p>
+                    <p className="text-2xl font-bold text-slate-900">{qtdMetrics.discovery_calls}</p>
+                  </div>
+                  <div className="bg-emerald-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">Opps Advanced</p>
+                    <p className="text-2xl font-bold text-slate-900">{qtdMetrics.opportunities_advanced}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
         <h3 className="text-xl font-semibold text-slate-900 mb-4">
