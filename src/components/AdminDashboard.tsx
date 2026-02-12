@@ -196,6 +196,15 @@ export function AdminDashboard() {
     };
   };
 
+  const formatRevenue = (value: number): string => {
+    if (value >= 1000000) {
+      return `$${(value / 1000000).toFixed(1)}M`;
+    } else if (value >= 1000) {
+      return `$${(value / 1000).toFixed(0)}K`;
+    }
+    return `$${value.toFixed(0)}`;
+  };
+
   const calculateChange = (current: number, previous: number): number => {
     if (previous === 0) return current > 0 ? 100 : 0;
     return ((current - previous) / previous) * 100;
@@ -403,7 +412,7 @@ export function AdminDashboard() {
             <span className="text-sm font-medium text-slate-600">QTD Revenue</span>
           </div>
           <p className="text-3xl font-bold text-slate-900">
-            ${(totals.totalRevenueQTD / 1000).toFixed(0)}K
+            {formatRevenue(totals.totalRevenueQTD)}
           </p>
           <p className="text-sm text-slate-600 mt-1">
             {totals.percentToQuotaQTD.toFixed(1)}% to quota
@@ -416,7 +425,7 @@ export function AdminDashboard() {
             <span className="text-sm font-medium text-slate-600">MTD Revenue</span>
           </div>
           <p className="text-3xl font-bold text-slate-900">
-            ${(totals.totalRevenueMTD / 1000).toFixed(0)}K
+            {formatRevenue(totals.totalRevenueMTD)}
           </p>
           <p className="text-sm text-slate-600 mt-1">
             {totals.percentToQuotaMTD.toFixed(1)}% to monthly
@@ -756,7 +765,7 @@ export function AdminDashboard() {
                     <div className="text-center min-w-[100px]">
                       <p className="text-sm text-slate-600">QTD Revenue</p>
                       <p className="font-semibold text-slate-900">
-                        ${(submission?.revenue_qtd || 0).toLocaleString()}
+                        {formatRevenue(submission?.revenue_qtd || 0)}
                       </p>
                     </div>
 
@@ -819,11 +828,11 @@ export function AdminDashboard() {
                         <div className="space-y-2">
                           <div className="flex justify-between">
                             <span className="text-slate-600">Revenue MTD:</span>
-                            <span className="font-medium">${(submission.revenue_mtd || 0).toLocaleString()}</span>
+                            <span className="font-medium">{formatRevenue(submission.revenue_mtd || 0)}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-slate-600">Revenue QTD:</span>
-                            <span className="font-medium">${(submission.revenue_qtd || 0).toLocaleString()}</span>
+                            <span className="font-medium">{formatRevenue(submission.revenue_qtd || 0)}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-slate-600">Pipeline Coverage:</span>
