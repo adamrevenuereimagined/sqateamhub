@@ -22,43 +22,39 @@ export function Layout({ children, currentView, onNavigate }: LayoutProps) {
               </h1>
 
               <div className="hidden md:flex space-x-1">
-                <button
-                  onClick={() => onNavigate('dashboard')}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                    currentView === 'dashboard'
-                      ? 'bg-emerald-50 text-emerald-700'
-                      : 'text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  <Home className="w-4 h-4 inline mr-2" />
-                  Dashboard
-                </button>
+                {!isAdmin ? (
+                  <>
+                    <button
+                      onClick={() => onNavigate('dashboard')}
+                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                        currentView === 'dashboard'
+                          ? 'bg-emerald-50 text-emerald-700'
+                          : 'text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      <Home className="w-4 h-4 inline mr-2" />
+                      Dashboard
+                    </button>
 
-                {!isAdmin && (
-                  <button
-                    onClick={() => onNavigate('weekly')}
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                      currentView === 'weekly'
-                        ? 'bg-emerald-50 text-emerald-700'
-                        : 'text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    <FileText className="w-4 h-4 inline mr-2" />
-                    Weekly Submission
-                  </button>
-                )}
-
-                {isAdmin && (
+                    <button
+                      onClick={() => onNavigate('weekly')}
+                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                        currentView === 'weekly'
+                          ? 'bg-emerald-50 text-emerald-700'
+                          : 'text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      <FileText className="w-4 h-4 inline mr-2" />
+                      Weekly Submission
+                    </button>
+                  </>
+                ) : (
                   <button
                     onClick={() => onNavigate('admin')}
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                      currentView === 'admin'
-                        ? 'bg-emerald-50 text-emerald-700'
-                        : 'text-slate-600 hover:bg-slate-50'
-                    }`}
+                    className="px-4 py-2 rounded-lg font-medium bg-emerald-50 text-emerald-700"
                   >
                     <Users className="w-4 h-4 inline mr-2" />
-                    Admin Dashboard
+                    Team Dashboard
                   </button>
                 )}
               </div>

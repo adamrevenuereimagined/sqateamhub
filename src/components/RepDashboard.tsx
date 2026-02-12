@@ -16,11 +16,26 @@ type WeeklySubmission = {
   pipeline_coverage_ratio: number;
 };
 
+type AggregatedMetrics = {
+  cold_calls: number;
+  emails: number;
+  li_messages: number;
+  videos: number;
+  decision_maker_connects: number;
+  meetings_booked: number;
+  discovery_calls: number;
+  opportunities_advanced: number;
+  pipeline_coverage_ratio: number;
+  weeksCount: number;
+};
+
 export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly' | 'history') => void }) {
   const { user } = useAuth();
   const [currentWeek, setCurrentWeek] = useState<Week | null>(null);
   const [submission, setSubmission] = useState<WeeklySubmission | null>(null);
   const [previousSubmission, setPreviousSubmission] = useState<WeeklySubmission | null>(null);
+  const [mtdMetrics, setMtdMetrics] = useState<AggregatedMetrics | null>(null);
+  const [qtdMetrics, setQtdMetrics] = useState<AggregatedMetrics | null>(null);
   const [submissionStatus, setSubmissionStatus] = useState<'not_started' | 'in_progress' | 'submitted'>('not_started');
   const [targets, setTargets] = useState<WeeklyActivityTargets | null>(null);
   const [loading, setLoading] = useState(true);
@@ -76,6 +91,50 @@ export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly' | 'hi
             setPreviousSubmission(previousSubmissionData);
           }
         }
+
+        const currentDate = new Date(weekData.end_date);
+        const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+
+        const quarter = Math.floor(currentDate.getMonth() / 3);
+        const quarterStart = new Date(currentDate.getFullYear(), quarter * 3, 1);
+
+        const { data: allWeeks } = await supabase
+          .from('weeks')
+          .select('id, start_date, end_date')
+          .lte('start_date', weekData.end_date)
+          .order('start_date', { ascending: true });
+
+        if (allWeeks) {
+          const mtdWeekIds = allWeeks
+            .filter(w => new Date(w.start_date) >= monthStart)
+            .map(w => w.id);
+
+          const qtdWeekIds = allWeeks
+            .filter(w => new Date(w.start_date) >= quarterStart)
+            .map(w => w.id);
+
+          const { data: mtdSubmissions } = await supabase
+            .from('weekly_submissions')
+            .select('*')
+            .eq('user_id', user.id)
+            .in('week_id', mtdWeekIds);
+
+          const { data: qtdSubmissions } = await supabase
+            .from('weekly_submissions')
+            .select('*')
+            .eq('user_id', user.id)
+            .in('week_id', qtdWeekIds);
+
+          if (mtdSubmissions && mtdSubmissions.length > 0) {
+            const mtdAgg = aggregateSubmissions(mtdSubmissions);
+            setMtdMetrics(mtdAgg);
+          }
+
+          if (qtdSubmissions && qtdSubmissions.length > 0) {
+            const qtdAgg = aggregateSubmissions(qtdSubmissions);
+            setQtdMetrics(qtdAgg);
+          }
+        }
       }
 
       const { data: targetsData } = await supabase
@@ -92,6 +151,21 @@ export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly' | 'hi
     } finally {
       setLoading(false);
     }
+  };
+
+  const aggregateSubmissions = (submissions: any[]): AggregatedMetrics => {
+    return {
+      cold_calls: submissions.reduce((sum, s) => sum + (s.cold_calls || 0), 0),
+      emails: submissions.reduce((sum, s) => sum + (s.emails || 0), 0),
+      li_messages: submissions.reduce((sum, s) => sum + (s.li_messages || 0), 0),
+      videos: submissions.reduce((sum, s) => sum + (s.videos || 0), 0),
+      decision_maker_connects: submissions.reduce((sum, s) => sum + (s.decision_maker_connects || 0), 0),
+      meetings_booked: submissions.reduce((sum, s) => sum + (s.meetings_booked || 0), 0),
+      discovery_calls: submissions.reduce((sum, s) => sum + (s.discovery_calls || 0), 0),
+      opportunities_advanced: submissions.reduce((sum, s) => sum + (s.opportunities_advanced || 0), 0),
+      pipeline_coverage_ratio: submissions.reduce((sum, s) => sum + (s.pipeline_coverage_ratio || 0), 0) / submissions.length,
+      weeksCount: submissions.length
+    };
   };
 
   if (loading) {
@@ -230,15 +304,19 @@ export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly' | 'hi
         </div>
       </div>
 
-      {previousSubmission && submission && (
+      {submission && (previousSubmission || mtdMetrics || qtdMetrics) && (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp className="w-6 h-6 text-blue-600" />
-            <h3 className="text-lg font-semibold text-slate-900">Week-Over-Week Performance</h3>
+            <h3 className="text-lg font-semibold text-slate-900">Performance Trends</h3>
           </div>
-          <p className="text-sm text-slate-600 mb-4">See how your metrics have changed from last week</p>
+          <p className="text-sm text-slate-600 mb-4">Track your progress with Week-over-Week, Month-to-Date, and Quarter-to-Date metrics</p>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="space-y-6">
+            {previousSubmission && (
+              <div>
+                <h4 className="text-md font-semibold text-slate-900 mb-3">Week-over-Week (WoW)</h4>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="bg-slate-50 rounded-lg p-4">
               <p className="text-sm text-slate-600 mb-2">Cold Calls</p>
               <div className="flex items-center justify-between">
@@ -382,6 +460,99 @@ export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly' | 'hi
                 </div>
               </div>
             </div>
+                </div>
+              </div>
+            )}
+
+            {mtdMetrics && (
+              <div>
+                <h4 className="text-md font-semibold text-slate-900 mb-3">Month-to-Date (MTD)</h4>
+                <p className="text-xs text-slate-500 mb-3">Cumulative totals across {mtdMetrics.weeksCount} week(s) this month</p>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">Cold Calls</p>
+                    <p className="text-2xl font-bold text-slate-900">{mtdMetrics.cold_calls}</p>
+                  </div>
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">Emails</p>
+                    <p className="text-2xl font-bold text-slate-900">{mtdMetrics.emails}</p>
+                  </div>
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">LinkedIn Messages</p>
+                    <p className="text-2xl font-bold text-slate-900">{mtdMetrics.li_messages}</p>
+                  </div>
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">Videos</p>
+                    <p className="text-2xl font-bold text-slate-900">{mtdMetrics.videos}</p>
+                  </div>
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">DM Connects</p>
+                    <p className="text-2xl font-bold text-slate-900">{mtdMetrics.decision_maker_connects}</p>
+                  </div>
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">Meetings Booked</p>
+                    <p className="text-2xl font-bold text-slate-900">{mtdMetrics.meetings_booked}</p>
+                  </div>
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">Discovery Calls</p>
+                    <p className="text-2xl font-bold text-slate-900">{mtdMetrics.discovery_calls}</p>
+                  </div>
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">Opportunities Advanced</p>
+                    <p className="text-2xl font-bold text-slate-900">{mtdMetrics.opportunities_advanced}</p>
+                  </div>
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">Pipeline Coverage</p>
+                    <p className="text-2xl font-bold text-slate-900">{mtdMetrics.pipeline_coverage_ratio.toFixed(1)}x</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {qtdMetrics && (
+              <div>
+                <h4 className="text-md font-semibold text-slate-900 mb-3">Quarter-to-Date (QTD)</h4>
+                <p className="text-xs text-slate-500 mb-3">Cumulative totals across {qtdMetrics.weeksCount} week(s) this quarter</p>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="bg-emerald-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">Cold Calls</p>
+                    <p className="text-2xl font-bold text-slate-900">{qtdMetrics.cold_calls}</p>
+                  </div>
+                  <div className="bg-emerald-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">Emails</p>
+                    <p className="text-2xl font-bold text-slate-900">{qtdMetrics.emails}</p>
+                  </div>
+                  <div className="bg-emerald-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">LinkedIn Messages</p>
+                    <p className="text-2xl font-bold text-slate-900">{qtdMetrics.li_messages}</p>
+                  </div>
+                  <div className="bg-emerald-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">Videos</p>
+                    <p className="text-2xl font-bold text-slate-900">{qtdMetrics.videos}</p>
+                  </div>
+                  <div className="bg-emerald-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">DM Connects</p>
+                    <p className="text-2xl font-bold text-slate-900">{qtdMetrics.decision_maker_connects}</p>
+                  </div>
+                  <div className="bg-emerald-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">Meetings Booked</p>
+                    <p className="text-2xl font-bold text-slate-900">{qtdMetrics.meetings_booked}</p>
+                  </div>
+                  <div className="bg-emerald-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">Discovery Calls</p>
+                    <p className="text-2xl font-bold text-slate-900">{qtdMetrics.discovery_calls}</p>
+                  </div>
+                  <div className="bg-emerald-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">Opportunities Advanced</p>
+                    <p className="text-2xl font-bold text-slate-900">{qtdMetrics.opportunities_advanced}</p>
+                  </div>
+                  <div className="bg-emerald-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 mb-2">Pipeline Coverage</p>
+                    <p className="text-2xl font-bold text-slate-900">{qtdMetrics.pipeline_coverage_ratio.toFixed(1)}x</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
