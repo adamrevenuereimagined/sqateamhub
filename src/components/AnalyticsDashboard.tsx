@@ -7,7 +7,6 @@ type WeeklySubmission = {
   user_id: string;
   week_id: string;
   cold_calls: number;
-  emails: number;
   li_messages: number;
   videos: number;
   decision_maker_connects: number;
@@ -22,7 +21,6 @@ type WeeklySubmission = {
 type ActivityTarget = {
   user_id: string;
   target_cold_calls: number;
-  target_emails: number;
   target_li_messages: number;
   target_videos: number;
   target_dm_connects: number;
@@ -232,7 +230,6 @@ export function AnalyticsDashboard() {
           <div className="grid md:grid-cols-4 gap-4">
             {[
               { label: 'Cold Calls', current: currentWeekData.submission.cold_calls, previous: previousWeekData.submission.cold_calls },
-              { label: 'Emails', current: currentWeekData.submission.emails, previous: previousWeekData.submission.emails },
               { label: 'LI Messages', current: currentWeekData.submission.li_messages, previous: previousWeekData.submission.li_messages },
               { label: 'DM Connects', current: currentWeekData.submission.decision_maker_connects, previous: previousWeekData.submission.decision_maker_connects },
               { label: 'Meetings', current: currentWeekData.submission.meetings_booked, previous: previousWeekData.submission.meetings_booked },
@@ -280,7 +277,6 @@ export function AnalyticsDashboard() {
           <div className="grid md:grid-cols-2 gap-6">
             {[
               { label: 'Cold Calls', actual: currentWeekData.submission.cold_calls, target: repTargets.target_cold_calls },
-              { label: 'Emails', actual: currentWeekData.submission.emails, target: repTargets.target_emails },
               { label: 'LI Messages', actual: currentWeekData.submission.li_messages, target: repTargets.target_li_messages },
               { label: 'Videos', actual: currentWeekData.submission.videos, target: repTargets.target_videos },
               { label: 'DM Connects', actual: currentWeekData.submission.decision_maker_connects, target: repTargets.target_dm_connects },
@@ -338,7 +334,6 @@ export function AnalyticsDashboard() {
               <tr className="border-b-2 border-slate-200">
                 <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Week Ending</th>
                 <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Cold Calls</th>
-                <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Emails</th>
                 <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">LI Msgs</th>
                 <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">DM Connects</th>
                 <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Meetings</th>
@@ -370,9 +365,6 @@ export function AnalyticsDashboard() {
                     </td>
                     <td className="text-right py-3 px-4 font-medium text-slate-900">
                       {submission?.cold_calls || '-'}
-                    </td>
-                    <td className="text-right py-3 px-4 font-medium text-slate-900">
-                      {submission?.emails || '-'}
                     </td>
                     <td className="text-right py-3 px-4 font-medium text-slate-900">
                       {submission?.li_messages || '-'}

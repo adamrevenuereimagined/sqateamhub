@@ -6,7 +6,6 @@ import { FileText, CheckCircle, Clock, AlertCircle, Target, TrendingUp, Trending
 type WeeklySubmission = {
   status: string;
   cold_calls: number;
-  emails: number;
   li_messages: number;
   videos: number;
   decision_maker_connects: number;
@@ -18,7 +17,6 @@ type WeeklySubmission = {
 
 type AggregatedMetrics = {
   cold_calls: number;
-  emails: number;
   li_messages: number;
   videos: number;
   decision_maker_connects: number;
@@ -157,7 +155,6 @@ export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly' | 'hi
   const aggregateSubmissions = (submissions: any[]): AggregatedMetrics => {
     return {
       cold_calls: submissions.reduce((sum, s) => sum + (s.cold_calls || 0), 0),
-      emails: submissions.reduce((sum, s) => sum + (s.emails || 0), 0),
       li_messages: submissions.reduce((sum, s) => sum + (s.li_messages || 0), 0),
       videos: submissions.reduce((sum, s) => sum + (s.videos || 0), 0),
       decision_maker_connects: submissions.reduce((sum, s) => sum + (s.decision_maker_connects || 0), 0),
@@ -586,10 +583,6 @@ export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly' | 'hi
                     <p className="text-2xl font-bold text-slate-900">{qtdMetrics.cold_calls}</p>
                   </div>
                   <div className="bg-emerald-50 rounded-lg p-4">
-                    <p className="text-sm text-slate-600 mb-2">Emails</p>
-                    <p className="text-2xl font-bold text-slate-900">{qtdMetrics.emails}</p>
-                  </div>
-                  <div className="bg-emerald-50 rounded-lg p-4">
                     <p className="text-sm text-slate-600 mb-2">LinkedIn Messages</p>
                     <p className="text-2xl font-bold text-slate-900">{qtdMetrics.li_messages}</p>
                   </div>
@@ -645,22 +638,6 @@ export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly' | 'hi
                 <div
                   className={`h-full ${(submission?.cold_calls || 0) >= targets.target_cold_calls ? 'bg-emerald-600' : 'bg-blue-600'}`}
                   style={{ width: `${Math.min(((submission?.cold_calls || 0) / targets.target_cold_calls) * 100, 100)}%` }}
-                ></div>
-              </div>
-            </div>
-
-            <div className="bg-slate-50 rounded-lg p-4">
-              <p className="text-sm text-slate-600 mb-2">Emails</p>
-              <div className="flex items-baseline gap-2">
-                <p className="text-2xl font-bold text-slate-900">
-                  {submission?.emails || 0}
-                </p>
-                <p className="text-sm text-slate-500">/ {targets.target_emails}</p>
-              </div>
-              <div className="mt-2 h-2 bg-slate-200 rounded-full overflow-hidden">
-                <div
-                  className={`h-full ${(submission?.emails || 0) >= targets.target_emails ? 'bg-emerald-600' : 'bg-blue-600'}`}
-                  style={{ width: `${Math.min(((submission?.emails || 0) / targets.target_emails) * 100, 100)}%` }}
                 ></div>
               </div>
             </div>
