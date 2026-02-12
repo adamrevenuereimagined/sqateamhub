@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase, Week, WeeklyActivityTargets } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { FileText, CheckCircle, Clock, AlertCircle, Target } from 'lucide-react';
+import { FileText, CheckCircle, Clock, AlertCircle, Target, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 type WeeklySubmission = {
   status: string;
@@ -20,6 +20,7 @@ export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly' | 'hi
   const { user } = useAuth();
   const [currentWeek, setCurrentWeek] = useState<Week | null>(null);
   const [submission, setSubmission] = useState<WeeklySubmission | null>(null);
+  const [previousSubmission, setPreviousSubmission] = useState<WeeklySubmission | null>(null);
   const [submissionStatus, setSubmissionStatus] = useState<'not_started' | 'in_progress' | 'submitted'>('not_started');
   const [targets, setTargets] = useState<WeeklyActivityTargets | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,6 +54,27 @@ export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly' | 'hi
         if (submissionData) {
           setSubmission(submissionData);
           setSubmissionStatus(submissionData.status);
+        }
+
+        const { data: previousWeekData } = await supabase
+          .from('weeks')
+          .select('*')
+          .lt('start_date', weekData.start_date)
+          .order('start_date', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (previousWeekData) {
+          const { data: previousSubmissionData } = await supabase
+            .from('weekly_submissions')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('week_id', previousWeekData.id)
+            .maybeSingle();
+
+          if (previousSubmissionData) {
+            setPreviousSubmission(previousSubmissionData);
+          }
         }
       }
 
@@ -111,6 +133,27 @@ export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly' | 'hi
       default:
         return 'bg-slate-50 text-slate-700 border-slate-200';
     }
+  };
+
+  const calculateChange = (current: number, previous: number) => {
+    if (previous === 0) {
+      return current > 0 ? 100 : 0;
+    }
+    return ((current - previous) / previous) * 100;
+  };
+
+  const getTrendIcon = (current: number, previous: number) => {
+    const change = current - previous;
+    if (change > 0) return <TrendingUp className="w-4 h-4 text-emerald-600" />;
+    if (change < 0) return <TrendingDown className="w-4 h-4 text-red-600" />;
+    return <Minus className="w-4 h-4 text-slate-400" />;
+  };
+
+  const getTrendColor = (current: number, previous: number) => {
+    const change = current - previous;
+    if (change > 0) return 'text-emerald-600';
+    if (change < 0) return 'text-red-600';
+    return 'text-slate-500';
   };
 
   return (
@@ -186,6 +229,162 @@ export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly' | 'hi
           </div>
         </div>
       </div>
+
+      {previousSubmission && submission && (
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <TrendingUp className="w-6 h-6 text-blue-600" />
+            <h3 className="text-lg font-semibold text-slate-900">Week-Over-Week Performance</h3>
+          </div>
+          <p className="text-sm text-slate-600 mb-4">See how your metrics have changed from last week</p>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="bg-slate-50 rounded-lg p-4">
+              <p className="text-sm text-slate-600 mb-2">Cold Calls</p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-baseline gap-2">
+                  <p className="text-2xl font-bold text-slate-900">{submission.cold_calls}</p>
+                  <p className="text-sm text-slate-500">vs {previousSubmission.cold_calls}</p>
+                </div>
+                <div className="flex items-center gap-1">
+                  {getTrendIcon(submission.cold_calls, previousSubmission.cold_calls)}
+                  <span className={`text-sm font-medium ${getTrendColor(submission.cold_calls, previousSubmission.cold_calls)}`}>
+                    {Math.abs(calculateChange(submission.cold_calls, previousSubmission.cold_calls)).toFixed(0)}%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 rounded-lg p-4">
+              <p className="text-sm text-slate-600 mb-2">Emails</p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-baseline gap-2">
+                  <p className="text-2xl font-bold text-slate-900">{submission.emails}</p>
+                  <p className="text-sm text-slate-500">vs {previousSubmission.emails}</p>
+                </div>
+                <div className="flex items-center gap-1">
+                  {getTrendIcon(submission.emails, previousSubmission.emails)}
+                  <span className={`text-sm font-medium ${getTrendColor(submission.emails, previousSubmission.emails)}`}>
+                    {Math.abs(calculateChange(submission.emails, previousSubmission.emails)).toFixed(0)}%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 rounded-lg p-4">
+              <p className="text-sm text-slate-600 mb-2">LinkedIn Messages</p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-baseline gap-2">
+                  <p className="text-2xl font-bold text-slate-900">{submission.li_messages}</p>
+                  <p className="text-sm text-slate-500">vs {previousSubmission.li_messages}</p>
+                </div>
+                <div className="flex items-center gap-1">
+                  {getTrendIcon(submission.li_messages, previousSubmission.li_messages)}
+                  <span className={`text-sm font-medium ${getTrendColor(submission.li_messages, previousSubmission.li_messages)}`}>
+                    {Math.abs(calculateChange(submission.li_messages, previousSubmission.li_messages)).toFixed(0)}%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 rounded-lg p-4">
+              <p className="text-sm text-slate-600 mb-2">Videos</p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-baseline gap-2">
+                  <p className="text-2xl font-bold text-slate-900">{submission.videos}</p>
+                  <p className="text-sm text-slate-500">vs {previousSubmission.videos}</p>
+                </div>
+                <div className="flex items-center gap-1">
+                  {getTrendIcon(submission.videos, previousSubmission.videos)}
+                  <span className={`text-sm font-medium ${getTrendColor(submission.videos, previousSubmission.videos)}`}>
+                    {Math.abs(calculateChange(submission.videos, previousSubmission.videos)).toFixed(0)}%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 rounded-lg p-4">
+              <p className="text-sm text-slate-600 mb-2">DM Connects</p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-baseline gap-2">
+                  <p className="text-2xl font-bold text-slate-900">{submission.decision_maker_connects}</p>
+                  <p className="text-sm text-slate-500">vs {previousSubmission.decision_maker_connects}</p>
+                </div>
+                <div className="flex items-center gap-1">
+                  {getTrendIcon(submission.decision_maker_connects, previousSubmission.decision_maker_connects)}
+                  <span className={`text-sm font-medium ${getTrendColor(submission.decision_maker_connects, previousSubmission.decision_maker_connects)}`}>
+                    {Math.abs(calculateChange(submission.decision_maker_connects, previousSubmission.decision_maker_connects)).toFixed(0)}%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 rounded-lg p-4">
+              <p className="text-sm text-slate-600 mb-2">Meetings Booked</p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-baseline gap-2">
+                  <p className="text-2xl font-bold text-slate-900">{submission.meetings_booked}</p>
+                  <p className="text-sm text-slate-500">vs {previousSubmission.meetings_booked}</p>
+                </div>
+                <div className="flex items-center gap-1">
+                  {getTrendIcon(submission.meetings_booked, previousSubmission.meetings_booked)}
+                  <span className={`text-sm font-medium ${getTrendColor(submission.meetings_booked, previousSubmission.meetings_booked)}`}>
+                    {Math.abs(calculateChange(submission.meetings_booked, previousSubmission.meetings_booked)).toFixed(0)}%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 rounded-lg p-4">
+              <p className="text-sm text-slate-600 mb-2">Discovery Calls</p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-baseline gap-2">
+                  <p className="text-2xl font-bold text-slate-900">{submission.discovery_calls}</p>
+                  <p className="text-sm text-slate-500">vs {previousSubmission.discovery_calls}</p>
+                </div>
+                <div className="flex items-center gap-1">
+                  {getTrendIcon(submission.discovery_calls, previousSubmission.discovery_calls)}
+                  <span className={`text-sm font-medium ${getTrendColor(submission.discovery_calls, previousSubmission.discovery_calls)}`}>
+                    {Math.abs(calculateChange(submission.discovery_calls, previousSubmission.discovery_calls)).toFixed(0)}%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 rounded-lg p-4">
+              <p className="text-sm text-slate-600 mb-2">Opportunities Advanced</p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-baseline gap-2">
+                  <p className="text-2xl font-bold text-slate-900">{submission.opportunities_advanced}</p>
+                  <p className="text-sm text-slate-500">vs {previousSubmission.opportunities_advanced}</p>
+                </div>
+                <div className="flex items-center gap-1">
+                  {getTrendIcon(submission.opportunities_advanced, previousSubmission.opportunities_advanced)}
+                  <span className={`text-sm font-medium ${getTrendColor(submission.opportunities_advanced, previousSubmission.opportunities_advanced)}`}>
+                    {Math.abs(calculateChange(submission.opportunities_advanced, previousSubmission.opportunities_advanced)).toFixed(0)}%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 rounded-lg p-4">
+              <p className="text-sm text-slate-600 mb-2">Pipeline Coverage</p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-baseline gap-2">
+                  <p className="text-2xl font-bold text-slate-900">{submission.pipeline_coverage_ratio.toFixed(1)}x</p>
+                  <p className="text-sm text-slate-500">vs {previousSubmission.pipeline_coverage_ratio.toFixed(1)}x</p>
+                </div>
+                <div className="flex items-center gap-1">
+                  {getTrendIcon(submission.pipeline_coverage_ratio, previousSubmission.pipeline_coverage_ratio)}
+                  <span className={`text-sm font-medium ${getTrendColor(submission.pipeline_coverage_ratio, previousSubmission.pipeline_coverage_ratio)}`}>
+                    {Math.abs(calculateChange(submission.pipeline_coverage_ratio, previousSubmission.pipeline_coverage_ratio)).toFixed(0)}%
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {targets && (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
