@@ -4,12 +4,11 @@ import { Login } from './components/Login';
 import { Layout } from './components/Layout';
 import { RepDashboard } from './components/RepDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
-import { OneOnOneForm } from './components/OneOnOneForm';
-import { BDWeeklyForm } from './components/BDWeeklyForm';
+import { WeeklySubmissionForm } from './components/WeeklySubmissionForm';
 
 function AppContent() {
   const { session, user, loading } = useAuth();
-  const [currentView, setCurrentView] = useState<'dashboard' | '1on1' | 'bd-weekly' | 'admin'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'weekly' | 'admin'>('dashboard');
 
   if (loading) {
     return (
@@ -23,17 +22,15 @@ function AppContent() {
     return <Login />;
   }
 
-  const handleNavigate = (view: 'dashboard' | '1on1' | 'bd-weekly' | 'admin') => {
+  const handleNavigate = (view: 'dashboard' | 'weekly' | 'admin') => {
     setCurrentView(view);
   };
 
   const renderContent = () => {
     if (user.role === 'rep') {
       switch (currentView) {
-        case '1on1':
-          return <OneOnOneForm onBack={() => setCurrentView('dashboard')} />;
-        case 'bd-weekly':
-          return <BDWeeklyForm onBack={() => setCurrentView('dashboard')} />;
+        case 'weekly':
+          return <WeeklySubmissionForm onBack={() => setCurrentView('dashboard')} />;
         default:
           return <RepDashboard onNavigate={handleNavigate} />;
       }

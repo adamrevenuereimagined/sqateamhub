@@ -6,10 +6,7 @@ export function AdminDashboard() {
   const [currentWeek, setCurrentWeek] = useState<Week | null>(null);
   const [reps, setReps] = useState<User[]>([]);
   const [submissionStatus, setSubmissionStatus] = useState<{
-    [userId: string]: {
-      oneOnOne: 'submitted' | 'in_progress' | 'not_started';
-      bdWeekly: 'submitted' | 'in_progress' | 'not_started';
-    };
+    [userId: string]: 'submitted' | 'in_progress' | 'not_started';
   }>({});
   const [teamMetrics, setTeamMetrics] = useState({
     totalRevenueMTD: 0,
@@ -63,43 +60,18 @@ export function AdminDashboard() {
 
   const loadSubmissionStatus = async (weekId: string, repsList: User[]) => {
     const status: {
-      [userId: string]: {
-        oneOnOne: 'submitted' | 'in_progress' | 'not_started';
-        bdWeekly: 'submitted' | 'in_progress' | 'not_started';
-      };
+      [userId: string]: 'submitted' | 'in_progress' | 'not_started';
     } = {};
 
     for (const rep of repsList) {
-      const { data: oneOnOneData } = await supabase
-        .from('one_on_one_submissions')
+      const { data: submission } = await supabase
+        .from('weekly_submissions')
         .select('status')
         .eq('user_id', rep.id)
         .eq('week_id', weekId)
         .maybeSingle();
 
-      const { data: bdWeeklyData } = await supabase
-        .from('bd_weekly_rep_data')
-        .select('*')
-        .eq('user_id', rep.id)
-        .maybeSingle();
-
-      const { data: goalData } = await supabase
-        .from('weekly_goals')
-        .select('*')
-        .eq('user_id', rep.id)
-        .maybeSingle();
-
-      let bdStatus: 'submitted' | 'in_progress' | 'not_started' = 'not_started';
-      if (bdWeeklyData && goalData && goalData.achieved) {
-        bdStatus = 'submitted';
-      } else if (bdWeeklyData || goalData) {
-        bdStatus = 'in_progress';
-      }
-
-      status[rep.id] = {
-        oneOnOne: oneOnOneData?.status || 'not_started',
-        bdWeekly: bdStatus
-      };
+      status[rep.id] = submission?.status || 'not_started';
     }
 
     setSubmissionStatus(status);
@@ -107,7 +79,7 @@ export function AdminDashboard() {
 
   const loadTeamMetrics = async (weekId: string, repsList: User[]) => {
     const { data: submissions } = await supabase
-      .from('one_on_one_submissions')
+      .from('weekly_submissions')
       .select('*')
       .eq('week_id', weekId);
 
@@ -224,7 +196,7 @@ export function AdminDashboard() {
           Submission Tracker
         </h3>
         <p className="text-sm text-slate-600 mb-6">
-          Track completion status for both weekly submissions
+          Track completion status for weekly submissions (due Thursdays 5pm PT)
         </p>
 
         <div className="overflow-x-auto">
@@ -235,23 +207,16 @@ export function AdminDashboard() {
                   Rep
                 </th>
                 <th className="text-center py-3 px-4 text-sm font-semibold text-slate-900">
-                  Weekly 1:1 Tracker
+                  Quarterly Quota
                 </th>
                 <th className="text-center py-3 px-4 text-sm font-semibold text-slate-900">
-                  BD Weekly Update
-                </th>
-                <th className="text-center py-3 px-4 text-sm font-semibold text-slate-900">
-                  Overall Status
+                  Weekly Submission
                 </th>
               </tr>
             </thead>
             <tbody>
               {reps.map((rep) => {
-                const status = submissionStatus[rep.id] || {
-                  oneOnOne: 'not_started',
-                  bdWeekly: 'not_started'
-                };
-                const bothSubmitted = status.oneOnOne === 'submitted' && status.bdWeekly === 'submitted';
+                const status = submissionStatus[rep.id] || 'not_started';
 
                 return (
                   <tr key={rep.id} className="border-b border-slate-100 hover:bg-slate-50">
@@ -261,32 +226,18 @@ export function AdminDashboard() {
                         <p className="text-sm text-slate-500">{rep.email}</p>
                       </div>
                     </td>
-                    <td className="py-4 px-4">
-                      <div className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg ${getStatusColor(status.oneOnOne)}`}>
-                        {getStatusIcon(status.oneOnOne)}
-                        <span className="text-sm font-medium capitalize">
-                          {status.oneOnOne.replace('_', ' ')}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4">
-                      <div className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg ${getStatusColor(status.bdWeekly)}`}>
-                        {getStatusIcon(status.bdWeekly)}
-                        <span className="text-sm font-medium capitalize">
-                          {status.bdWeekly.replace('_', ' ')}
-                        </span>
-                      </div>
-                    </td>
                     <td className="py-4 px-4 text-center">
-                      {bothSubmitted ? (
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-emerald-100 text-emerald-800">
-                          Complete
+                      <p className="font-semibold text-slate-900">
+                        ${rep.quarterly_quota.toLocaleString()}
+                      </p>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg ${getStatusColor(status)}`}>
+                        {getStatusIcon(status)}
+                        <span className="text-sm font-medium capitalize">
+                          {status.replace('_', ' ')}
                         </span>
-                      ) : (
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800">
-                          Pending
-                        </span>
-                      )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -329,12 +280,12 @@ export function AdminDashboard() {
           </h3>
           <div className="space-y-3">
             <button className="w-full text-left px-4 py-3 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors">
-              <p className="font-medium text-emerald-900">View All 1:1 Submissions</p>
-              <p className="text-sm text-emerald-700">Review individual tracker submissions</p>
+              <p className="font-medium text-emerald-900">View All Submissions</p>
+              <p className="text-sm text-emerald-700">Review detailed weekly updates from team</p>
             </button>
             <button className="w-full text-left px-4 py-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
-              <p className="font-medium text-blue-900">View BD Weekly Agenda</p>
-              <p className="text-sm text-blue-700">Prepare for Friday team meeting</p>
+              <p className="font-medium text-blue-900">Team Meeting Prep</p>
+              <p className="text-sm text-blue-700">Prepare for Friday meeting with all data</p>
             </button>
             <button className="w-full text-left px-4 py-3 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors">
               <p className="font-medium text-slate-900">Send Reminder</p>

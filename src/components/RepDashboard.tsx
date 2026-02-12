@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
-import { supabase, Week, OneOnOneSubmission, BDWeeklyRepData } from '../lib/supabase';
+import { supabase, Week } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { FileText, Users, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { FileText, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 
-export function RepDashboard({ onNavigate }: { onNavigate: (view: '1on1' | 'bd-weekly') => void }) {
+export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly') => void }) {
   const { user } = useAuth();
   const [currentWeek, setCurrentWeek] = useState<Week | null>(null);
-  const [oneOnOneStatus, setOneOnOneStatus] = useState<'not_started' | 'in_progress' | 'submitted'>('not_started');
-  const [bdWeeklyStatus, setBdWeeklyStatus] = useState<'not_started' | 'in_progress' | 'submitted'>('not_started');
+  const [submissionStatus, setSubmissionStatus] = useState<'not_started' | 'in_progress' | 'submitted'>('not_started');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,35 +28,15 @@ export function RepDashboard({ onNavigate }: { onNavigate: (view: '1on1' | 'bd-w
       if (weekData) {
         setCurrentWeek(weekData);
 
-        const { data: oneOnOneData } = await supabase
-          .from('one_on_one_submissions')
+        const { data: submission } = await supabase
+          .from('weekly_submissions')
           .select('status')
           .eq('user_id', user.id)
           .eq('week_id', weekData.id)
           .maybeSingle();
 
-        if (oneOnOneData) {
-          setOneOnOneStatus(oneOnOneData.status);
-        }
-
-        const { data: bdWeeklyData } = await supabase
-          .from('bd_weekly_rep_data')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('meeting_id', weekData.id)
-          .maybeSingle();
-
-        const { data: goalData } = await supabase
-          .from('weekly_goals')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('meeting_id', weekData.id)
-          .maybeSingle();
-
-        if (bdWeeklyData && goalData) {
-          setBdWeeklyStatus('submitted');
-        } else if (bdWeeklyData || goalData) {
-          setBdWeeklyStatus('in_progress');
+        if (submission) {
+          setSubmissionStatus(submission.status);
         }
       }
     } catch (error) {
@@ -125,56 +104,33 @@ export function RepDashboard({ onNavigate }: { onNavigate: (view: '1on1' | 'bd-w
         )}
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <div className="flex items-start justify-between mb-4">
+      <div className="max-w-2xl mx-auto mb-8">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
+          <div className="flex items-start justify-between mb-6">
             <div>
               <div className="flex items-center space-x-3 mb-2">
-                <FileText className="w-8 h-8 text-emerald-600" />
-                <h3 className="text-xl font-semibold text-slate-900">Weekly 1:1 Tracker</h3>
+                <FileText className="w-10 h-10 text-emerald-600" />
+                <h3 className="text-2xl font-semibold text-slate-900">Weekly Submission</h3>
               </div>
-              <p className="text-sm text-slate-600">
-                Private document between you and your manager
+              <p className="text-slate-600">
+                Complete your weekly update by Thursday 5:00 PM PT
+              </p>
+              <p className="text-sm text-slate-500 mt-2">
+                One form for all your weekly updates - no more duplicate entry!
               </p>
             </div>
-            {getStatusIcon(oneOnOneStatus)}
+            {getStatusIcon(submissionStatus)}
           </div>
 
-          <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border mb-4 ${getStatusColor(oneOnOneStatus)}`}>
-            {getStatusText(oneOnOneStatus)}
+          <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium border mb-6 ${getStatusColor(submissionStatus)}`}>
+            {getStatusText(submissionStatus)}
           </div>
 
           <button
-            onClick={() => onNavigate('1on1')}
-            className="w-full bg-emerald-600 text-white py-2.5 rounded-lg font-medium hover:bg-emerald-700 transition-colors"
+            onClick={() => onNavigate('weekly')}
+            className="w-full bg-emerald-600 text-white py-3 rounded-lg font-medium hover:bg-emerald-700 transition-colors text-lg"
           >
-            {oneOnOneStatus === 'submitted' ? 'View Submission' : 'Start Filling Out'}
-          </button>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <div className="flex items-center space-x-3 mb-2">
-                <Users className="w-8 h-8 text-blue-600" />
-                <h3 className="text-xl font-semibold text-slate-900">BD Weekly Update</h3>
-              </div>
-              <p className="text-sm text-slate-600">
-                Team meeting agenda due Thursday 5pm PT
-              </p>
-            </div>
-            {getStatusIcon(bdWeeklyStatus)}
-          </div>
-
-          <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border mb-4 ${getStatusColor(bdWeeklyStatus)}`}>
-            {getStatusText(bdWeeklyStatus)}
-          </div>
-
-          <button
-            onClick={() => onNavigate('bd-weekly')}
-            className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-          >
-            {bdWeeklyStatus === 'submitted' ? 'View Submission' : 'Start Filling Out'}
+            {submissionStatus === 'submitted' ? 'View Submission' : 'Start Your Weekly Update'}
           </button>
         </div>
       </div>

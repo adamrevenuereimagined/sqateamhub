@@ -1,93 +1,155 @@
 import { useEffect, useState } from 'react';
-import { supabase, Week, OneOnOneSubmission, Commitment } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Save, Send, Plus, Trash2, ArrowLeft } from 'lucide-react';
+
+type Week = {
+  id: string;
+  week_number: number;
+  year: number;
+  start_date: string;
+  end_date: string;
+  status: string;
+};
+
+type WeeklySubmission = {
+  id: string;
+  status: 'not_started' | 'in_progress' | 'submitted';
+  wins?: string[];
+  whats_working_well?: string;
+  positive_feedback?: string;
+  prospecting_activities?: number;
+  cold_calls?: number;
+  emails?: number;
+  li_messages?: number;
+  videos?: number;
+  decision_maker_connects?: number;
+  meetings_booked?: number;
+  discovery_calls?: number;
+  opportunities_advanced?: number;
+  pipeline_coverage_ratio?: number;
+  revenue_mtd?: number;
+  revenue_qtd?: number;
+  average_deal_size?: number;
+  deals_advancing?: any[];
+  deals_stalling?: any[];
+  new_deals?: any[];
+  closing_opportunities?: any[];
+  f2f_meetings?: any[];
+  call_review_link?: string;
+  call_review_focus?: string;
+  blockers_help?: string;
+  deal_blockers?: string[];
+  support_needed?: string[];
+  this_week_goal?: string;
+  last_week_goal_text?: string;
+  last_week_goal_achieved?: 'yes' | 'partial' | 'no';
+  last_week_goal_notes?: string;
+  self_care?: string;
+  energy_level?: 'high' | 'medium' | 'low';
+  manager_support?: string;
+};
+
+type Commitment = {
+  id?: string;
+  commitment_text: string;
+  deadline: string;
+  success_metric: string;
+  status?: string;
+  notes?: string;
+};
 
 type Props = {
   onBack: () => void;
 };
 
-export function OneOnOneForm({ onBack }: Props) {
+export function WeeklySubmissionForm({ onBack }: Props) {
   const { user } = useAuth();
   const [currentWeek, setCurrentWeek] = useState<Week | null>(null);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
-  const [isOneOnOneWeek, setIsOneOnOneWeek] = useState(false);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<'not_started' | 'in_progress' | 'submitted'>('not_started');
 
-  // Section 1: Last 1:1 Review (auto-populated)
-  const [lastCommitments, setLastCommitments] = useState<Commitment[]>([]);
-
-  // Section 2: Wins & Momentum
   const [wins, setWins] = useState<string[]>(['']);
   const [whatsWorking, setWhatsWorking] = useState('');
   const [positiveFeedback, setPositiveFeedback] = useState('');
 
-  // Section 3: Performance Snapshot
-  const [prospectingActivities, setProspectingActivities] = useState(0);
+  const [coldCalls, setColdCalls] = useState(0);
+  const [emails, setEmails] = useState(0);
+  const [liMessages, setLiMessages] = useState(0);
+  const [videos, setVideos] = useState(0);
   const [dmConnects, setDmConnects] = useState(0);
+  const [meetingsBooked, setMeetingsBooked] = useState(0);
   const [discoveryCalls, setDiscoveryCalls] = useState(0);
   const [opportunitiesAdvanced, setOpportunitiesAdvanced] = useState(0);
+
   const [pipelineCoverage, setPipelineCoverage] = useState(0);
   const [revenueMtd, setRevenueMtd] = useState(0);
   const [revenueQtd, setRevenueQtd] = useState(0);
   const [avgDealSize, setAvgDealSize] = useState(0);
 
-  // Section 4B: Deals Moved Forward
-  const [dealsMovedForward, setDealsMovedForward] = useState<Array<{
+  const [dealsAdvancing, setDealsAdvancing] = useState<Array<{
     dealName: string;
-    newStage: string;
-    whyAdvanced: string;
-    whatYouDid: string;
-  }>>([{ dealName: '', newStage: '', whyAdvanced: '', whatYouDid: '' }]);
+    nextStage: string;
+    nextStep: string;
+  }>>([{ dealName: '', nextStage: '', nextStep: '' }]);
 
-  // Section 4C: Deals At Risk
-  const [dealsAtRisk, setDealsAtRisk] = useState<Array<{
+  const [dealsStalling, setDealsStalling] = useState<Array<{
     dealName: string;
     whyStuck: string;
     yourPlan: string;
     helpNeeded: string;
   }>>([{ dealName: '', whyStuck: '', yourPlan: '', helpNeeded: '' }]);
 
-  // Section 4A: Top Deals (conditional)
-  const [topDeals, setTopDeals] = useState<Array<{
-    dealName: string;
-    stage: string;
+  const [newDeals, setNewDeals] = useState<Array<{
+    companyName: string;
+    dealSource: string;
+    dealPotential: string;
+  }>>([{ companyName: '', dealSource: '', dealPotential: '' }]);
+
+  const [closingOpps, setClosingOpps] = useState<Array<{
+    companyDeal: string;
     value: number;
     closeDate: string;
-    confidence: number;
-    whatsNeeded: string;
-  }>>([{ dealName: '', stage: '', value: 0, closeDate: '', confidence: 0, whatsNeeded: '' }]);
+    confidenceBlockers: string;
+  }>>([{ companyDeal: '', value: 0, closeDate: '', confidenceBlockers: '' }]);
 
-  // Section 5: Call Review
+  const [f2fMeetings, setF2fMeetings] = useState<Array<{
+    clientProspect: string;
+    dates: string;
+    where: string;
+    purposePrep: string;
+  }>>([{ clientProspect: '', dates: '', where: '', purposePrep: '' }]);
+
   const [callReviewLink, setCallReviewLink] = useState('');
   const [callReviewFocus, setCallReviewFocus] = useState('');
 
-  // Section 6: Blockers & Support
   const [blockersHelp, setBlockersHelp] = useState('');
   const [dealBlockers, setDealBlockers] = useState<string[]>(['']);
   const [supportNeeded, setSupportNeeded] = useState<string[]>(['']);
 
-  // Section 7: Commitments (will carry forward)
-  const [commitments, setCommitments] = useState<Array<{
-    text: string;
-    deadline: string;
-    successMetric: string;
-  }>>([{ text: '', deadline: '', successMetric: '' }, { text: '', deadline: '', successMetric: '' }, { text: '', deadline: '', successMetric: '' }]);
+  const [thisWeekGoal, setThisWeekGoal] = useState('');
+  const [lastWeekGoal, setLastWeekGoal] = useState<{
+    goalText: string;
+    achieved?: 'yes' | 'partial' | 'no';
+    notes: string;
+  } | null>(null);
 
-  // Section 8: Personal Check-In
   const [selfCare, setSelfCare] = useState('');
   const [energyLevel, setEnergyLevel] = useState<'high' | 'medium' | 'low'>('medium');
   const [managerSupport, setManagerSupport] = useState('');
 
-  // Section 9: Deal Coaching (conditional)
-  const [dealSelectedLink, setDealSelectedLink] = useState('');
-  const [spicedSituation, setSpicedSituation] = useState('');
-  const [spicedPain, setSpicedPain] = useState('');
-  const [spicedImpact, setSpicedImpact] = useState('');
-  const [spicedCriticalEvent, setSpicedCriticalEvent] = useState('');
-  const [spicedDecision, setSpicedDecision] = useState('');
-  const [spicedDecisionProcess, setSpicedDecisionProcess] = useState('');
+  const [commitments, setCommitments] = useState<Array<{
+    text: string;
+    deadline: string;
+    successMetric: string;
+  }>>([
+    { text: '', deadline: '', successMetric: '' },
+    { text: '', deadline: '', successMetric: '' },
+    { text: '', deadline: '', successMetric: '' }
+  ]);
+
+  const [lastCommitments, setLastCommitments] = useState<Commitment[]>([]);
 
   useEffect(() => {
     loadFormData();
@@ -109,7 +171,7 @@ export function OneOnOneForm({ onBack }: Props) {
         setCurrentWeek(weekData);
 
         const { data: submission } = await supabase
-          .from('one_on_one_submissions')
+          .from('weekly_submissions')
           .select('*')
           .eq('user_id', user.id)
           .eq('week_id', weekData.id)
@@ -118,13 +180,12 @@ export function OneOnOneForm({ onBack }: Props) {
         if (submission) {
           setSubmissionId(submission.id);
           setStatus(submission.status);
-          setIsOneOnOneWeek(submission.is_one_on_one_week);
           populateFormFromSubmission(submission);
 
           const { data: commitmentsData } = await supabase
-            .from('commitments')
+            .from('submission_commitments')
             .select('*')
-            .eq('one_on_one_id', submission.id);
+            .eq('submission_id', submission.id);
 
           if (commitmentsData && commitmentsData.length > 0) {
             setCommitments(commitmentsData.map(c => ({
@@ -134,7 +195,7 @@ export function OneOnOneForm({ onBack }: Props) {
             })));
           }
         } else {
-          await loadPreviousCommitments(weekData.id);
+          await loadPreviousWeekData(weekData.id);
         }
       }
     } catch (error) {
@@ -142,7 +203,7 @@ export function OneOnOneForm({ onBack }: Props) {
     }
   };
 
-  const loadPreviousCommitments = async (currentWeekId: string) => {
+  const loadPreviousWeekData = async (currentWeekId: string) => {
     if (!user) return;
 
     try {
@@ -156,17 +217,25 @@ export function OneOnOneForm({ onBack }: Props) {
 
       if (prevWeek) {
         const { data: prevSubmission } = await supabase
-          .from('one_on_one_submissions')
+          .from('weekly_submissions')
           .select('*')
           .eq('user_id', user.id)
           .eq('week_id', prevWeek.id)
           .maybeSingle();
 
         if (prevSubmission) {
+          if (prevSubmission.this_week_goal) {
+            setLastWeekGoal({
+              goalText: prevSubmission.this_week_goal,
+              achieved: undefined,
+              notes: ''
+            });
+          }
+
           const { data: prevCommitments } = await supabase
-            .from('commitments')
+            .from('submission_commitments')
             .select('*')
-            .eq('one_on_one_id', prevSubmission.id);
+            .eq('submission_id', prevSubmission.id);
 
           if (prevCommitments) {
             setLastCommitments(prevCommitments as Commitment[]);
@@ -174,40 +243,47 @@ export function OneOnOneForm({ onBack }: Props) {
         }
       }
     } catch (error) {
-      console.error('Error loading previous commitments:', error);
+      console.error('Error loading previous week data:', error);
     }
   };
 
-  const populateFormFromSubmission = (submission: OneOnOneSubmission) => {
+  const populateFormFromSubmission = (submission: WeeklySubmission) => {
     setWins(submission.wins || ['']);
     setWhatsWorking(submission.whats_working_well || '');
     setPositiveFeedback(submission.positive_feedback || '');
-    setProspectingActivities(submission.prospecting_activities || 0);
+    setColdCalls(submission.cold_calls || 0);
+    setEmails(submission.emails || 0);
+    setLiMessages(submission.li_messages || 0);
+    setVideos(submission.videos || 0);
     setDmConnects(submission.decision_maker_connects || 0);
+    setMeetingsBooked(submission.meetings_booked || 0);
     setDiscoveryCalls(submission.discovery_calls || 0);
     setOpportunitiesAdvanced(submission.opportunities_advanced || 0);
     setPipelineCoverage(submission.pipeline_coverage_ratio || 0);
     setRevenueMtd(submission.revenue_mtd || 0);
     setRevenueQtd(submission.revenue_qtd || 0);
     setAvgDealSize(submission.average_deal_size || 0);
-    setDealsMovedForward(submission.deals_moved_forward || [{ dealName: '', newStage: '', whyAdvanced: '', whatYouDid: '' }]);
-    setDealsAtRisk(submission.deals_at_risk || [{ dealName: '', whyStuck: '', yourPlan: '', helpNeeded: '' }]);
-    setTopDeals(submission.top_deals || [{ dealName: '', stage: '', value: 0, closeDate: '', confidence: 0, whatsNeeded: '' }]);
+    setDealsAdvancing(submission.deals_advancing || [{ dealName: '', nextStage: '', nextStep: '' }]);
+    setDealsStalling(submission.deals_stalling || [{ dealName: '', whyStuck: '', yourPlan: '', helpNeeded: '' }]);
+    setNewDeals(submission.new_deals || [{ companyName: '', dealSource: '', dealPotential: '' }]);
+    setClosingOpps(submission.closing_opportunities || [{ companyDeal: '', value: 0, closeDate: '', confidenceBlockers: '' }]);
+    setF2fMeetings(submission.f2f_meetings || [{ clientProspect: '', dates: '', where: '', purposePrep: '' }]);
     setCallReviewLink(submission.call_review_link || '');
     setCallReviewFocus(submission.call_review_focus || '');
     setBlockersHelp(submission.blockers_help || '');
     setDealBlockers(submission.deal_blockers || ['']);
     setSupportNeeded(submission.support_needed || ['']);
+    setThisWeekGoal(submission.this_week_goal || '');
+    if (submission.last_week_goal_text) {
+      setLastWeekGoal({
+        goalText: submission.last_week_goal_text,
+        achieved: submission.last_week_goal_achieved,
+        notes: submission.last_week_goal_notes || ''
+      });
+    }
     setSelfCare(submission.self_care || '');
     setEnergyLevel(submission.energy_level || 'medium');
     setManagerSupport(submission.manager_support || '');
-    setDealSelectedLink(submission.deal_selected_link || '');
-    setSpicedSituation(submission.spiced_situation || '');
-    setSpicedPain(submission.spiced_pain || '');
-    setSpicedImpact(submission.spiced_impact || '');
-    setSpicedCriticalEvent(submission.spiced_critical_event || '');
-    setSpicedDecision(submission.spiced_decision || '');
-    setSpicedDecisionProcess(submission.spiced_decision_process || '');
   };
 
   const handleSave = async (submitNow: boolean = false) => {
@@ -219,36 +295,39 @@ export function OneOnOneForm({ onBack }: Props) {
       const submissionData = {
         user_id: user.id,
         week_id: currentWeek.id,
-        is_one_on_one_week: isOneOnOneWeek,
         wins: wins.filter(w => w.trim()),
         whats_working_well: whatsWorking,
         positive_feedback: positiveFeedback,
-        prospecting_activities: prospectingActivities,
+        prospecting_activities: coldCalls + emails + liMessages,
+        cold_calls: coldCalls,
+        emails: emails,
+        li_messages: liMessages,
+        videos: videos,
         decision_maker_connects: dmConnects,
+        meetings_booked: meetingsBooked,
         discovery_calls: discoveryCalls,
         opportunities_advanced: opportunitiesAdvanced,
         pipeline_coverage_ratio: pipelineCoverage,
         revenue_mtd: revenueMtd,
         revenue_qtd: revenueQtd,
         average_deal_size: avgDealSize,
-        deals_moved_forward: dealsMovedForward.filter(d => d.dealName),
-        deals_at_risk: dealsAtRisk.filter(d => d.dealName),
-        top_deals: topDeals.filter(d => d.dealName),
+        deals_advancing: dealsAdvancing.filter(d => d.dealName),
+        deals_stalling: dealsStalling.filter(d => d.dealName),
+        new_deals: newDeals.filter(d => d.companyName),
+        closing_opportunities: closingOpps.filter(o => o.companyDeal),
+        f2f_meetings: f2fMeetings.filter(m => m.clientProspect),
         call_review_link: callReviewLink,
         call_review_focus: callReviewFocus,
         blockers_help: blockersHelp,
         deal_blockers: dealBlockers.filter(b => b.trim()),
         support_needed: supportNeeded.filter(s => s.trim()),
+        this_week_goal: thisWeekGoal,
+        last_week_goal_text: lastWeekGoal?.goalText,
+        last_week_goal_achieved: lastWeekGoal?.achieved,
+        last_week_goal_notes: lastWeekGoal?.notes,
         self_care: selfCare,
         energy_level: energyLevel,
         manager_support: managerSupport,
-        deal_selected_link: dealSelectedLink,
-        spiced_situation: spicedSituation,
-        spiced_pain: spicedPain,
-        spiced_impact: spicedImpact,
-        spiced_critical_event: spicedCriticalEvent,
-        spiced_decision: spicedDecision,
-        spiced_decision_process: spicedDecisionProcess,
         status: submitNow ? 'submitted' : 'in_progress',
         submitted_at: submitNow ? new Date().toISOString() : null,
         updated_at: new Date().toISOString()
@@ -258,12 +337,12 @@ export function OneOnOneForm({ onBack }: Props) {
 
       if (submissionId) {
         await supabase
-          .from('one_on_one_submissions')
+          .from('weekly_submissions')
           .update(submissionData)
           .eq('id', submissionId);
       } else {
         const { data, error } = await supabase
-          .from('one_on_one_submissions')
+          .from('weekly_submissions')
           .insert(submissionData)
           .select()
           .single();
@@ -275,16 +354,16 @@ export function OneOnOneForm({ onBack }: Props) {
 
       if (finalSubmissionId) {
         await supabase
-          .from('commitments')
+          .from('submission_commitments')
           .delete()
-          .eq('one_on_one_id', finalSubmissionId);
+          .eq('submission_id', finalSubmissionId);
 
         const validCommitments = commitments.filter(c => c.text.trim());
         if (validCommitments.length > 0) {
           await supabase
-            .from('commitments')
+            .from('submission_commitments')
             .insert(validCommitments.map(c => ({
-              one_on_one_id: finalSubmissionId,
+              submission_id: finalSubmissionId,
               commitment_text: c.text,
               deadline: c.deadline,
               success_metric: c.successMetric,
@@ -307,10 +386,10 @@ export function OneOnOneForm({ onBack }: Props) {
     }
   };
 
-  const updateCommitmentStatus = async (commitmentId: string, status: string, notes: string) => {
+  const updateCommitmentStatus = async (commitmentId: string, newStatus: string, notes: string) => {
     await supabase
-      .from('commitments')
-      .update({ status, notes })
+      .from('submission_commitments')
+      .update({ status: newStatus, notes })
       .eq('id', commitmentId);
   };
 
@@ -329,30 +408,18 @@ export function OneOnOneForm({ onBack }: Props) {
           Back to Dashboard
         </button>
 
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">Weekly 1:1 Tracker</h1>
-            <p className="text-slate-600">
-              Week of {new Date(currentWeek.start_date).toLocaleDateString('en-US', {
-                month: 'long',
-                day: 'numeric',
-                year: 'numeric'
-              })}
-            </p>
-            <p className="text-sm text-slate-500 mt-1">
-              {user?.name} | Q Quota: ${user?.quarterly_quota.toLocaleString()}
-            </p>
-          </div>
-
-          <label className="flex items-center space-x-3 bg-blue-50 px-4 py-2 rounded-lg">
-            <input
-              type="checkbox"
-              checked={isOneOnOneWeek}
-              onChange={(e) => setIsOneOnOneWeek(e.target.checked)}
-              className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-            />
-            <span className="text-sm font-medium text-blue-900">This is a 1:1 week</span>
-          </label>
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">Weekly Submission</h1>
+          <p className="text-slate-600">
+            Week of {new Date(currentWeek.start_date).toLocaleDateString('en-US', {
+              month: 'long',
+              day: 'numeric',
+              year: 'numeric'
+            })}
+          </p>
+          <p className="text-sm text-slate-500 mt-1">
+            {user?.name} | Q Quota: ${user?.quarterly_quota.toLocaleString()} | Due: Thursday 5:00 PM PT
+          </p>
         </div>
       </div>
 
@@ -360,10 +427,10 @@ export function OneOnOneForm({ onBack }: Props) {
         {lastCommitments.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
             <h2 className="text-xl font-semibold text-slate-900 mb-4">
-              Section 1: Last 1:1 Review
+              Last Week's Commitments
             </h2>
             <p className="text-sm text-slate-600 mb-4">
-              Review commitments from your previous 1:1 meeting
+              Review and update status of your commitments from last week
             </p>
 
             <div className="space-y-4">
@@ -377,7 +444,7 @@ export function OneOnOneForm({ onBack }: Props) {
                       </label>
                       <select
                         defaultValue={commitment.status}
-                        onChange={(e) => updateCommitmentStatus(commitment.id, e.target.value, commitment.notes)}
+                        onChange={(e) => updateCommitmentStatus(commitment.id!, e.target.value, commitment.notes || '')}
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                       >
                         <option value="accomplished">Accomplished</option>
@@ -388,12 +455,12 @@ export function OneOnOneForm({ onBack }: Props) {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Notes / What Got in the Way
+                        Notes
                       </label>
                       <input
                         type="text"
                         defaultValue={commitment.notes}
-                        onBlur={(e) => updateCommitmentStatus(commitment.id, commitment.status, e.target.value)}
+                        onBlur={(e) => updateCommitmentStatus(commitment.id!, commitment.status || 'in_progress', e.target.value)}
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                         placeholder="Any notes..."
                       />
@@ -405,15 +472,65 @@ export function OneOnOneForm({ onBack }: Props) {
           </div>
         )}
 
+        {lastWeekGoal && (
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <h2 className="text-xl font-semibold text-slate-900 mb-4">
+              Last Week's Goal Accountability
+            </h2>
+
+            <div className="border border-slate-200 rounded-lg p-4">
+              <p className="font-medium text-slate-900 mb-3">Last Week's Goal:</p>
+              <p className="text-slate-700 mb-4">{lastWeekGoal.goalText}</p>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Achieved?
+                  </label>
+                  <select
+                    value={lastWeekGoal.achieved || ''}
+                    onChange={(e) => setLastWeekGoal({
+                      ...lastWeekGoal,
+                      achieved: e.target.value as 'yes' | 'partial' | 'no'
+                    })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="">Select...</option>
+                    <option value="yes">Yes</option>
+                    <option value="partial">Partial</option>
+                    <option value="no">No</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Notes
+                  </label>
+                  <input
+                    type="text"
+                    value={lastWeekGoal.notes}
+                    onChange={(e) => setLastWeekGoal({
+                      ...lastWeekGoal,
+                      notes: e.target.value
+                    })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    placeholder="Any additional notes..."
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <h2 className="text-xl font-semibold text-slate-900 mb-4">
-            Section 2: Wins & Momentum
+            Wins & Momentum
           </h2>
 
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Biggest Wins Since Last Week (up to 5)
+                Biggest Wins This Week (up to 5)
               </label>
               {wins.map((win, index) => (
                 <div key={index} className="flex gap-2 mb-2">
@@ -479,18 +596,54 @@ export function OneOnOneForm({ onBack }: Props) {
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <h2 className="text-xl font-semibold text-slate-900 mb-4">
-            Section 3: Performance Snapshot
+            Activity & Performance Metrics
           </h2>
 
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Prospecting Activities Since Last Week
+                Cold Calls
               </label>
               <input
                 type="number"
-                value={prospectingActivities}
-                onChange={(e) => setProspectingActivities(Number(e.target.value))}
+                value={coldCalls}
+                onChange={(e) => setColdCalls(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Emails
+              </label>
+              <input
+                type="number"
+                value={emails}
+                onChange={(e) => setEmails(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                LI Messages
+              </label>
+              <input
+                type="number"
+                value={liMessages}
+                onChange={(e) => setLiMessages(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Videos
+              </label>
+              <input
+                type="number"
+                value={videos}
+                onChange={(e) => setVideos(Number(e.target.value))}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
               />
             </div>
@@ -509,7 +662,19 @@ export function OneOnOneForm({ onBack }: Props) {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Discovery Calls Completed
+                Meetings Booked
+              </label>
+              <input
+                type="number"
+                value={meetingsBooked}
+                onChange={(e) => setMeetingsBooked(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Discovery Calls
               </label>
               <input
                 type="number"
@@ -533,7 +698,7 @@ export function OneOnOneForm({ onBack }: Props) {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Pipeline Coverage Ratio (Target: 3x)
+                Pipeline Coverage (Target: 3x)
               </label>
               <input
                 type="number"
@@ -546,7 +711,7 @@ export function OneOnOneForm({ onBack }: Props) {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Revenue Bookings MTD ($)
+                Revenue MTD ($)
               </label>
               <input
                 type="number"
@@ -558,7 +723,7 @@ export function OneOnOneForm({ onBack }: Props) {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Revenue Bookings QTD ($)
+                Revenue QTD ($)
               </label>
               <input
                 type="number"
@@ -582,246 +747,316 @@ export function OneOnOneForm({ onBack }: Props) {
           </div>
         </div>
 
-        {isOneOnOneWeek && (
-          <div className="bg-blue-50 rounded-xl border border-blue-200 p-6">
-            <h2 className="text-xl font-semibold text-slate-900 mb-2">
-              Section 4A: Top Deals to Discuss
-            </h2>
-            <p className="text-sm text-slate-600 mb-4">
-              (Only required on 1:1 weeks)
-            </p>
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <h2 className="text-xl font-semibold text-slate-900 mb-4">
+            Pipeline Movement
+          </h2>
 
-            <div className="space-y-4">
-              {topDeals.map((deal, index) => (
-                <div key={index} className="bg-white border border-slate-200 rounded-lg p-4">
-                  <div className="grid md:grid-cols-2 gap-4 mb-3">
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-3">
+                Deals Advancing This Week
+              </h3>
+              {dealsAdvancing.map((deal, index) => (
+                <div key={index} className="border border-slate-200 rounded-lg p-4 mb-3">
+                  <div className="grid md:grid-cols-3 gap-3">
                     <input
                       type="text"
                       placeholder="Deal Name"
                       value={deal.dealName}
                       onChange={(e) => {
-                        const newDeals = [...topDeals];
+                        const newDeals = [...dealsAdvancing];
                         newDeals[index].dealName = e.target.value;
-                        setTopDeals(newDeals);
+                        setDealsAdvancing(newDeals);
                       }}
-                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                     />
                     <input
                       type="text"
-                      placeholder="Stage"
-                      value={deal.stage}
+                      placeholder="Next Stage"
+                      value={deal.nextStage}
                       onChange={(e) => {
-                        const newDeals = [...topDeals];
-                        newDeals[index].stage = e.target.value;
-                        setTopDeals(newDeals);
+                        const newDeals = [...dealsAdvancing];
+                        newDeals[index].nextStage = e.target.value;
+                        setDealsAdvancing(newDeals);
                       }}
-                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                    <input
-                      type="number"
-                      placeholder="Value ($)"
-                      value={deal.value || ''}
-                      onChange={(e) => {
-                        const newDeals = [...topDeals];
-                        newDeals[index].value = Number(e.target.value);
-                        setTopDeals(newDeals);
-                      }}
-                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                    <input
-                      type="date"
-                      placeholder="Close Date"
-                      value={deal.closeDate}
-                      onChange={(e) => {
-                        const newDeals = [...topDeals];
-                        newDeals[index].closeDate = e.target.value;
-                        setTopDeals(newDeals);
-                      }}
-                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                    <input
-                      type="number"
-                      placeholder="Confidence (%)"
-                      value={deal.confidence || ''}
-                      onChange={(e) => {
-                        const newDeals = [...topDeals];
-                        newDeals[index].confidence = Number(e.target.value);
-                        setTopDeals(newDeals);
-                      }}
-                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                     />
                     <input
                       type="text"
-                      placeholder="What's Needed"
-                      value={deal.whatsNeeded}
+                      placeholder="Next Step"
+                      value={deal.nextStep}
                       onChange={(e) => {
-                        const newDeals = [...topDeals];
-                        newDeals[index].whatsNeeded = e.target.value;
-                        setTopDeals(newDeals);
+                        const newDeals = [...dealsAdvancing];
+                        newDeals[index].nextStep = e.target.value;
+                        setDealsAdvancing(newDeals);
                       }}
-                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
-                  {topDeals.length > 1 && (
-                    <button
-                      onClick={() => setTopDeals(topDeals.filter((_, i) => i !== index))}
-                      className="text-red-600 hover:text-red-700 text-sm"
-                    >
-                      Remove Deal
-                    </button>
-                  )}
                 </div>
               ))}
-              {topDeals.length < 5 && (
-                <button
-                  onClick={() => setTopDeals([...topDeals, { dealName: '', stage: '', value: 0, closeDate: '', confidence: 0, whatsNeeded: '' }])}
-                  className="flex items-center text-blue-600 hover:text-blue-700 text-sm font-medium"
-                >
-                  <Plus className="w-4 h-4 mr-1" />
-                  Add Deal
-                </button>
-              )}
+              <button
+                onClick={() => setDealsAdvancing([...dealsAdvancing, { dealName: '', nextStage: '', nextStep: '' }])}
+                className="flex items-center text-emerald-600 hover:text-emerald-700 text-sm font-medium"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Add Deal
+              </button>
             </div>
-          </div>
-        )}
 
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <h2 className="text-xl font-semibold text-slate-900 mb-4">
-            Section 4B: Deals Moved Forward Since Last Week
-          </h2>
-
-          <div className="space-y-4">
-            {dealsMovedForward.map((deal, index) => (
-              <div key={index} className="border border-slate-200 rounded-lg p-4">
-                <div className="grid md:grid-cols-2 gap-4 mb-3">
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-3">
+                Deals Stalling/At Risk
+              </h3>
+              {dealsStalling.map((deal, index) => (
+                <div key={index} className="border border-slate-200 rounded-lg p-4 mb-3">
                   <input
                     type="text"
                     placeholder="Deal Name"
                     value={deal.dealName}
                     onChange={(e) => {
-                      const newDeals = [...dealsMovedForward];
+                      const newDeals = [...dealsStalling];
                       newDeals[index].dealName = e.target.value;
-                      setDealsMovedForward(newDeals);
+                      setDealsStalling(newDeals);
+                    }}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 mb-3"
+                  />
+                  <div className="grid md:grid-cols-3 gap-3">
+                    <textarea
+                      placeholder="Why Stuck"
+                      value={deal.whyStuck}
+                      onChange={(e) => {
+                        const newDeals = [...dealsStalling];
+                        newDeals[index].whyStuck = e.target.value;
+                        setDealsStalling(newDeals);
+                      }}
+                      rows={2}
+                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    />
+                    <textarea
+                      placeholder="Your Plan"
+                      value={deal.yourPlan}
+                      onChange={(e) => {
+                        const newDeals = [...dealsStalling];
+                        newDeals[index].yourPlan = e.target.value;
+                        setDealsStalling(newDeals);
+                      }}
+                      rows={2}
+                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    />
+                    <textarea
+                      placeholder="Help Needed"
+                      value={deal.helpNeeded}
+                      onChange={(e) => {
+                        const newDeals = [...dealsStalling];
+                        newDeals[index].helpNeeded = e.target.value;
+                        setDealsStalling(newDeals);
+                      }}
+                      rows={2}
+                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
+              ))}
+              <button
+                onClick={() => setDealsStalling([...dealsStalling, { dealName: '', whyStuck: '', yourPlan: '', helpNeeded: '' }])}
+                className="flex items-center text-emerald-600 hover:text-emerald-700 text-sm font-medium"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Add Deal
+              </button>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-3">
+                Net New Deals Created This Week
+              </h3>
+              {newDeals.map((deal, index) => (
+                <div key={index} className="border border-slate-200 rounded-lg p-4 mb-3">
+                  <div className="grid md:grid-cols-3 gap-3">
+                    <input
+                      type="text"
+                      placeholder="Company Name"
+                      value={deal.companyName}
+                      onChange={(e) => {
+                        const newDealsList = [...newDeals];
+                        newDealsList[index].companyName = e.target.value;
+                        setNewDeals(newDealsList);
+                      }}
+                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Deal Source"
+                      value={deal.dealSource}
+                      onChange={(e) => {
+                        const newDealsList = [...newDeals];
+                        newDealsList[index].dealSource = e.target.value;
+                        setNewDeals(newDealsList);
+                      }}
+                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Deal Potential"
+                      value={deal.dealPotential}
+                      onChange={(e) => {
+                        const newDealsList = [...newDeals];
+                        newDealsList[index].dealPotential = e.target.value;
+                        setNewDeals(newDealsList);
+                      }}
+                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
+              ))}
+              <button
+                onClick={() => setNewDeals([...newDeals, { companyName: '', dealSource: '', dealPotential: '' }])}
+                className="flex items-center text-emerald-600 hover:text-emerald-700 text-sm font-medium"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Add Deal
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <h2 className="text-xl font-semibold text-slate-900 mb-4">
+            Closing Opportunities This Week
+          </h2>
+
+          <div className="space-y-3">
+            {closingOpps.map((opp, index) => (
+              <div key={index} className="border border-slate-200 rounded-lg p-4">
+                <div className="grid md:grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    placeholder="Company/Deal"
+                    value={opp.companyDeal}
+                    onChange={(e) => {
+                      const newOpps = [...closingOpps];
+                      newOpps[index].companyDeal = e.target.value;
+                      setClosingOpps(newOpps);
+                    }}
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Value ($)"
+                    value={opp.value || ''}
+                    onChange={(e) => {
+                      const newOpps = [...closingOpps];
+                      newOpps[index].value = Number(e.target.value);
+                      setClosingOpps(newOpps);
+                    }}
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <input
+                    type="date"
+                    placeholder="Close Date"
+                    value={opp.closeDate}
+                    onChange={(e) => {
+                      const newOpps = [...closingOpps];
+                      newOpps[index].closeDate = e.target.value;
+                      setClosingOpps(newOpps);
                     }}
                     className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                   />
                   <input
                     type="text"
-                    placeholder="New Stage"
-                    value={deal.newStage}
+                    placeholder="Confidence / Blockers"
+                    value={opp.confidenceBlockers}
                     onChange={(e) => {
-                      const newDeals = [...dealsMovedForward];
-                      newDeals[index].newStage = e.target.value;
-                      setDealsMovedForward(newDeals);
+                      const newOpps = [...closingOpps];
+                      newOpps[index].confidenceBlockers = e.target.value;
+                      setClosingOpps(newOpps);
                     }}
-                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <textarea
-                    placeholder="Why Advanced"
-                    value={deal.whyAdvanced}
-                    onChange={(e) => {
-                      const newDeals = [...dealsMovedForward];
-                      newDeals[index].whyAdvanced = e.target.value;
-                      setDealsMovedForward(newDeals);
-                    }}
-                    rows={2}
-                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                  />
-                  <textarea
-                    placeholder="What Did You Do to Make It Happen"
-                    value={deal.whatYouDid}
-                    onChange={(e) => {
-                      const newDeals = [...dealsMovedForward];
-                      newDeals[index].whatYouDid = e.target.value;
-                      setDealsMovedForward(newDeals);
-                    }}
-                    rows={2}
                     className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
               </div>
             ))}
             <button
-              onClick={() => setDealsMovedForward([...dealsMovedForward, { dealName: '', newStage: '', whyAdvanced: '', whatYouDid: '' }])}
+              onClick={() => setClosingOpps([...closingOpps, { companyDeal: '', value: 0, closeDate: '', confidenceBlockers: '' }])}
               className="flex items-center text-emerald-600 hover:text-emerald-700 text-sm font-medium"
             >
               <Plus className="w-4 h-4 mr-1" />
-              Add Deal
+              Add Opportunity
             </button>
           </div>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <h2 className="text-xl font-semibold text-slate-900 mb-4">
-            Section 4C: Deals Stalling/At Risk
+            Face-to-Face Meetings Next Week
           </h2>
 
-          <div className="space-y-4">
-            {dealsAtRisk.map((deal, index) => (
+          <div className="space-y-3">
+            {f2fMeetings.map((meeting, index) => (
               <div key={index} className="border border-slate-200 rounded-lg p-4">
-                <input
-                  type="text"
-                  placeholder="Deal Name"
-                  value={deal.dealName}
-                  onChange={(e) => {
-                    const newDeals = [...dealsAtRisk];
-                    newDeals[index].dealName = e.target.value;
-                    setDealsAtRisk(newDeals);
-                  }}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 mb-3"
-                />
-                <div className="grid md:grid-cols-3 gap-4">
-                  <textarea
-                    placeholder="Why Stuck"
-                    value={deal.whyStuck}
+                <div className="grid md:grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    placeholder="Client/Prospect"
+                    value={meeting.clientProspect}
                     onChange={(e) => {
-                      const newDeals = [...dealsAtRisk];
-                      newDeals[index].whyStuck = e.target.value;
-                      setDealsAtRisk(newDeals);
+                      const newMeetings = [...f2fMeetings];
+                      newMeetings[index].clientProspect = e.target.value;
+                      setF2fMeetings(newMeetings);
                     }}
-                    rows={2}
                     className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                   />
-                  <textarea
-                    placeholder="Your Plan"
-                    value={deal.yourPlan}
+                  <input
+                    type="text"
+                    placeholder="Date(s)"
+                    value={meeting.dates}
                     onChange={(e) => {
-                      const newDeals = [...dealsAtRisk];
-                      newDeals[index].yourPlan = e.target.value;
-                      setDealsAtRisk(newDeals);
+                      const newMeetings = [...f2fMeetings];
+                      newMeetings[index].dates = e.target.value;
+                      setF2fMeetings(newMeetings);
                     }}
-                    rows={2}
                     className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                   />
-                  <textarea
-                    placeholder="What Help Do You Need"
-                    value={deal.helpNeeded}
+                  <input
+                    type="text"
+                    placeholder="Where"
+                    value={meeting.where}
                     onChange={(e) => {
-                      const newDeals = [...dealsAtRisk];
-                      newDeals[index].helpNeeded = e.target.value;
-                      setDealsAtRisk(newDeals);
+                      const newMeetings = [...f2fMeetings];
+                      newMeetings[index].where = e.target.value;
+                      setF2fMeetings(newMeetings);
                     }}
-                    rows={2}
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Purpose/Prep Needed"
+                    value={meeting.purposePrep}
+                    onChange={(e) => {
+                      const newMeetings = [...f2fMeetings];
+                      newMeetings[index].purposePrep = e.target.value;
+                      setF2fMeetings(newMeetings);
+                    }}
                     className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
               </div>
             ))}
             <button
-              onClick={() => setDealsAtRisk([...dealsAtRisk, { dealName: '', whyStuck: '', yourPlan: '', helpNeeded: '' }])}
+              onClick={() => setF2fMeetings([...f2fMeetings, { clientProspect: '', dates: '', where: '', purposePrep: '' }])}
               className="flex items-center text-emerald-600 hover:text-emerald-700 text-sm font-medium"
             >
               <Plus className="w-4 h-4 mr-1" />
-              Add Deal
+              Add Meeting
             </button>
           </div>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <h2 className="text-xl font-semibold text-slate-900 mb-4">
-            Section 5: Call Review & Skill Development
+            Call Review & Skill Development
           </h2>
 
           <div className="space-y-4">
@@ -855,7 +1090,7 @@ export function OneOnOneForm({ onBack }: Props) {
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <h2 className="text-xl font-semibold text-slate-900 mb-4">
-            Section 6: Blockers & Support Needed
+            Blockers & Support Needed
           </h2>
 
           <div className="space-y-4">
@@ -952,7 +1187,7 @@ export function OneOnOneForm({ onBack }: Props) {
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <h2 className="text-xl font-semibold text-slate-900 mb-4">
-            Section 7: Commitments & Action Items
+            Commitments & Action Items
           </h2>
           <p className="text-sm text-slate-600 mb-4">
             These will automatically carry forward to next week's review
@@ -1012,7 +1247,24 @@ export function OneOnOneForm({ onBack }: Props) {
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <h2 className="text-xl font-semibold text-slate-900 mb-4">
-            Section 8: Personal Check-In
+            Next Week's Goal
+          </h2>
+          <p className="text-sm text-slate-600 mb-4">
+            Set a clear, measurable goal for next week (will carry forward for accountability)
+          </p>
+
+          <textarea
+            value={thisWeekGoal}
+            onChange={(e) => setThisWeekGoal(e.target.value)}
+            rows={3}
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+            placeholder="Enter your goal for next week..."
+          />
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <h2 className="text-xl font-semibold text-slate-900 mb-4">
+            Personal Check-In
           </h2>
 
           <div className="space-y-4">
@@ -1064,106 +1316,6 @@ export function OneOnOneForm({ onBack }: Props) {
             </div>
           </div>
         </div>
-
-        {isOneOnOneWeek && (
-          <div className="bg-blue-50 rounded-xl border border-blue-200 p-6">
-            <h2 className="text-xl font-semibold text-slate-900 mb-2">
-              Section 9: Deal Coaching Focus (SPICED Analysis)
-            </h2>
-            <p className="text-sm text-slate-600 mb-4">
-              (Only required on 1:1 weeks)
-            </p>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Deal Selected (HubSpot Link)
-                </label>
-                <input
-                  type="url"
-                  value={dealSelectedLink}
-                  onChange={(e) => setDealSelectedLink(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="https://..."
-                />
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Situation
-                  </label>
-                  <textarea
-                    value={spicedSituation}
-                    onChange={(e) => setSpicedSituation(e.target.value)}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Pain
-                  </label>
-                  <textarea
-                    value={spicedPain}
-                    onChange={(e) => setSpicedPain(e.target.value)}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Impact
-                  </label>
-                  <textarea
-                    value={spicedImpact}
-                    onChange={(e) => setSpicedImpact(e.target.value)}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Critical Event
-                  </label>
-                  <textarea
-                    value={spicedCriticalEvent}
-                    onChange={(e) => setSpicedCriticalEvent(e.target.value)}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Decision
-                  </label>
-                  <textarea
-                    value={spicedDecision}
-                    onChange={(e) => setSpicedDecision(e.target.value)}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Decision Process
-                  </label>
-                  <textarea
-                    value={spicedDecisionProcess}
-                    onChange={(e) => setSpicedDecisionProcess(e.target.value)}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       <div className="sticky bottom-0 bg-white border-t border-slate-200 py-4 mt-8 -mx-4 px-4">
