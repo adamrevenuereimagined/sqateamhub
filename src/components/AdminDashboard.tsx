@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { supabase, Week, User } from '../lib/supabase';
-import { TrendingUp, Users, Target, Activity, CheckCircle, Clock, AlertCircle, ChevronDown, ChevronRight, Settings, BarChart3 } from 'lucide-react';
+import { TrendingUp, Users, Target, Activity, CheckCircle, Clock, AlertCircle, ChevronDown, ChevronRight, Settings, BarChart3, Calendar } from 'lucide-react';
 import { TargetsManagement } from './TargetsManagement';
 import { AnalyticsDashboard } from './AnalyticsDashboard';
+import { WeekManagement } from './WeekManagement';
 
 type WeeklySubmission = {
   id: string;
@@ -52,6 +53,7 @@ export function AdminDashboard() {
   const [expandedReps, setExpandedReps] = useState<{ [userId: string]: boolean }>({});
   const [loading, setLoading] = useState(true);
   const [showTargetsModal, setShowTargetsModal] = useState(false);
+  const [showWeekManagement, setShowWeekManagement] = useState(false);
   const [activeTab, setActiveTab] = useState<'team' | 'analytics'>('team');
 
   useEffect(() => {
@@ -384,13 +386,22 @@ export function AdminDashboard() {
             </select>
           </div>
 
-          <button
-            onClick={() => setShowTargetsModal(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-          >
-            <Settings className="w-4 h-4" />
-            Manage Targets
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowWeekManagement(true)}
+              className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2"
+            >
+              <Calendar className="w-4 h-4" />
+              Manage Weeks
+            </button>
+            <button
+              onClick={() => setShowTargetsModal(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+            >
+              <Settings className="w-4 h-4" />
+              Manage Targets
+            </button>
+          </div>
         </div>
       </div>
 
@@ -939,6 +950,13 @@ export function AdminDashboard() {
 
       {showTargetsModal && (
         <TargetsManagement onClose={() => setShowTargetsModal(false)} />
+      )}
+
+      {showWeekManagement && (
+        <WeekManagement onClose={() => {
+          setShowWeekManagement(false);
+          loadAvailableWeeks();
+        }} />
       )}
     </div>
   );
