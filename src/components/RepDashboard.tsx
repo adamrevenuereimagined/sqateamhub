@@ -47,103 +47,148 @@ export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly' | 'hi
     if (!user) return;
 
     try {
-      const { data: weekData } = await supabase
-        .from('weeks')
-        .select('*')
-        .eq('status', 'active')
-        .order('start_date', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const [weekResult, targetsResult] = await Promise.all([
+        supabase
+          .from('weeks')
+          .select('*')
+          .eq('status', 'active')
+          .order('start_date', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from('weekly_activity_targets')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle()
+      ]);
 
-      if (weekData) {
-        setCurrentWeek(weekData);
+      if (targetsResult.data) {
+        setTargets(targetsResult.data);
+      }
 
-        const { data: submissionData } = await supabase
+      const weekData = weekResult.data;
+      if (!weekData) {
+        setLoading(false);
+        return;
+      }
+
+      setCurrentWeek(weekData);
+
+      const currentDate = new Date(weekData.end_date);
+      const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+      const quarter = Math.floor(currentDate.getMonth() / 3);
+      const quarterStart = new Date(currentDate.getFullYear(), quarter * 3, 1);
+
+      const [submissionResult, previousWeekResult, allWeeksResult] = await Promise.all([
+        supabase
           .from('weekly_submissions')
           .select('*')
           .eq('user_id', user.id)
           .eq('week_id', weekData.id)
-          .maybeSingle();
-
-        if (submissionData) {
-          setSubmission(submissionData);
-          setSubmissionStatus(submissionData.status);
-        }
-
-        const { data: previousWeekData } = await supabase
+          .maybeSingle(),
+        supabase
           .from('weeks')
           .select('*')
           .lt('start_date', weekData.start_date)
           .order('start_date', { ascending: false })
           .limit(1)
-          .maybeSingle();
+          .maybeSingle(),
+        supabase
+          .from('weeks')
+          .select('id, start_date, end_date')
+          .lte('start_date', weekData.end_date)
+          .order('start_date', { ascending: true })
+      ]);
 
-        if (previousWeekData) {
-          const { data: previousSubmissionData } = await supabase
+      if (submissionResult.data) {
+        setSubmission(submissionResult.data);
+        setSubmissionStatus(submissionResult.data.status);
+      }
+
+      const previousWeekData = previousWeekResult.data;
+      const allWeeks = allWeeksResult.data;
+
+      const queries = [];
+
+      if (previousWeekData) {
+        queries.push(
+          supabase
             .from('weekly_submissions')
             .select('*')
             .eq('user_id', user.id)
             .eq('week_id', previousWeekData.id)
-            .maybeSingle();
+            .maybeSingle()
+        );
+      }
 
+      if (allWeeks && allWeeks.length > 0) {
+        const mtdWeekIds = allWeeks
+          .filter(w => new Date(w.start_date) >= monthStart)
+          .map(w => w.id);
+
+        const qtdWeekIds = allWeeks
+          .filter(w => new Date(w.start_date) >= quarterStart)
+          .map(w => w.id);
+
+        if (mtdWeekIds.length > 0) {
+          queries.push(
+            supabase
+              .from('weekly_submissions')
+              .select('*')
+              .eq('user_id', user.id)
+              .in('week_id', mtdWeekIds)
+          );
+        }
+
+        if (qtdWeekIds.length > 0) {
+          queries.push(
+            supabase
+              .from('weekly_submissions')
+              .select('*')
+              .eq('user_id', user.id)
+              .in('week_id', qtdWeekIds)
+          );
+        }
+      }
+
+      if (queries.length > 0) {
+        const results = await Promise.all(queries);
+
+        let resultIndex = 0;
+        if (previousWeekData) {
+          const previousSubmissionData = results[resultIndex]?.data;
           if (previousSubmissionData) {
             setPreviousSubmission(previousSubmissionData);
           }
+          resultIndex++;
         }
 
-        const currentDate = new Date(weekData.end_date);
-        const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-
-        const quarter = Math.floor(currentDate.getMonth() / 3);
-        const quarterStart = new Date(currentDate.getFullYear(), quarter * 3, 1);
-
-        const { data: allWeeks } = await supabase
-          .from('weeks')
-          .select('id, start_date, end_date')
-          .lte('start_date', weekData.end_date)
-          .order('start_date', { ascending: true });
-
-        if (allWeeks) {
+        if (allWeeks && allWeeks.length > 0) {
           const mtdWeekIds = allWeeks
             .filter(w => new Date(w.start_date) >= monthStart)
             .map(w => w.id);
+
+          if (mtdWeekIds.length > 0) {
+            const mtdSubmissions = results[resultIndex]?.data;
+            if (mtdSubmissions && mtdSubmissions.length > 0) {
+              const mtdAgg = aggregateSubmissions(mtdSubmissions);
+              setMtdMetrics(mtdAgg);
+            }
+            resultIndex++;
+          }
 
           const qtdWeekIds = allWeeks
             .filter(w => new Date(w.start_date) >= quarterStart)
             .map(w => w.id);
 
-          const { data: mtdSubmissions } = await supabase
-            .from('weekly_submissions')
-            .select('*')
-            .eq('user_id', user.id)
-            .in('week_id', mtdWeekIds);
-
-          const { data: qtdSubmissions } = await supabase
-            .from('weekly_submissions')
-            .select('*')
-            .eq('user_id', user.id)
-            .in('week_id', qtdWeekIds);
-
-          if (mtdSubmissions && mtdSubmissions.length > 0) {
-            const mtdAgg = aggregateSubmissions(mtdSubmissions);
-            setMtdMetrics(mtdAgg);
-          }
-
-          if (qtdSubmissions && qtdSubmissions.length > 0) {
-            const qtdAgg = aggregateSubmissions(qtdSubmissions);
-            setQtdMetrics(qtdAgg);
+          if (qtdWeekIds.length > 0) {
+            const qtdSubmissions = results[resultIndex]?.data;
+            if (qtdSubmissions && qtdSubmissions.length > 0) {
+              const qtdAgg = aggregateSubmissions(qtdSubmissions);
+              setQtdMetrics(qtdAgg);
+            }
           }
         }
-      }
-
-      const { data: targetsData } = await supabase
-        .from('weekly_activity_targets')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (targetsData) {
-        setTargets(targetsData);
       }
     } catch (error) {
       console.error('Error loading dashboard:', error);

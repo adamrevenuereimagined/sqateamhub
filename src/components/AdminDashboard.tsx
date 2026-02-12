@@ -12,7 +12,6 @@ type WeeklySubmission = {
   revenue_mtd: number;
   revenue_qtd: number;
   cold_calls: number;
-  emails: number;
   li_messages: number;
   videos: number;
   decision_maker_connects: number;
@@ -31,7 +30,6 @@ type WeeklySubmission = {
 
 type AggregatedMetrics = {
   cold_calls: number;
-  emails: number;
   li_messages: number;
   videos: number;
   decision_maker_connects: number;
@@ -186,7 +184,6 @@ export function AdminDashboard() {
     const uniqueWeeks = new Set(submissions.map(s => s.week_id));
     return {
       cold_calls: submissions.reduce((sum, s) => sum + (s.cold_calls || 0), 0),
-      emails: submissions.reduce((sum, s) => sum + (s.emails || 0), 0),
       li_messages: submissions.reduce((sum, s) => sum + (s.li_messages || 0), 0),
       videos: submissions.reduce((sum, s) => sum + (s.videos || 0), 0),
       decision_maker_connects: submissions.reduce((sum, s) => sum + (s.decision_maker_connects || 0), 0),
@@ -517,7 +514,6 @@ export function AdminDashboard() {
                   {(() => {
                     const currentTotals = {
                       coldCalls: Object.values(submissions).reduce((sum, s) => sum + (s.cold_calls || 0), 0),
-                      emails: Object.values(submissions).reduce((sum, s) => sum + (s.emails || 0), 0),
                       liMessages: Object.values(submissions).reduce((sum, s) => sum + (s.li_messages || 0), 0),
                       dmConnects: Object.values(submissions).reduce((sum, s) => sum + (s.decision_maker_connects || 0), 0),
                       meetings: Object.values(submissions).reduce((sum, s) => sum + (s.meetings_booked || 0), 0),
@@ -526,7 +522,6 @@ export function AdminDashboard() {
                     };
                     const previousTotals = {
                       coldCalls: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.cold_calls || 0), 0),
-                      emails: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.emails || 0), 0),
                       liMessages: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.li_messages || 0), 0),
                       dmConnects: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.decision_maker_connects || 0), 0),
                       meetings: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.meetings_booked || 0), 0),
@@ -547,22 +542,6 @@ export function AdminDashboard() {
                               {getTrendIcon(currentTotals.coldCalls, previousTotals.coldCalls)}
                               <span className={`text-sm font-medium ${getTrendColor(currentTotals.coldCalls, previousTotals.coldCalls)}`}>
                                 {Math.abs(calculateChange(currentTotals.coldCalls, previousTotals.coldCalls)).toFixed(0)}%
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="bg-slate-50 rounded-lg p-4">
-                          <p className="text-sm text-slate-600 mb-2">Emails</p>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-baseline gap-2">
-                              <p className="text-2xl font-bold text-slate-900">{currentTotals.emails}</p>
-                              <p className="text-sm text-slate-500">vs {previousTotals.emails}</p>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              {getTrendIcon(currentTotals.emails, previousTotals.emails)}
-                              <span className={`text-sm font-medium ${getTrendColor(currentTotals.emails, previousTotals.emails)}`}>
-                                {Math.abs(calculateChange(currentTotals.emails, previousTotals.emails)).toFixed(0)}%
                               </span>
                             </div>
                           </div>

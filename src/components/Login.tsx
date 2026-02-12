@@ -7,6 +7,7 @@ export function Login() {
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUserId, setSelectedUserId] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { signIn } = useAuth();
 
   useEffect(() => {
@@ -15,17 +16,19 @@ export function Login() {
 
   const loadUsers = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error: dbError } = await supabase
         .from('users')
         .select('*')
         .eq('is_active', true)
         .order('role', { ascending: false })
         .order('name');
 
-      if (error) throw error;
+      if (dbError) throw dbError;
       setUsers(data as User[]);
-    } catch (error) {
-      console.error('Error loading users:', error);
+      setError(null);
+    } catch (err: any) {
+      console.error('Error loading users:', err);
+      setError('Unable to connect to database. The database may be paused or unavailable. Please try again in a few moments.');
     } finally {
       setLoading(false);
     }
@@ -42,7 +45,42 @@ export function Login() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
+          <p className="text-slate-600">Connecting to database...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-2xl shadow-xl p-8">
+            <div className="flex items-center justify-center mb-6">
+              <div className="bg-red-100 p-3 rounded-xl">
+                <Users className="w-8 h-8 text-red-600" />
+              </div>
+            </div>
+            <h2 className="text-xl font-bold text-center text-slate-900 mb-3">
+              Database Connection Error
+            </h2>
+            <p className="text-center text-slate-600 mb-6">
+              {error}
+            </p>
+            <button
+              onClick={() => {
+                setLoading(true);
+                setError(null);
+                loadUsers();
+              }}
+              className="w-full px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
