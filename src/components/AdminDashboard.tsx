@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { supabase, Week, User } from '../lib/supabase';
-import { TrendingUp, Users, Target, Activity, CheckCircle, Clock, AlertCircle, ChevronDown, ChevronRight, Settings } from 'lucide-react';
+import { TrendingUp, Users, Target, Activity, CheckCircle, Clock, AlertCircle, ChevronDown, ChevronRight, Settings, BarChart3 } from 'lucide-react';
 import { TargetsManagement } from './TargetsManagement';
+import { AnalyticsDashboard } from './AnalyticsDashboard';
 
 type WeeklySubmission = {
   id: string;
@@ -35,6 +36,7 @@ export function AdminDashboard() {
   const [expandedReps, setExpandedReps] = useState<{ [userId: string]: boolean }>({});
   const [loading, setLoading] = useState(true);
   const [showTargetsModal, setShowTargetsModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<'team' | 'analytics'>('team');
 
   useEffect(() => {
     loadAvailableWeeks();
@@ -175,15 +177,60 @@ export function AdminDashboard() {
 
   return (
     <div>
-      <div className="mb-8 flex items-start justify-between">
-        <div>
-          <h2 className="text-3xl font-bold text-slate-900 mb-2">
-            Team Dashboard
-          </h2>
-          <p className="text-slate-600">
-            BD Weekly Team Performance & Metrics
-          </p>
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-3xl font-bold text-slate-900 mb-2">
+              Admin Dashboard
+            </h2>
+            <p className="text-slate-600">
+              BD Weekly Team Performance & Analytics
+            </p>
+          </div>
         </div>
+
+        <div className="flex gap-2 border-b border-slate-200">
+          <button
+            onClick={() => setActiveTab('team')}
+            className={`px-6 py-3 font-medium transition-colors relative ${
+              activeTab === 'team'
+                ? 'text-emerald-600'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              Team Dashboard
+            </div>
+            {activeTab === 'team' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600"></div>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('analytics')}
+            className={`px-6 py-3 font-medium transition-colors relative ${
+              activeTab === 'analytics'
+                ? 'text-emerald-600'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5" />
+              Week-over-Week Analytics
+            </div>
+            {activeTab === 'analytics' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600"></div>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {activeTab === 'analytics' ? (
+        <AnalyticsDashboard />
+      ) : (
+        <div>
+          <div className="mb-8 flex items-start justify-between">
+            <div></div>
 
         <div className="flex items-end gap-4">
           <div className="text-right">
@@ -530,6 +577,8 @@ export function AdminDashboard() {
           })}
         </div>
       </div>
+        </div>
+      )}
 
       {showTargetsModal && (
         <TargetsManagement onClose={() => setShowTargetsModal(false)} />
