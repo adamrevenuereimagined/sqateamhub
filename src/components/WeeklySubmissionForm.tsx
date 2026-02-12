@@ -65,6 +65,7 @@ type Props = {
 
 export function WeeklySubmissionForm({ onBack }: Props) {
   const { user } = useAuth();
+  const [availableWeeks, setAvailableWeeks] = useState<Week[]>([]);
   const [currentWeek, setCurrentWeek] = useState<Week | null>(null);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -152,55 +153,107 @@ export function WeeklySubmissionForm({ onBack }: Props) {
   const [lastCommitments, setLastCommitments] = useState<Commitment[]>([]);
 
   useEffect(() => {
-    loadFormData();
+    loadAvailableWeeks();
   }, [user?.id]);
 
-  const loadFormData = async () => {
+  useEffect(() => {
+    if (currentWeek) {
+      loadFormData(currentWeek.id);
+    }
+  }, [currentWeek?.id]);
+
+  const loadAvailableWeeks = async () => {
+    try {
+      const { data: weeksData } = await supabase
+        .from('weeks')
+        .select('*')
+        .order('start_date', { ascending: false })
+        .limit(10);
+
+      if (weeksData && weeksData.length > 0) {
+        setAvailableWeeks(weeksData);
+        const activeWeek = weeksData.find(w => w.status === 'active') || weeksData[0];
+        setCurrentWeek(activeWeek);
+      }
+    } catch (error) {
+      console.error('Error loading weeks:', error);
+    }
+  };
+
+  const loadFormData = async (weekId: string) => {
     if (!user) return;
 
     try {
-      const { data: weekData } = await supabase
-        .from('weeks')
+      const { data: submission } = await supabase
+        .from('weekly_submissions')
         .select('*')
-        .eq('status', 'active')
-        .order('start_date', { ascending: false })
-        .limit(1)
+        .eq('user_id', user.id)
+        .eq('week_id', weekId)
         .maybeSingle();
 
-      if (weekData) {
-        setCurrentWeek(weekData);
+      if (submission) {
+        setSubmissionId(submission.id);
+        setStatus(submission.status);
+        populateFormFromSubmission(submission);
 
-        const { data: submission } = await supabase
-          .from('weekly_submissions')
+        const { data: commitmentsData } = await supabase
+          .from('submission_commitments')
           .select('*')
-          .eq('user_id', user.id)
-          .eq('week_id', weekData.id)
-          .maybeSingle();
+          .eq('submission_id', submission.id);
 
-        if (submission) {
-          setSubmissionId(submission.id);
-          setStatus(submission.status);
-          populateFormFromSubmission(submission);
-
-          const { data: commitmentsData } = await supabase
-            .from('submission_commitments')
-            .select('*')
-            .eq('submission_id', submission.id);
-
-          if (commitmentsData && commitmentsData.length > 0) {
-            setCommitments(commitmentsData.map(c => ({
-              text: c.commitment_text,
-              deadline: c.deadline,
-              successMetric: c.success_metric
-            })));
-          }
-        } else {
-          await loadPreviousWeekData(weekData.id);
+        if (commitmentsData && commitmentsData.length > 0) {
+          setCommitments(commitmentsData.map(c => ({
+            text: c.commitment_text,
+            deadline: c.deadline,
+            successMetric: c.success_metric
+          })));
         }
+      } else {
+        resetForm();
+        await loadPreviousWeekData(weekId);
       }
     } catch (error) {
       console.error('Error loading form data:', error);
     }
+  };
+
+  const resetForm = () => {
+    setSubmissionId(null);
+    setStatus('not_started');
+    setWins(['']);
+    setWhatsWorking('');
+    setPositiveFeedback('');
+    setColdCalls(0);
+    setEmails(0);
+    setLiMessages(0);
+    setVideos(0);
+    setDmConnects(0);
+    setMeetingsBooked(0);
+    setDiscoveryCalls(0);
+    setOpportunitiesAdvanced(0);
+    setPipelineCoverage(0);
+    setRevenueMtd(0);
+    setRevenueQtd(0);
+    setAvgDealSize(0);
+    setDealsAdvancing([{ dealName: '', nextStage: '', nextStep: '' }]);
+    setDealsStalling([{ dealName: '', whyStuck: '', yourPlan: '', helpNeeded: '' }]);
+    setNewDeals([{ companyName: '', dealSource: '', dealPotential: '' }]);
+    setClosingOpps([{ companyDeal: '', value: 0, closeDate: '', confidenceBlockers: '' }]);
+    setF2fMeetings([{ clientProspect: '', dates: '', where: '', purposePrep: '' }]);
+    setCallReviewLink('');
+    setCallReviewFocus('');
+    setBlockersHelp('');
+    setDealBlockers(['']);
+    setSupportNeeded(['']);
+    setThisWeekGoal('');
+    setSelfCare('');
+    setEnergyLevel('medium');
+    setManagerSupport('');
+    setCommitments([
+      { text: '', deadline: '', successMetric: '' },
+      { text: '', deadline: '', successMetric: '' },
+      { text: '', deadline: '', successMetric: '' }
+    ]);
   };
 
   const loadPreviousWeekData = async (currentWeekId: string) => {
@@ -408,17 +461,53 @@ export function WeeklySubmissionForm({ onBack }: Props) {
           Back to Dashboard
         </button>
 
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Weekly Submission</h1>
-          <p className="text-slate-600">
-            Week of {new Date(currentWeek.start_date).toLocaleDateString('en-US', {
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">Weekly Submission</h1>
+            <p className="text-sm text-slate-500">
+              {user?.name} | Q Quota: ${user?.quarterly_quota.toLocaleString()} | Due: Thursday 5:00 PM PT
+            </p>
+          </div>
+
+          <div className="text-right">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Select Week (Friday End Date)
+            </label>
+            <select
+              value={currentWeek?.id || ''}
+              onChange={(e) => {
+                const week = availableWeeks.find(w => w.id === e.target.value);
+                if (week) setCurrentWeek(week);
+              }}
+              className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 min-w-[200px]"
+            >
+              {availableWeeks.map((week) => (
+                <option key={week.id} value={week.id}>
+                  {new Date(week.end_date).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                  })}
+                  {week.status === 'active' ? ' (Current)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+          <p className="text-slate-700">
+            <span className="font-semibold">Week of:</span>{' '}
+            {new Date(currentWeek.start_date).toLocaleDateString('en-US', {
+              month: 'long',
+              day: 'numeric'
+            })}{' '}
+            -{' '}
+            {new Date(currentWeek.end_date).toLocaleDateString('en-US', {
               month: 'long',
               day: 'numeric',
               year: 'numeric'
             })}
-          </p>
-          <p className="text-sm text-slate-500 mt-1">
-            {user?.name} | Q Quota: ${user?.quarterly_quota.toLocaleString()} | Due: Thursday 5:00 PM PT
           </p>
         </div>
       </div>
