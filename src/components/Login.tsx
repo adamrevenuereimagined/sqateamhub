@@ -1,34 +1,54 @@
-import { useState, FormEvent } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { LogIn } from 'lucide-react';
+import { supabase, User } from '../lib/supabase';
+import { Users } from 'lucide-react';
 
 export function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
   const { signIn } = useAuth();
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+  useEffect(() => {
+    loadUsers();
+  }, []);
 
-    const result = await signIn(email, password);
-    if (result.error) {
-      setError(result.error);
+  const loadUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('is_active', true)
+        .order('role', { ascending: false })
+        .order('name');
+
+      if (error) throw error;
+      setUsers(data as User[]);
+    } catch (error) {
+      console.error('Error loading users:', error);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
+
+  const handleSelectUser = async (userId: string) => {
+    await signIn(userId);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-2xl">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="flex items-center justify-center mb-8">
             <div className="bg-emerald-600 p-3 rounded-xl">
-              <LogIn className="w-8 h-8 text-white" />
+              <Users className="w-8 h-8 text-white" />
             </div>
           </div>
 
@@ -36,62 +56,40 @@ export function Login() {
             SQA BD Team Hub
           </h1>
           <p className="text-center text-slate-600 mb-8">
-            Weekly 1:1 Tracker & Team Meeting Manager
+            Select a user to continue
           </p>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                placeholder="you@sqa.com"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                placeholder="••••••••"
-              />
-            </div>
-
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                {error}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-emerald-600 text-white py-2.5 rounded-lg font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Signing in...' : 'Sign In'}
-            </button>
-          </form>
-
-          <div className="mt-6 p-4 bg-slate-50 rounded-lg">
-            <p className="text-sm text-slate-600 font-medium mb-2">Demo Accounts:</p>
-            <div className="text-xs text-slate-500 space-y-1">
-              <p>Admin: adam@sqa.com</p>
-              <p>Rep: rocio@sqa.com</p>
-              <p className="text-slate-400 mt-2">Password: demo123</p>
-            </div>
+          <div className="space-y-3">
+            {users.map((user) => (
+              <button
+                key={user.id}
+                onClick={() => handleSelectUser(user.id)}
+                className="w-full text-left px-6 py-4 border-2 border-slate-200 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all group"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-slate-900 group-hover:text-emerald-900">
+                      {user.name}
+                    </p>
+                    <p className="text-sm text-slate-600">{user.email}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      user.role === 'admin'
+                        ? 'bg-purple-100 text-purple-800'
+                        : 'bg-blue-100 text-blue-800'
+                    }`}>
+                      {user.role === 'admin' ? 'Manager' : 'Sales Rep'}
+                    </span>
+                    {user.role === 'rep' && (
+                      <span className="text-sm text-slate-500">
+                        Quota: ${user.quarterly_quota.toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </button>
+            ))}
           </div>
         </div>
       </div>
