@@ -106,7 +106,6 @@ export type BDWeeklyRepData = {
   meeting_id: string;
   user_id: string;
   cold_calls: number;
-  emails: number;
   li_messages: number;
   videos: number;
   dm_connects: number;
@@ -132,7 +131,6 @@ export type WeeklyActivityTargets = {
   id: string;
   user_id: string;
   target_cold_calls: number;
-  target_emails: number;
   target_li_messages: number;
   target_videos: number;
   target_dm_connects: number;

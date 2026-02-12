@@ -80,7 +80,6 @@ export function TargetsManagement({ onClose }: Props) {
           .upsert({
             user_id: userId,
             target_cold_calls: target.target_cold_calls,
-            target_emails: target.target_emails,
             target_li_messages: target.target_li_messages,
             target_videos: target.target_videos,
             target_dm_connects: target.target_dm_connects,
@@ -149,7 +148,6 @@ export function TargetsManagement({ onClose }: Props) {
             {reps.map((rep) => {
               const repTargets = targets[rep.id] || {
                 target_cold_calls: 50,
-                target_emails: 100,
                 target_li_messages: 50,
                 target_videos: 10,
                 target_dm_connects: 15,
@@ -164,7 +162,7 @@ export function TargetsManagement({ onClose }: Props) {
                   <div className="mb-4 flex items-start justify-between">
                     <div>
                       <h3 className="text-lg font-semibold text-slate-900">{rep.name}</h3>
-                      <p className="text-sm text-slate-600">{rep.email}</p>
+                      <p className="text-sm text-slate-600">Sales Representative</p>
                     </div>
                     <div className="text-right">
                       <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -190,18 +188,6 @@ export function TargetsManagement({ onClose }: Props) {
                         type="number"
                         value={repTargets.target_cold_calls}
                         onChange={(e) => updateTarget(rep.id, 'target_cold_calls', parseInt(e.target.value) || 0)}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Emails
-                      </label>
-                      <input
-                        type="number"
-                        value={repTargets.target_emails}
-                        onChange={(e) => updateTarget(rep.id, 'target_emails', parseInt(e.target.value) || 0)}
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                       />
                     </div>

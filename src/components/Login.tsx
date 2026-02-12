@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, User } from '../lib/supabase';
-import { Users } from 'lucide-react';
+import { Users, LogIn } from 'lucide-react';
 
 export function Login() {
   const [users, setUsers] = useState<User[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState('');
   const [loading, setLoading] = useState(true);
   const { signIn } = useAuth();
 
@@ -30,8 +31,12 @@ export function Login() {
     }
   };
 
-  const handleSelectUser = async (userId: string) => {
-    await signIn(userId);
+  const handleLogin = async () => {
+    if (!selectedUserId) {
+      alert('Please select a user');
+      return;
+    }
+    await signIn(selectedUserId);
   };
 
   if (loading) {
@@ -42,9 +47,11 @@ export function Login() {
     );
   }
 
+  const selectedUser = users.find(u => u.id === selectedUserId);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl">
+      <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="flex items-center justify-center mb-8">
             <div className="bg-emerald-600 p-3 rounded-xl">
@@ -56,40 +63,55 @@ export function Login() {
             SQA BD Team Hub
           </h1>
           <p className="text-center text-slate-600 mb-8">
-            Select a user to continue
+            Select your name to continue
           </p>
 
-          <div className="space-y-3">
-            {users.map((user) => (
-              <button
-                key={user.id}
-                onClick={() => handleSelectUser(user.id)}
-                className="w-full text-left px-6 py-4 border-2 border-slate-200 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all group"
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Select User
+              </label>
+              <select
+                value={selectedUserId}
+                onChange={(e) => setSelectedUserId(e.target.value)}
+                className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-900"
               >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-semibold text-slate-900 group-hover:text-emerald-900">
-                      {user.name}
-                    </p>
-                    <p className="text-sm text-slate-600">{user.email}</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      user.role === 'admin'
-                        ? 'bg-purple-100 text-purple-800'
-                        : 'bg-blue-100 text-blue-800'
-                    }`}>
-                      {user.role === 'admin' ? 'Manager' : 'Sales Rep'}
-                    </span>
-                    {user.role === 'rep' && (
-                      <span className="text-sm text-slate-500">
-                        Quota: ${user.quarterly_quota.toLocaleString()}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </button>
-            ))}
+                <option value="">Choose your name...</option>
+                {users.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.name} - {user.role === 'admin' ? 'Manager' : 'Sales Rep'}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {selectedUser && (
+              <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                <p className="text-sm text-slate-600 mb-1">Logging in as:</p>
+                <p className="font-semibold text-slate-900">{selectedUser.name}</p>
+                <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-medium ${
+                  selectedUser.role === 'admin'
+                    ? 'bg-purple-100 text-purple-800'
+                    : 'bg-blue-100 text-blue-800'
+                }`}>
+                  {selectedUser.role === 'admin' ? 'Manager' : 'Sales Rep'}
+                </span>
+                {selectedUser.role === 'rep' && (
+                  <p className="text-sm text-slate-600 mt-2">
+                    Quarterly Quota: ${selectedUser.quarterly_quota.toLocaleString()}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <button
+              onClick={handleLogin}
+              disabled={!selectedUserId}
+              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <LogIn className="w-5 h-5" />
+              Log In
+            </button>
           </div>
         </div>
       </div>

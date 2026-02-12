@@ -37,6 +37,12 @@ export function WeekManagement({ onClose }: { onClose: () => void }) {
       return;
     }
 
+    const endDate = new Date(newWeekEnd);
+    if (endDate.getDay() !== 5) {
+      alert('Week ending date must be a Friday');
+      return;
+    }
+
     setCreating(true);
     try {
       const { error } = await supabase
@@ -108,13 +114,19 @@ export function WeekManagement({ onClose }: { onClose: () => void }) {
 
   const quickCreateNextWeek = () => {
     const today = new Date();
-    const nextMonday = new Date(today);
-    nextMonday.setDate(today.getDate() + ((1 + 7 - today.getDay()) % 7 || 7));
+    let nextFriday = new Date(today);
 
-    const nextFriday = new Date(nextMonday);
-    nextFriday.setDate(nextMonday.getDate() + 4);
+    const daysUntilFriday = (5 - today.getDay() + 7) % 7;
+    if (daysUntilFriday === 0) {
+      nextFriday.setDate(today.getDate() + 7);
+    } else {
+      nextFriday.setDate(today.getDate() + daysUntilFriday);
+    }
 
-    setNewWeekStart(nextMonday.toISOString().split('T')[0]);
+    const monday = new Date(nextFriday);
+    monday.setDate(nextFriday.getDate() - 4);
+
+    setNewWeekStart(monday.toISOString().split('T')[0]);
     setNewWeekEnd(nextFriday.toISOString().split('T')[0]);
   };
 
