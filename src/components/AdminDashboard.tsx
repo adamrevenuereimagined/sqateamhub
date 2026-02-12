@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase, Week, User } from '../lib/supabase';
-import { TrendingUp, Users, Target, Activity, CheckCircle, Clock, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
+import { TrendingUp, Users, Target, Activity, CheckCircle, Clock, AlertCircle, ChevronDown, ChevronRight, Settings } from 'lucide-react';
+import { TargetsManagement } from './TargetsManagement';
 
 type WeeklySubmission = {
   id: string;
@@ -33,6 +34,7 @@ export function AdminDashboard() {
   const [submissions, setSubmissions] = useState<{ [userId: string]: WeeklySubmission }>({});
   const [expandedReps, setExpandedReps] = useState<{ [userId: string]: boolean }>({});
   const [loading, setLoading] = useState(true);
+  const [showTargetsModal, setShowTargetsModal] = useState(false);
 
   useEffect(() => {
     loadAvailableWeeks();
@@ -183,29 +185,39 @@ export function AdminDashboard() {
           </p>
         </div>
 
-        <div className="text-right">
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Select Week (Friday End Date)
-          </label>
-          <select
-            value={currentWeek?.id || ''}
-            onChange={(e) => {
-              const week = availableWeeks.find(w => w.id === e.target.value);
-              if (week) setCurrentWeek(week);
-            }}
-            className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 min-w-[200px]"
+        <div className="flex items-end gap-4">
+          <div className="text-right">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Select Week (Friday End Date)
+            </label>
+            <select
+              value={currentWeek?.id || ''}
+              onChange={(e) => {
+                const week = availableWeeks.find(w => w.id === e.target.value);
+                if (week) setCurrentWeek(week);
+              }}
+              className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 min-w-[200px]"
+            >
+              {availableWeeks.map((week) => (
+                <option key={week.id} value={week.id}>
+                  {new Date(week.end_date).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                  })}
+                  {week.status === 'active' ? ' (Current)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            onClick={() => setShowTargetsModal(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
           >
-            {availableWeeks.map((week) => (
-              <option key={week.id} value={week.id}>
-                {new Date(week.end_date).toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric'
-                })}
-                {week.status === 'active' ? ' (Current)' : ''}
-              </option>
-            ))}
-          </select>
+            <Settings className="w-4 h-4" />
+            Manage Targets
+          </button>
         </div>
       </div>
 
@@ -518,6 +530,10 @@ export function AdminDashboard() {
           })}
         </div>
       </div>
+
+      {showTargetsModal && (
+        <TargetsManagement onClose={() => setShowTargetsModal(false)} />
+      )}
     </div>
   );
 }

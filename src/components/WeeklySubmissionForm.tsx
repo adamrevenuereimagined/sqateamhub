@@ -151,9 +151,21 @@ export function WeeklySubmissionForm({ onBack }: Props) {
   ]);
 
   const [lastCommitments, setLastCommitments] = useState<Commitment[]>([]);
+  const [targets, setTargets] = useState<{
+    target_cold_calls: number;
+    target_emails: number;
+    target_li_messages: number;
+    target_videos: number;
+    target_dm_connects: number;
+    target_meetings_booked: number;
+    target_discovery_calls: number;
+    target_opportunities_advanced: number;
+    target_pipeline_coverage: number;
+  } | null>(null);
 
   useEffect(() => {
     loadAvailableWeeks();
+    loadTargets();
   }, [user?.id]);
 
   useEffect(() => {
@@ -177,6 +189,24 @@ export function WeeklySubmissionForm({ onBack }: Props) {
       }
     } catch (error) {
       console.error('Error loading weeks:', error);
+    }
+  };
+
+  const loadTargets = async () => {
+    if (!user) return;
+
+    try {
+      const { data: targetsData } = await supabase
+        .from('weekly_activity_targets')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (targetsData) {
+        setTargets(targetsData);
+      }
+    } catch (error) {
+      console.error('Error loading targets:', error);
     }
   };
 
@@ -692,6 +722,11 @@ export function WeeklySubmissionForm({ onBack }: Props) {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Cold Calls
+                {targets && (
+                  <span className="ml-2 text-xs text-blue-600 font-normal">
+                    (Target: {targets.target_cold_calls})
+                  </span>
+                )}
               </label>
               <input
                 type="number"
@@ -704,6 +739,11 @@ export function WeeklySubmissionForm({ onBack }: Props) {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Emails
+                {targets && (
+                  <span className="ml-2 text-xs text-blue-600 font-normal">
+                    (Target: {targets.target_emails})
+                  </span>
+                )}
               </label>
               <input
                 type="number"
@@ -716,6 +756,11 @@ export function WeeklySubmissionForm({ onBack }: Props) {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 LI Messages
+                {targets && (
+                  <span className="ml-2 text-xs text-blue-600 font-normal">
+                    (Target: {targets.target_li_messages})
+                  </span>
+                )}
               </label>
               <input
                 type="number"
@@ -728,6 +773,11 @@ export function WeeklySubmissionForm({ onBack }: Props) {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Videos
+                {targets && (
+                  <span className="ml-2 text-xs text-blue-600 font-normal">
+                    (Target: {targets.target_videos})
+                  </span>
+                )}
               </label>
               <input
                 type="number"
@@ -740,6 +790,11 @@ export function WeeklySubmissionForm({ onBack }: Props) {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Decision Maker Connects
+                {targets && (
+                  <span className="ml-2 text-xs text-blue-600 font-normal">
+                    (Target: {targets.target_dm_connects})
+                  </span>
+                )}
               </label>
               <input
                 type="number"
@@ -752,6 +807,11 @@ export function WeeklySubmissionForm({ onBack }: Props) {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Meetings Booked
+                {targets && (
+                  <span className="ml-2 text-xs text-blue-600 font-normal">
+                    (Target: {targets.target_meetings_booked})
+                  </span>
+                )}
               </label>
               <input
                 type="number"
@@ -764,6 +824,11 @@ export function WeeklySubmissionForm({ onBack }: Props) {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Discovery Calls
+                {targets && (
+                  <span className="ml-2 text-xs text-blue-600 font-normal">
+                    (Target: {targets.target_discovery_calls})
+                  </span>
+                )}
               </label>
               <input
                 type="number"
@@ -776,6 +841,11 @@ export function WeeklySubmissionForm({ onBack }: Props) {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Opportunities Advanced
+                {targets && (
+                  <span className="ml-2 text-xs text-blue-600 font-normal">
+                    (Target: {targets.target_opportunities_advanced})
+                  </span>
+                )}
               </label>
               <input
                 type="number"
@@ -787,7 +857,12 @@ export function WeeklySubmissionForm({ onBack }: Props) {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Pipeline Coverage (Target: 3x)
+                Pipeline Coverage
+                {targets && (
+                  <span className="ml-2 text-xs text-blue-600 font-normal">
+                    (Target: {targets.target_pipeline_coverage}x)
+                  </span>
+                )}
               </label>
               <input
                 type="number"

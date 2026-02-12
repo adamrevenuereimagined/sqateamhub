@@ -127,3 +127,19 @@ export type WeeklyGoal = {
   achieved?: 'yes' | 'partial' | 'no';
   notes: string;
 };
+
+export type WeeklyActivityTargets = {
+  id: string;
+  user_id: string;
+  target_cold_calls: number;
+  target_emails: number;
+  target_li_messages: number;
+  target_videos: number;
+  target_dm_connects: number;
+  target_meetings_booked: number;
+  target_discovery_calls: number;
+  target_opportunities_advanced: number;
+  target_pipeline_coverage: number;
+  created_at: string;
+  updated_at: string;
+};
