@@ -174,17 +174,9 @@ export function WeeklySubmissionForm({ onBack }: Props) {
 
   const loadAvailableWeeks = async () => {
     try {
-      const today = new Date();
-      const currentMonth = today.getMonth();
-      const quarter = Math.floor(currentMonth / 3);
-      const quarterStart = new Date(today.getFullYear(), quarter * 3, 1);
-      const quarterEnd = new Date(today.getFullYear(), quarter * 3 + 3, 0);
-
       const { data: weeksData } = await supabase
         .from('weeks')
         .select('*')
-        .gte('start_date', quarterStart.toISOString().split('T')[0])
-        .lte('end_date', quarterEnd.toISOString().split('T')[0])
         .order('start_date', { ascending: false });
 
       if (weeksData && weeksData.length > 0) {

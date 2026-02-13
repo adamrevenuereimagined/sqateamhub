@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase, Week, WeeklyActivityTargets } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { FileText, CheckCircle, Clock, AlertCircle, Target, TrendingUp, TrendingDown, Minus, Calendar } from 'lucide-react';
-import { formatDateShort } from '../lib/dateUtils';
+import { formatDate, formatDateShort } from '../lib/dateUtils';
 
 type WeeklySubmission = {
   status: string;
@@ -32,6 +32,7 @@ type AggregatedMetrics = {
 
 export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly' | 'history') => void }) {
   const { user } = useAuth();
+  const [availableWeeks, setAvailableWeeks] = useState<Week[]>([]);
   const [currentWeek, setCurrentWeek] = useState<Week | null>(null);
   const [submission, setSubmission] = useState<WeeklySubmission | null>(null);
   const [previousSubmission, setPreviousSubmission] = useState<WeeklySubmission | null>(null);
@@ -42,40 +43,48 @@ export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly' | 'hi
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadDashboardData();
+    loadAvailableWeeks();
   }, [user?.id]);
 
-  const loadDashboardData = async () => {
-    if (!user) return;
+  useEffect(() => {
+    if (currentWeek) {
+      loadWeekData();
+    }
+  }, [currentWeek?.id]);
 
+  const loadAvailableWeeks = async () => {
     try {
-      const [weekResult, targetsResult] = await Promise.all([
-        supabase
-          .from('weeks')
-          .select('*')
-          .eq('status', 'active')
-          .order('start_date', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-        supabase
-          .from('weekly_activity_targets')
-          .select('*')
-          .eq('user_id', user.id)
-          .maybeSingle()
-      ]);
+      const { data: weeksData } = await supabase
+        .from('weeks')
+        .select('*')
+        .order('start_date', { ascending: false });
 
-      if (targetsResult.data) {
-        setTargets(targetsResult.data);
+      if (weeksData && weeksData.length > 0) {
+        setAvailableWeeks(weeksData);
+        const activeWeek = weeksData.find(w => w.status === 'active') || weeksData[0];
+        setCurrentWeek(activeWeek);
+      }
+    } catch (error) {
+      console.error('Error loading weeks:', error);
+    }
+  };
+
+  const loadWeekData = async () => {
+    if (!user || !currentWeek) return;
+
+    setLoading(true);
+    try {
+      const { data: targetsData } = await supabase
+        .from('weekly_activity_targets')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (targetsData) {
+        setTargets(targetsData);
       }
 
-      const weekData = weekResult.data;
-      if (!weekData) {
-        setLoading(false);
-        return;
-      }
-
-      setCurrentWeek(weekData);
-
+      const weekData = currentWeek;
       const currentDate = new Date(weekData.end_date);
       const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
       const quarter = Math.floor(currentDate.getMonth() / 3);
@@ -278,9 +287,31 @@ export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly' | 'hi
   return (
     <div>
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-slate-900 mb-2">
-          Welcome back, {user?.name}
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-3xl font-bold text-slate-900">
+            Welcome back, {user?.name}
+          </h2>
+          {availableWeeks.length > 0 && (
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-slate-700">Week Ending:</label>
+              <select
+                value={currentWeek?.id || ''}
+                onChange={(e) => {
+                  const week = availableWeeks.find(w => w.id === e.target.value);
+                  if (week) setCurrentWeek(week);
+                }}
+                className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 min-w-[200px]"
+              >
+                {availableWeeks.map((week) => (
+                  <option key={week.id} value={week.id}>
+                    {formatDate(week.end_date)}
+                    {week.status === 'active' ? ' (Current)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
         {currentWeek ? (
           <p className="text-slate-600">
             Week of {formatDateShort(currentWeek.start_date)} - {formatDateShort(currentWeek.end_date)}, {currentWeek.year}

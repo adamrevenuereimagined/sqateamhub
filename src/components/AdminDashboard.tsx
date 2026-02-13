@@ -70,8 +70,7 @@ export function AdminDashboard() {
       const { data: weeksData } = await supabase
         .from('weeks')
         .select('*')
-        .order('start_date', { ascending: false })
-        .limit(10);
+        .order('start_date', { ascending: false });
 
       if (weeksData && weeksData.length > 0) {
         setAvailableWeeks(weeksData);
