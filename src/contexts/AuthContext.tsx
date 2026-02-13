@@ -42,10 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    const savedUserId = localStorage.getItem('selectedUserId');
-    if (savedUserId) {
-      signIn(savedUserId);
-    }
+    localStorage.removeItem('selectedUserId');
   }, []);
 
   const isAdmin = user?.role === 'admin';
