@@ -10,7 +10,7 @@
   
   ## Demo Accounts
   Admin:
-  - adam@sqa.com / demo123
+  - executive@sqa.com / demo123
   
   Reps:
   - rocio@sqa.com / demo123
@@ -30,14 +30,14 @@ DECLARE
   peter_user_id uuid;
 BEGIN
   -- Get existing user IDs from public.users
-  SELECT id INTO admin_user_id FROM users WHERE email = 'adam@sqa.com';
+  SELECT id INTO admin_user_id FROM users WHERE email = 'executive@sqa.com';
   SELECT id INTO rocio_user_id FROM users WHERE email = 'rocio@sqa.com';
   SELECT id INTO fred_user_id FROM users WHERE email = 'fred@sqa.com';
   SELECT id INTO jasona_user_id FROM users WHERE email = 'jasona@sqa.com';
   SELECT id INTO jasonw_user_id FROM users WHERE email = 'jasonw@sqa.com';
   SELECT id INTO peter_user_id FROM users WHERE email = 'peter@sqa.com';
 
-  -- Create auth user for Adam (admin)
+  -- Create auth user for Executive (admin)
   INSERT INTO auth.users (
     id,
     instance_id,
@@ -53,7 +53,7 @@ BEGIN
   ) VALUES (
     admin_user_id,
     '00000000-0000-0000-0000-000000000000',
-    'adam@sqa.com',
+    'executive@sqa.com',
     crypt('demo123', gen_salt('bf')),
     now(),
     now(),
@@ -208,7 +208,7 @@ BEGIN
     created_at,
     updated_at
   ) VALUES
-    (admin_user_id::text, admin_user_id, jsonb_build_object('sub', admin_user_id::text, 'email', 'adam@sqa.com'), 'email', now(), now()),
+    (admin_user_id::text, admin_user_id, jsonb_build_object('sub', admin_user_id::text, 'email', 'executive@sqa.com'), 'email', now(), now()),
     (rocio_user_id::text, rocio_user_id, jsonb_build_object('sub', rocio_user_id::text, 'email', 'rocio@sqa.com'), 'email', now(), now()),
     (fred_user_id::text, fred_user_id, jsonb_build_object('sub', fred_user_id::text, 'email', 'fred@sqa.com'), 'email', now(), now()),
     (jasona_user_id::text, jasona_user_id, jsonb_build_object('sub', jasona_user_id::text, 'email', 'jasona@sqa.com'), 'email', now(), now()),

@@ -51,7 +51,7 @@
   Stores BD Weekly team meeting data (admin sections)
   - `id` (uuid, primary key)
   - `week_id` (uuid, foreign key)
-  - Admin-only section fields (Scoreboard, Adam Topics, etc.)
+  - Admin-only section fields (Scoreboard, Executive Topics, etc.)
   - `pipeline_chart_url` (text) - Uploaded chart image
   
   ### 6. bd_weekly_rep_data
@@ -193,8 +193,8 @@ CREATE TABLE IF NOT EXISTS bd_weekly_meetings (
   win_details text DEFAULT '',
   win_takeaway text DEFAULT '',
   
-  -- Section 6: Adam Topics (admin only)
-  adam_topics text DEFAULT '',
+  -- Section 6: Executive Topics (admin only)
+  executive_topics text DEFAULT '',
   
   -- Section 8: Coaching Moment (admin only)
   coaching_focus text DEFAULT '',

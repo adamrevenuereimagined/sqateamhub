@@ -80,9 +80,9 @@ DO $$
 BEGIN
   -- Create admin user
   PERFORM create_demo_user(
-    'adam@sqa.com',
+    'executive@sqa.com',
     'demo123',
-    'Adam',
+    'Executive',
     'admin',
     0
   );
