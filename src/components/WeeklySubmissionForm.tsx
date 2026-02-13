@@ -52,15 +52,6 @@ type WeeklySubmission = {
   manager_support?: string;
 };
 
-type Commitment = {
-  id?: string;
-  commitment_text: string;
-  deadline: string;
-  success_metric: string;
-  status?: string;
-  notes?: string;
-};
-
 type Props = {
   weekId: string;
   onBack: () => void;
@@ -143,17 +134,6 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
   const [energyLevel, setEnergyLevel] = useState<'high' | 'medium' | 'low'>('medium');
   const [managerSupport, setManagerSupport] = useState('');
 
-  const [commitments, setCommitments] = useState<Array<{
-    text: string;
-    deadline: string;
-    successMetric: string;
-  }>>([
-    { text: '', deadline: '', successMetric: '' },
-    { text: '', deadline: '', successMetric: '' },
-    { text: '', deadline: '', successMetric: '' }
-  ]);
-
-  const [lastCommitments, setLastCommitments] = useState<Commitment[]>([]);
   const [targets, setTargets] = useState<{
     target_cold_calls: number;
     target_li_messages: number;
@@ -221,19 +201,6 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
         setStatus(submission.status);
         populateFormFromSubmission(submission);
 
-        const { data: commitmentsData } = await supabase
-          .from('submission_commitments')
-          .select('*')
-          .eq('submission_id', submission.id);
-
-        if (commitmentsData && commitmentsData.length > 0) {
-          setCommitments(commitmentsData.map(c => ({
-            text: c.commitment_text,
-            deadline: c.deadline,
-            successMetric: c.success_metric
-          })));
-        }
-
         await loadPreviousWeekData(weekId);
       } else {
         resetForm();
@@ -279,11 +246,6 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
     setSelfCare('');
     setEnergyLevel('medium');
     setManagerSupport('');
-    setCommitments([
-      { text: '', deadline: '', successMetric: '' },
-      { text: '', deadline: '', successMetric: '' },
-      { text: '', deadline: '', successMetric: '' }
-    ]);
   };
 
   const loadGoalsForCurrentWeek = async (weekId: string) => {
@@ -318,24 +280,6 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
         .maybeSingle();
 
       if (prevWeek) {
-        const { data: prevSubmission } = await supabase
-          .from('weekly_submissions')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('week_id', prevWeek.id)
-          .maybeSingle();
-
-        if (prevSubmission) {
-          const { data: prevCommitments } = await supabase
-            .from('submission_commitments')
-            .select('*')
-            .eq('submission_id', prevSubmission.id);
-
-          if (prevCommitments) {
-            setLastCommitments(prevCommitments as Commitment[]);
-          }
-        }
-
         const { data: prevGoals } = await supabase
           .from('weekly_goals')
           .select('*')
@@ -454,26 +398,6 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
         setSubmissionId(data.id);
       }
 
-      if (finalSubmissionId) {
-        await supabase
-          .from('submission_commitments')
-          .delete()
-          .eq('submission_id', finalSubmissionId);
-
-        const validCommitments = commitments.filter(c => c.text.trim());
-        if (validCommitments.length > 0) {
-          await supabase
-            .from('submission_commitments')
-            .insert(validCommitments.map(c => ({
-              submission_id: finalSubmissionId,
-              commitment_text: c.text,
-              deadline: c.deadline,
-              success_metric: c.successMetric,
-              status: 'in_progress'
-            })));
-        }
-      }
-
       await supabase
         .from('weekly_goals')
         .delete()
@@ -519,13 +443,6 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
     }
   };
 
-  const updateCommitmentStatus = async (commitmentId: string, newStatus: string, notes: string) => {
-    await supabase
-      .from('submission_commitments')
-      .update({ status: newStatus, notes })
-      .eq('id', commitmentId);
-  };
-
   if (!currentWeek) {
     return <div>Loading...</div>;
   }
@@ -559,54 +476,6 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
       </div>
 
       <div className="space-y-6">
-        {lastCommitments.length > 0 && (
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <h2 className="text-xl font-semibold text-slate-900 mb-4">
-              Last Week's Commitments
-            </h2>
-            <p className="text-sm text-slate-600 mb-4">
-              Review and update status of your commitments from last week
-            </p>
-
-            <div className="space-y-4">
-              {lastCommitments.map((commitment) => (
-                <div key={commitment.id} className="border border-slate-200 rounded-lg p-4">
-                  <p className="font-medium text-slate-900 mb-2">{commitment.commitment_text}</p>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Status
-                      </label>
-                      <select
-                        defaultValue={commitment.status}
-                        onChange={(e) => updateCommitmentStatus(commitment.id!, e.target.value, commitment.notes || '')}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                      >
-                        <option value="accomplished">Accomplished</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="not_started">Not Started</option>
-                        <option value="blocked">Blocked</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Notes
-                      </label>
-                      <input
-                        type="text"
-                        defaultValue={commitment.notes}
-                        onBlur={(e) => updateCommitmentStatus(commitment.id!, commitment.status || 'in_progress', e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                        placeholder="Any notes..."
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {previousGoals.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
             <h2 className="text-xl font-semibold text-slate-900 mb-2">
@@ -1380,66 +1249,6 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 </button>
               )}
             </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <h2 className="text-xl font-semibold text-slate-900 mb-4">
-            Commitments & Action Items
-          </h2>
-          <p className="text-sm text-slate-600 mb-4">
-            These will automatically carry forward to next week's review
-          </p>
-
-          <div className="space-y-4">
-            {commitments.map((commitment, index) => (
-              <div key={index} className="border border-slate-200 rounded-lg p-4">
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Commitment #{index + 1}
-                </label>
-                <textarea
-                  value={commitment.text}
-                  onChange={(e) => {
-                    const newCommitments = [...commitments];
-                    newCommitments[index].text = e.target.value;
-                    setCommitments(newCommitments);
-                  }}
-                  rows={2}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 mb-3"
-                  placeholder="Specific and measurable commitment..."
-                />
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm text-slate-600 mb-1">Deadline</label>
-                    <input
-                      type="text"
-                      value={commitment.deadline}
-                      onChange={(e) => {
-                        const newCommitments = [...commitments];
-                        newCommitments[index].deadline = e.target.value;
-                        setCommitments(newCommitments);
-                      }}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                      placeholder="When..."
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-slate-600 mb-1">Success Metric</label>
-                    <input
-                      type="text"
-                      value={commitment.successMetric}
-                      onChange={(e) => {
-                        const newCommitments = [...commitments];
-                        newCommitments[index].successMetric = e.target.value;
-                        setCommitments(newCommitments);
-                      }}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                      placeholder="How to measure..."
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
 
