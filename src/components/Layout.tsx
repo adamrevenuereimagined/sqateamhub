@@ -1,11 +1,11 @@
 import { ReactNode } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { LogOut, Home, FileText, Users } from 'lucide-react';
+import { LogOut, Home, Users } from 'lucide-react';
 
 type LayoutProps = {
   children: ReactNode;
-  currentView: 'dashboard' | 'weekly' | 'history' | 'admin';
-  onNavigate: (view: 'dashboard' | 'weekly' | 'history' | 'admin') => void;
+  currentView: 'dashboard' | 'weekly' | 'admin';
+  onNavigate: (view: 'dashboard' | 'weekly' | 'admin') => void;
 };
 
 export function Layout({ children, currentView, onNavigate }: LayoutProps) {
@@ -17,7 +17,10 @@ export function Layout({ children, currentView, onNavigate }: LayoutProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-8">
-              <h1 className="text-xl font-bold text-slate-900">
+              <h1
+                className="text-xl font-bold text-slate-900 cursor-pointer"
+                onClick={() => onNavigate('dashboard')}
+              >
                 SQA BD Team Hub
               </h1>
 
@@ -29,6 +32,18 @@ export function Layout({ children, currentView, onNavigate }: LayoutProps) {
                   >
                     <Users className="w-4 h-4 inline mr-2" />
                     Team Dashboard
+                  </button>
+                </div>
+              )}
+
+              {!isAdmin && currentView !== 'dashboard' && (
+                <div className="hidden md:flex space-x-1">
+                  <button
+                    onClick={() => onNavigate('dashboard')}
+                    className="px-4 py-2 rounded-lg font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                  >
+                    <Home className="w-4 h-4 inline mr-2" />
+                    Dashboard
                   </button>
                 </div>
               )}

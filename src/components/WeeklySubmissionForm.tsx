@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Save, Send, Plus, Trash2, ArrowLeft, Edit2, FileText } from 'lucide-react';
-import { formatDate, formatDateShort } from '../lib/dateUtils';
+import { Save, Send, Plus, Trash2, ArrowLeft, Edit2 } from 'lucide-react';
+import { formatDateShort } from '../lib/dateUtils';
 
 type Week = {
   id: string;
@@ -61,12 +61,12 @@ type Commitment = {
 };
 
 type Props = {
+  weekId: string;
   onBack: () => void;
 };
 
-export function WeeklySubmissionForm({ onBack }: Props) {
+export function WeeklySubmissionForm({ weekId, onBack }: Props) {
   const { user } = useAuth();
-  const [availableWeeks, setAvailableWeeks] = useState<Week[]>([]);
   const [currentWeek, setCurrentWeek] = useState<Week | null>(null);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -164,30 +164,24 @@ export function WeeklySubmissionForm({ onBack }: Props) {
   } | null>(null);
 
   useEffect(() => {
-    loadAvailableWeeks();
+    loadWeek();
     loadTargets();
-  }, [user?.id]);
+  }, [weekId, user?.id]);
 
-  useEffect(() => {
-    if (currentWeek) {
-      loadFormData(currentWeek.id);
-    }
-  }, [currentWeek?.id]);
-
-  const loadAvailableWeeks = async () => {
+  const loadWeek = async () => {
     try {
-      const { data: weeksData } = await supabase
+      const { data } = await supabase
         .from('weeks')
         .select('*')
-        .order('start_date', { ascending: false });
+        .eq('id', weekId)
+        .maybeSingle();
 
-      if (weeksData && weeksData.length > 0) {
-        setAvailableWeeks(weeksData);
-        const activeWeek = weeksData.find(w => w.status === 'active') || weeksData[0];
-        setCurrentWeek(activeWeek);
+      if (data) {
+        setCurrentWeek(data);
+        loadFormData(data.id);
       }
     } catch (error) {
-      console.error('Error loading weeks:', error);
+      console.error('Error loading week:', error);
     }
   };
 
@@ -488,40 +482,17 @@ export function WeeklySubmissionForm({ onBack }: Props) {
       <div className="mb-6">
         <button
           onClick={onBack}
-          className="flex items-center text-slate-600 hover:text-slate-900 mb-4"
+          className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-4 transition-colors"
         >
-          <FileText className="w-4 h-4 mr-2" />
-          View Past Submissions
+          <ArrowLeft className="w-4 h-4" />
+          Back to Dashboard
         </button>
 
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">Weekly Submission</h1>
-            <p className="text-sm text-slate-500">
-              {user?.name} | Q Quota: ${user?.quarterly_quota.toLocaleString()} | Due: Thursday 5:00 PM PT
-            </p>
-          </div>
-
-          <div className="text-right">
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Select Week (Friday End Date)
-            </label>
-            <select
-              value={currentWeek?.id || ''}
-              onChange={(e) => {
-                const week = availableWeeks.find(w => w.id === e.target.value);
-                if (week) setCurrentWeek(week);
-              }}
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 min-w-[200px]"
-            >
-              {availableWeeks.map((week) => (
-                <option key={week.id} value={week.id}>
-                  {formatDate(week.end_date)}
-                  {week.status === 'active' ? ' (Current)' : ''}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="mb-4">
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">Weekly Submission</h1>
+          <p className="text-sm text-slate-500">
+            {user?.name} | Q Quota: ${user?.quarterly_quota.toLocaleString()} | Due: Thursday 5:00 PM PT
+          </p>
         </div>
 
         <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">

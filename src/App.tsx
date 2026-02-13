@@ -5,11 +5,11 @@ import { Layout } from './components/Layout';
 import { RepDashboard } from './components/RepDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
 import { WeeklySubmissionForm } from './components/WeeklySubmissionForm';
-import { PastSubmissions } from './components/PastSubmissions';
 
 function AppContent() {
   const { session, user, loading } = useAuth();
-  const [currentView, setCurrentView] = useState<'dashboard' | 'weekly' | 'admin' | 'history'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'weekly' | 'admin'>('dashboard');
+  const [selectedWeekId, setSelectedWeekId] = useState<string | null>(null);
 
   if (loading) {
     return (
@@ -23,19 +23,30 @@ function AppContent() {
     return <Login />;
   }
 
-  const handleNavigate = (view: 'dashboard' | 'weekly' | 'admin' | 'history') => {
+  const handleNavigate = (view: 'dashboard' | 'weekly' | 'admin') => {
     setCurrentView(view);
+    if (view === 'dashboard') setSelectedWeekId(null);
+  };
+
+  const handleEnterWeek = (weekId: string) => {
+    setSelectedWeekId(weekId);
+    setCurrentView('weekly');
   };
 
   const renderContent = () => {
     if (user.role === 'rep') {
-      if (currentView === 'history') {
-        return <PastSubmissions onBack={() => setCurrentView('dashboard')} />;
+      if (currentView === 'weekly' && selectedWeekId) {
+        return (
+          <WeeklySubmissionForm
+            weekId={selectedWeekId}
+            onBack={() => {
+              setCurrentView('dashboard');
+              setSelectedWeekId(null);
+            }}
+          />
+        );
       }
-      if (currentView === 'weekly') {
-        return <WeeklySubmissionForm onBack={() => setCurrentView('dashboard')} />;
-      }
-      return <RepDashboard onNavigate={handleNavigate} />;
+      return <RepDashboard onEnterWeek={handleEnterWeek} />;
     } else {
       return <AdminDashboard />;
     }
