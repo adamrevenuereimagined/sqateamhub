@@ -21,6 +21,7 @@ type WeeklySubmission = {
   positive_feedback?: string;
   prospecting_activities?: number;
   cold_calls?: number;
+  emails?: number;
   li_messages?: number;
   videos?: number;
   decision_maker_connects?: number;
@@ -76,6 +77,7 @@ export function WeeklySubmissionForm({ onBack }: Props) {
   const [positiveFeedback, setPositiveFeedback] = useState('');
 
   const [coldCalls, setColdCalls] = useState(0);
+  const [emails, setEmails] = useState(0);
   const [liMessages, setLiMessages] = useState(0);
   const [videos, setVideos] = useState(0);
   const [dmConnects, setDmConnects] = useState(0);
@@ -251,6 +253,7 @@ export function WeeklySubmissionForm({ onBack }: Props) {
     setWhatsWorking('');
     setPositiveFeedback('');
     setColdCalls(0);
+    setEmails(0);
     setLiMessages(0);
     setVideos(0);
     setDmConnects(0);
@@ -331,6 +334,7 @@ export function WeeklySubmissionForm({ onBack }: Props) {
     setWhatsWorking(submission.whats_working_well || '');
     setPositiveFeedback(submission.positive_feedback || '');
     setColdCalls(submission.cold_calls || 0);
+    setEmails(submission.emails || 0);
     setLiMessages(submission.li_messages || 0);
     setVideos(submission.videos || 0);
     setDmConnects(submission.decision_maker_connects || 0);
@@ -380,8 +384,9 @@ export function WeeklySubmissionForm({ onBack }: Props) {
         wins: wins.filter(w => w.trim()),
         whats_working_well: whatsWorking,
         positive_feedback: positiveFeedback,
-        prospecting_activities: coldCalls + liMessages,
+        prospecting_activities: coldCalls + emails + liMessages,
         cold_calls: coldCalls,
+        emails: emails,
         li_messages: liMessages,
         videos: videos,
         decision_maker_connects: dmConnects,
@@ -719,6 +724,18 @@ export function WeeklySubmissionForm({ onBack }: Props) {
                 type="number"
                 value={coldCalls}
                 onChange={(e) => setColdCalls(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Emails
+              </label>
+              <input
+                type="number"
+                value={emails}
+                onChange={(e) => setEmails(Number(e.target.value))}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
               />
             </div>

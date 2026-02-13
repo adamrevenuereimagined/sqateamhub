@@ -9,6 +9,7 @@ type WeeklySubmission = {
   revenue_mtd: number;
   revenue_qtd: number;
   cold_calls: number;
+  emails: number;
   li_messages: number;
   videos: number;
   decision_maker_connects: number;
@@ -20,6 +21,7 @@ type WeeklySubmission = {
 
 type AggregatedMetrics = {
   cold_calls: number;
+  emails: number;
   li_messages: number;
   videos: number;
   decision_maker_connects: number;
@@ -211,6 +213,7 @@ export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly' | 'hi
   const aggregateSubmissions = (submissions: any[]): AggregatedMetrics => {
     return {
       cold_calls: submissions.reduce((sum, s) => sum + (s.cold_calls || 0), 0),
+      emails: submissions.reduce((sum, s) => sum + (s.emails || 0), 0),
       li_messages: submissions.reduce((sum, s) => sum + (s.li_messages || 0), 0),
       videos: submissions.reduce((sum, s) => sum + (s.videos || 0), 0),
       decision_maker_connects: submissions.reduce((sum, s) => sum + (s.decision_maker_connects || 0), 0),

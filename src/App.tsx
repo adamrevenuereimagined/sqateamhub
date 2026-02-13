@@ -32,7 +32,10 @@ function AppContent() {
       if (currentView === 'history') {
         return <PastSubmissions onBack={() => setCurrentView('dashboard')} />;
       }
-      return <WeeklySubmissionForm onBack={() => setCurrentView('history')} />;
+      if (currentView === 'weekly') {
+        return <WeeklySubmissionForm onBack={() => setCurrentView('dashboard')} />;
+      }
+      return <RepDashboard onNavigate={handleNavigate} />;
     } else {
       return <AdminDashboard />;
     }
