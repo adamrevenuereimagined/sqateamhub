@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Save, Send, Plus, Trash2, ArrowLeft, Edit2 } from 'lucide-react';
+import { Save, Send, Plus, Trash2, ArrowLeft, Edit2, FileText } from 'lucide-react';
+import { formatDate, formatDateShort } from '../lib/dateUtils';
 
 type Week = {
   id: string;
@@ -518,11 +519,7 @@ export function WeeklySubmissionForm({ onBack }: Props) {
             >
               {availableWeeks.map((week) => (
                 <option key={week.id} value={week.id}>
-                  {new Date(week.end_date).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric'
-                  })}
+                  {formatDate(week.end_date)}
                   {week.status === 'active' ? ' (Current)' : ''}
                 </option>
               ))}
@@ -533,16 +530,9 @@ export function WeeklySubmissionForm({ onBack }: Props) {
         <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
           <p className="text-slate-700">
             <span className="font-semibold">Week of:</span>{' '}
-            {new Date(currentWeek.start_date).toLocaleDateString('en-US', {
-              month: 'long',
-              day: 'numeric'
-            })}{' '}
+            {formatDateShort(currentWeek.start_date)}{' '}
             -{' '}
-            {new Date(currentWeek.end_date).toLocaleDateString('en-US', {
-              month: 'long',
-              day: 'numeric',
-              year: 'numeric'
-            })}
+            {formatDateShort(currentWeek.end_date)}, {currentWeek.year}
           </p>
         </div>
       </div>

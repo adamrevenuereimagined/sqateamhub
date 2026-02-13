@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { ArrowLeft, Calendar, Edit, Save, X } from 'lucide-react';
+import { formatDate, formatDateLong } from '../lib/dateUtils';
 
 type Week = {
   id: string;
@@ -168,14 +169,10 @@ export function PastSubmissions({ onBack }: { onBack: () => void }) {
                 <Calendar className="w-6 h-6 text-slate-400" />
                 <div>
                   <h3 className="text-lg font-semibold text-slate-900">
-                    Week ending {new Date(week.end_date).toLocaleDateString('en-US', {
-                      month: 'long',
-                      day: 'numeric',
-                      year: 'numeric'
-                    })}
+                    Week ending {formatDateLong(week.end_date)}
                   </h3>
                   <p className="text-sm text-slate-600">
-                    {new Date(week.start_date).toLocaleDateString()} - {new Date(week.end_date).toLocaleDateString()}
+                    {formatDate(week.start_date)} - {formatDate(week.end_date)}
                   </p>
                 </div>
               </div>

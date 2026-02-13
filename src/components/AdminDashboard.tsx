@@ -4,6 +4,7 @@ import { TrendingUp, TrendingDown, Users, Target, Activity, CheckCircle, Clock, 
 import { TargetsManagement } from './TargetsManagement';
 import { AnalyticsDashboard } from './AnalyticsDashboard';
 import { WeekManagement } from './WeekManagement';
+import { formatDate } from '../lib/dateUtils';
 
 type WeeklySubmission = {
   id: string;
@@ -372,11 +373,7 @@ export function AdminDashboard() {
             >
               {availableWeeks.map((week) => (
                 <option key={week.id} value={week.id}>
-                  {new Date(week.end_date).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric'
-                  })}
+                  {formatDate(week.end_date)}
                   {week.status === 'active' ? ' (Current)' : ''}
                 </option>
               ))}

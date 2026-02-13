@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase, Week, WeeklyActivityTargets } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { FileText, CheckCircle, Clock, AlertCircle, Target, TrendingUp, TrendingDown, Minus, Calendar } from 'lucide-react';
+import { formatDateShort } from '../lib/dateUtils';
 
 type WeeklySubmission = {
   status: string;
@@ -282,11 +283,7 @@ export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly' | 'hi
         </h2>
         {currentWeek ? (
           <p className="text-slate-600">
-            Week of {new Date(currentWeek.start_date).toLocaleDateString('en-US', {
-              month: 'long',
-              day: 'numeric',
-              year: 'numeric'
-            })}
+            Week of {formatDateShort(currentWeek.start_date)} - {formatDateShort(currentWeek.end_date)}, {currentWeek.year}
           </p>
         ) : (
           <p className="text-amber-600 font-medium">No active week available</p>

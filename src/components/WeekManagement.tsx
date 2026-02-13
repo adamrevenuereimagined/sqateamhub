@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase, Week } from '../lib/supabase';
 import { Calendar, Plus, X, CheckCircle, Archive } from 'lucide-react';
+import { formatDate } from '../lib/dateUtils';
 
 export function WeekManagement({ onClose }: { onClose: () => void }) {
   const [weeks, setWeeks] = useState<Week[]>([]);
@@ -37,7 +38,8 @@ export function WeekManagement({ onClose }: { onClose: () => void }) {
       return;
     }
 
-    const endDate = new Date(newWeekEnd);
+    const endDateParts = newWeekEnd.split('-');
+    const endDate = new Date(parseInt(endDateParts[0]), parseInt(endDateParts[1]) - 1, parseInt(endDateParts[2]));
     if (endDate.getDay() !== 5) {
       alert('Week ending date must be a Friday');
       return;
@@ -221,17 +223,7 @@ export function WeekManagement({ onClose }: { onClose: () => void }) {
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <p className="font-semibold text-slate-900">
-                          {new Date(week.start_date).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric'
-                          })}{' '}
-                          -{' '}
-                          {new Date(week.end_date).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric'
-                          })}
+                          {formatDate(week.start_date)} - {formatDate(week.end_date)}
                         </p>
                         {week.status === 'active' && (
                           <span className="px-2 py-1 bg-emerald-600 text-white text-xs font-semibold rounded-full">
