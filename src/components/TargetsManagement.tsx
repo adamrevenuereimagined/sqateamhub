@@ -1,15 +1,50 @@
 import { useEffect, useState } from 'react';
-import { supabase, User, WeeklyActivityTargets } from '../lib/supabase';
-import { Target, Save, X, DollarSign } from 'lucide-react';
+import { supabase, User } from '../lib/supabase';
+import { Target, Save, X, DollarSign, Users, UserCog } from 'lucide-react';
+import { CurrencyInput } from './CurrencyInput';
 
 type Props = {
   onClose: () => void;
 };
 
+type TargetFields = {
+  target_cold_calls: number;
+  target_li_messages: number;
+  target_videos: number;
+  target_dm_connects: number;
+  target_meetings_booked: number;
+  target_discovery_calls: number;
+  target_opportunities_advanced: number;
+  target_pipeline_value: number;
+};
+
+const DEFAULT_TARGETS: TargetFields = {
+  target_cold_calls: 50,
+  target_li_messages: 50,
+  target_videos: 10,
+  target_dm_connects: 15,
+  target_meetings_booked: 5,
+  target_discovery_calls: 3,
+  target_opportunities_advanced: 2,
+  target_pipeline_value: 0,
+};
+
+const ACTIVITY_FIELDS: { key: keyof TargetFields; label: string }[] = [
+  { key: 'target_cold_calls', label: 'Cold Calls' },
+  { key: 'target_li_messages', label: 'LinkedIn Messages' },
+  { key: 'target_videos', label: 'Videos' },
+  { key: 'target_dm_connects', label: 'Decision Maker Connects' },
+  { key: 'target_meetings_booked', label: 'Meetings Booked' },
+  { key: 'target_discovery_calls', label: 'Discovery Calls' },
+  { key: 'target_opportunities_advanced', label: 'Opportunities Advanced' },
+];
+
 export function TargetsManagement({ onClose }: Props) {
+  const [mode, setMode] = useState<'all' | 'individual'>('all');
   const [reps, setReps] = useState<User[]>([]);
-  const [targets, setTargets] = useState<{ [userId: string]: WeeklyActivityTargets }>({});
+  const [targets, setTargets] = useState<{ [userId: string]: TargetFields }>({});
   const [quotas, setQuotas] = useState<{ [userId: string]: number }>({});
+  const [allTargets, setAllTargets] = useState<TargetFields>({ ...DEFAULT_TARGETS });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -39,13 +74,46 @@ export function TargetsManagement({ onClose }: Props) {
           .from('weekly_activity_targets')
           .select('*');
 
-        const targetsMap: { [userId: string]: WeeklyActivityTargets } = {};
+        const targetsMap: { [userId: string]: TargetFields } = {};
         if (targetsData) {
           targetsData.forEach((target: any) => {
-            targetsMap[target.user_id] = target;
+            targetsMap[target.user_id] = {
+              target_cold_calls: target.target_cold_calls,
+              target_li_messages: target.target_li_messages,
+              target_videos: target.target_videos,
+              target_dm_connects: target.target_dm_connects,
+              target_meetings_booked: target.target_meetings_booked,
+              target_discovery_calls: target.target_discovery_calls,
+              target_opportunities_advanced: target.target_opportunities_advanced,
+              target_pipeline_value: target.target_pipeline_value,
+            };
           });
         }
+
+        repsData.forEach(rep => {
+          if (!targetsMap[rep.id]) {
+            targetsMap[rep.id] = {
+              ...DEFAULT_TARGETS,
+              target_pipeline_value: rep.quarterly_quota * 3,
+            };
+          }
+        });
+
         setTargets(targetsMap);
+
+        if (targetsData && targetsData.length > 0) {
+          const first = targetsData[0];
+          setAllTargets({
+            target_cold_calls: first.target_cold_calls,
+            target_li_messages: first.target_li_messages,
+            target_videos: first.target_videos,
+            target_dm_connects: first.target_dm_connects,
+            target_meetings_booked: first.target_meetings_booked,
+            target_discovery_calls: first.target_discovery_calls,
+            target_opportunities_advanced: first.target_opportunities_advanced,
+            target_pipeline_value: 0,
+          });
+        }
       }
     } catch (error) {
       console.error('Error loading targets:', error);
@@ -54,43 +122,46 @@ export function TargetsManagement({ onClose }: Props) {
     }
   };
 
-  const updateTarget = (userId: string, field: keyof WeeklyActivityTargets, value: number) => {
+  const updateAllTarget = (field: keyof TargetFields, value: number) => {
+    setAllTargets(prev => ({ ...prev, [field]: value }));
+  };
+
+  const updateIndividualTarget = (userId: string, field: keyof TargetFields, value: number) => {
     setTargets(prev => ({
       ...prev,
-      [userId]: {
-        ...prev[userId],
-        [field]: value
-      }
+      [userId]: { ...prev[userId], [field]: value },
     }));
   };
 
   const updateQuota = (userId: string, value: number) => {
-    setQuotas(prev => ({
-      ...prev,
-      [userId]: value
-    }));
+    setQuotas(prev => ({ ...prev, [userId]: value }));
   };
 
   const saveTargets = async () => {
     setSaving(true);
     try {
-      for (const [userId, target] of Object.entries(targets)) {
+      for (const rep of reps) {
+        const targetValues = mode === 'all'
+          ? {
+              ...allTargets,
+              target_pipeline_value: quotas[rep.id] * 3,
+            }
+          : targets[rep.id];
+
         const { error } = await supabase
           .from('weekly_activity_targets')
           .upsert({
-            user_id: userId,
-            target_cold_calls: target.target_cold_calls,
-            target_li_messages: target.target_li_messages,
-            target_videos: target.target_videos,
-            target_dm_connects: target.target_dm_connects,
-            target_meetings_booked: target.target_meetings_booked,
-            target_discovery_calls: target.target_discovery_calls,
-            target_opportunities_advanced: target.target_opportunities_advanced,
-            target_pipeline_coverage: target.target_pipeline_coverage,
-            updated_at: new Date().toISOString()
-          }, {
-            onConflict: 'user_id'
-          });
+            user_id: rep.id,
+            target_cold_calls: targetValues.target_cold_calls,
+            target_li_messages: targetValues.target_li_messages,
+            target_videos: targetValues.target_videos,
+            target_dm_connects: targetValues.target_dm_connects,
+            target_meetings_booked: targetValues.target_meetings_booked,
+            target_discovery_calls: targetValues.target_discovery_calls,
+            target_opportunities_advanced: targetValues.target_opportunities_advanced,
+            target_pipeline_value: targetValues.target_pipeline_value,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'user_id' });
 
         if (error) throw error;
       }
@@ -139,147 +210,171 @@ export function TargetsManagement({ onClose }: Props) {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6">
-          <p className="text-slate-600 mb-6">
-            Set weekly activity targets for each rep. These targets will be displayed to reps when they enter their actuals.
-          </p>
-
-          <div className="space-y-6">
-            {reps.map((rep) => {
-              const repTargets = targets[rep.id] || {
-                target_cold_calls: 50,
-                target_li_messages: 50,
-                target_videos: 10,
-                target_dm_connects: 15,
-                target_meetings_booked: 5,
-                target_discovery_calls: 3,
-                target_opportunities_advanced: 2,
-                target_pipeline_coverage: 3.0
-              } as WeeklyActivityTargets;
-
-              return (
-                <div key={rep.id} className="bg-slate-50 rounded-lg p-6 border border-slate-200">
-                  <div className="mb-4 flex items-start justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold text-slate-900">{rep.name}</h3>
-                    </div>
-                    <div className="text-right">
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        <DollarSign className="w-4 h-4 inline" />
-                        Quarterly Quota
-                      </label>
-                      <input
-                        type="number"
-                        value={quotas[rep.id] || rep.quarterly_quota}
-                        onChange={(e) => updateQuota(rep.id, parseInt(e.target.value) || 0)}
-                        className="w-40 px-3 py-2 border border-emerald-300 bg-emerald-50 rounded-lg focus:ring-2 focus:ring-emerald-500 font-semibold text-slate-900"
-                      />
-                    </div>
-                  </div>
-
-                  <h4 className="text-sm font-semibold text-slate-700 mb-3">Weekly Activity Targets</h4>
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Cold Calls
-                      </label>
-                      <input
-                        type="number"
-                        value={repTargets.target_cold_calls}
-                        onChange={(e) => updateTarget(rep.id, 'target_cold_calls', parseInt(e.target.value) || 0)}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        LinkedIn Messages
-                      </label>
-                      <input
-                        type="number"
-                        value={repTargets.target_li_messages}
-                        onChange={(e) => updateTarget(rep.id, 'target_li_messages', parseInt(e.target.value) || 0)}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Videos
-                      </label>
-                      <input
-                        type="number"
-                        value={repTargets.target_videos}
-                        onChange={(e) => updateTarget(rep.id, 'target_videos', parseInt(e.target.value) || 0)}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        DM Connects
-                      </label>
-                      <input
-                        type="number"
-                        value={repTargets.target_dm_connects}
-                        onChange={(e) => updateTarget(rep.id, 'target_dm_connects', parseInt(e.target.value) || 0)}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Meetings Booked
-                      </label>
-                      <input
-                        type="number"
-                        value={repTargets.target_meetings_booked}
-                        onChange={(e) => updateTarget(rep.id, 'target_meetings_booked', parseInt(e.target.value) || 0)}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Discovery Calls
-                      </label>
-                      <input
-                        type="number"
-                        value={repTargets.target_discovery_calls}
-                        onChange={(e) => updateTarget(rep.id, 'target_discovery_calls', parseInt(e.target.value) || 0)}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Opportunities Advanced
-                      </label>
-                      <input
-                        type="number"
-                        value={repTargets.target_opportunities_advanced}
-                        onChange={(e) => updateTarget(rep.id, 'target_opportunities_advanced', parseInt(e.target.value) || 0)}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Pipeline Coverage
-                      </label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={repTargets.target_pipeline_coverage}
-                        onChange={(e) => updateTarget(rep.id, 'target_pipeline_coverage', parseFloat(e.target.value) || 0)}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                      />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+        <div className="px-6 pt-4">
+          <div className="flex gap-1 bg-slate-100 rounded-lg p-1 w-fit">
+            <button
+              onClick={() => setMode('all')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                mode === 'all'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              Set All Team Members
+            </button>
+            <button
+              onClick={() => setMode('individual')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                mode === 'individual'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <UserCog className="w-4 h-4" />
+              Set Individually
+            </button>
           </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6">
+          {mode === 'all' ? (
+            <div className="space-y-6">
+              <div className="bg-slate-50 rounded-lg p-6 border border-slate-200">
+                <h3 className="text-lg font-semibold text-slate-900 mb-1">
+                  Activity Targets
+                </h3>
+                <p className="text-sm text-slate-500 mb-4">
+                  These values will apply to all team members
+                </p>
+                <div className="grid md:grid-cols-3 gap-4">
+                  {ACTIVITY_FIELDS.map(({ key, label }) => (
+                    <div key={key}>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        {label}
+                      </label>
+                      <input
+                        type="number"
+                        value={allTargets[key]}
+                        onChange={(e) => updateAllTarget(key, parseInt(e.target.value) || 0)}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-slate-50 rounded-lg p-6 border border-slate-200">
+                <h3 className="text-lg font-semibold text-slate-900 mb-1">
+                  Quarterly Quotas & Pipeline Targets
+                </h3>
+                <p className="text-sm text-slate-500 mb-4">
+                  Pipeline Value auto-calculates as 3x each rep's quarterly quota
+                </p>
+
+                <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-slate-200 bg-slate-50">
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Rep</th>
+                        <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Quarterly Quota</th>
+                        <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Pipeline Value Target</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reps.map((rep) => (
+                        <tr key={rep.id} className="border-b border-slate-100 last:border-0">
+                          <td className="py-3 px-4">
+                            <p className="font-medium text-slate-900">{rep.name}</p>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex justify-end">
+                              <CurrencyInput
+                                value={quotas[rep.id] || 0}
+                                onChange={(val) => updateQuota(rep.id, val)}
+                                className="w-40 px-3 py-2 border border-emerald-300 bg-emerald-50 rounded-lg focus:ring-2 focus:ring-emerald-500 font-semibold text-slate-900 text-right"
+                              />
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <span className="font-semibold text-slate-700">
+                              ${((quotas[rep.id] || 0) * 3).toLocaleString()}
+                            </span>
+                            <span className="text-xs text-slate-400 ml-1">(3x quota)</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <p className="text-slate-600">
+                Set weekly activity targets for each rep individually. Pipeline Value defaults to 3x their quarterly quota.
+              </p>
+
+              {reps.map((rep) => {
+                const repTargets = targets[rep.id] || {
+                  ...DEFAULT_TARGETS,
+                  target_pipeline_value: (quotas[rep.id] || 0) * 3,
+                };
+
+                return (
+                  <div key={rep.id} className="bg-slate-50 rounded-lg p-6 border border-slate-200">
+                    <div className="mb-4 flex items-start justify-between">
+                      <div>
+                        <h3 className="text-lg font-semibold text-slate-900">{rep.name}</h3>
+                      </div>
+                      <div className="text-right">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                          <DollarSign className="w-4 h-4 inline" />
+                          Quarterly Quota
+                        </label>
+                        <CurrencyInput
+                          value={quotas[rep.id] || rep.quarterly_quota}
+                          onChange={(val) => updateQuota(rep.id, val)}
+                          className="w-40 px-3 py-2 border border-emerald-300 bg-emerald-50 rounded-lg focus:ring-2 focus:ring-emerald-500 font-semibold text-slate-900"
+                        />
+                      </div>
+                    </div>
+
+                    <h4 className="text-sm font-semibold text-slate-700 mb-3">Weekly Activity Targets</h4>
+                    <div className="grid md:grid-cols-3 gap-4">
+                      {ACTIVITY_FIELDS.map(({ key, label }) => (
+                        <div key={key}>
+                          <label className="block text-sm font-medium text-slate-700 mb-2">
+                            {label}
+                          </label>
+                          <input
+                            type="number"
+                            value={repTargets[key]}
+                            onChange={(e) => updateIndividualTarget(rep.id, key, parseInt(e.target.value) || 0)}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                          />
+                        </div>
+                      ))}
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                          Pipeline Value
+                          <span className="text-xs text-slate-400 ml-1 font-normal">
+                            (default: 3x quota = ${((quotas[rep.id] || 0) * 3).toLocaleString()})
+                          </span>
+                        </label>
+                        <CurrencyInput
+                          value={repTargets.target_pipeline_value}
+                          onChange={(val) => updateIndividualTarget(rep.id, 'target_pipeline_value', val)}
+                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <div className="p-6 border-t border-slate-200 flex justify-end gap-3">

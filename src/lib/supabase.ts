@@ -142,7 +142,7 @@ export type WeeklyActivityTargets = {
   target_meetings_booked: number;
   target_discovery_calls: number;
   target_opportunities_advanced: number;
-  target_pipeline_coverage: number;
+  target_pipeline_value: number;
   created_at: string;
   updated_at: string;
 };

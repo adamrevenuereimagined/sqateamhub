@@ -27,7 +27,7 @@ type ActivityTarget = {
   target_meetings_booked: number;
   target_discovery_calls: number;
   target_opportunities_advanced: number;
-  target_pipeline_coverage: number;
+  target_pipeline_value: number;
 };
 
 type WeekData = {
@@ -231,11 +231,11 @@ export function AnalyticsDashboard() {
             {[
               { label: 'Cold Calls', current: currentWeekData.submission.cold_calls, previous: previousWeekData.submission.cold_calls },
               { label: 'LI Messages', current: currentWeekData.submission.li_messages, previous: previousWeekData.submission.li_messages },
-              { label: 'DM Connects', current: currentWeekData.submission.decision_maker_connects, previous: previousWeekData.submission.decision_maker_connects },
+              { label: 'Decision Maker Connects', current: currentWeekData.submission.decision_maker_connects, previous: previousWeekData.submission.decision_maker_connects },
               { label: 'Meetings', current: currentWeekData.submission.meetings_booked, previous: previousWeekData.submission.meetings_booked },
               { label: 'Discovery Calls', current: currentWeekData.submission.discovery_calls, previous: previousWeekData.submission.discovery_calls },
               { label: 'Opps Advanced', current: currentWeekData.submission.opportunities_advanced, previous: previousWeekData.submission.opportunities_advanced },
-              { label: 'Pipeline Coverage', current: currentWeekData.submission.pipeline_coverage_ratio, previous: previousWeekData.submission.pipeline_coverage_ratio }
+              { label: 'Pipeline Value', current: currentWeekData.submission.pipeline_coverage_ratio, previous: previousWeekData.submission.pipeline_coverage_ratio }
             ].map((metric) => {
               const trend = calculateTrend(metric.current, metric.previous);
               return (
@@ -279,7 +279,7 @@ export function AnalyticsDashboard() {
               { label: 'Cold Calls', actual: currentWeekData.submission.cold_calls, target: repTargets.target_cold_calls },
               { label: 'LI Messages', actual: currentWeekData.submission.li_messages, target: repTargets.target_li_messages },
               { label: 'Videos', actual: currentWeekData.submission.videos, target: repTargets.target_videos },
-              { label: 'DM Connects', actual: currentWeekData.submission.decision_maker_connects, target: repTargets.target_dm_connects },
+              { label: 'Decision Maker Connects', actual: currentWeekData.submission.decision_maker_connects, target: repTargets.target_dm_connects },
               { label: 'Meetings Booked', actual: currentWeekData.submission.meetings_booked, target: repTargets.target_meetings_booked },
               { label: 'Discovery Calls', actual: currentWeekData.submission.discovery_calls, target: repTargets.target_discovery_calls },
               { label: 'Opps Advanced', actual: currentWeekData.submission.opportunities_advanced, target: repTargets.target_opportunities_advanced }
@@ -335,7 +335,7 @@ export function AnalyticsDashboard() {
                 <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Week Ending</th>
                 <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Cold Calls</th>
                 <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">LI Msgs</th>
-                <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">DM Connects</th>
+                <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Decision Maker Connects</th>
                 <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Meetings</th>
                 <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Discovery</th>
                 <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Opps</th>

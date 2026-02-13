@@ -524,7 +524,7 @@ export function AdminDashboard() {
                             <span className="font-medium">{submission.li_messages || 0}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-slate-600">DM Connects:</span>
+                            <span className="text-slate-600">Decision Maker Connects:</span>
                             <span className="font-medium">{submission.decision_maker_connects || 0}</span>
                           </div>
                           <div className="flex justify-between">
@@ -712,7 +712,7 @@ export function AdminDashboard() {
                   </div>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-600 mb-1">DM Connects</p>
+                  <p className="text-sm text-slate-600 mb-1">Decision Maker Connects</p>
                   <div className="flex items-baseline gap-2">
                     <p className="text-2xl font-bold text-slate-900">{totals.totalDMConnects}</p>
                     {previousTotals && (
@@ -806,7 +806,7 @@ export function AdminDashboard() {
                     <p className="text-2xl font-bold text-slate-900">{mtdMetrics.li_messages}</p>
                   </div>
                   <div className="bg-blue-50 rounded-lg p-4">
-                    <p className="text-sm text-slate-600 mb-2">DM Connects</p>
+                    <p className="text-sm text-slate-600 mb-2">Decision Maker Connects</p>
                     <p className="text-2xl font-bold text-slate-900">{mtdMetrics.decision_maker_connects}</p>
                   </div>
                   <div className="bg-blue-50 rounded-lg p-4">
@@ -843,7 +843,7 @@ export function AdminDashboard() {
                     <p className="text-2xl font-bold text-slate-900">{qtdMetrics.li_messages}</p>
                   </div>
                   <div className="bg-emerald-50 rounded-lg p-4">
-                    <p className="text-sm text-slate-600 mb-2">DM Connects</p>
+                    <p className="text-sm text-slate-600 mb-2">Decision Maker Connects</p>
                     <p className="text-2xl font-bold text-slate-900">{qtdMetrics.decision_maker_connects}</p>
                   </div>
                   <div className="bg-emerald-50 rounded-lg p-4">

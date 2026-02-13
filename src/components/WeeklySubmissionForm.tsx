@@ -161,7 +161,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
     target_meetings_booked: number;
     target_discovery_calls: number;
     target_opportunities_advanced: number;
-    target_pipeline_coverage: number;
+    target_pipeline_value: number;
   } | null>(null);
 
   useEffect(() => {
@@ -817,9 +817,9 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Pipeline Amount
-                {targets && (
+                {targets && targets.target_pipeline_value > 0 && (
                   <span className="ml-2 text-xs text-blue-600 font-normal">
-                    (Target: {targets.target_pipeline_coverage}x)
+                    (Target: ${targets.target_pipeline_value.toLocaleString()})
                   </span>
                 )}
               </label>
