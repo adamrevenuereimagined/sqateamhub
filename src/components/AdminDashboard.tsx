@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase, Week, User } from '../lib/supabase';
-import { TrendingUp, TrendingDown, Users, Target, Activity, CheckCircle, Clock, AlertCircle, ChevronDown, ChevronRight, Settings, BarChart3, Calendar } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, Target, Activity, CheckCircle, Clock, AlertCircle, ChevronDown, ChevronRight, Settings, Calendar, DollarSign } from 'lucide-react';
 import { TargetsManagement } from './TargetsManagement';
-import { AnalyticsDashboard } from './AnalyticsDashboard';
 import { WeekManagement } from './WeekManagement';
 import { formatDate } from '../lib/dateUtils';
 
@@ -53,7 +52,6 @@ export function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [showTargetsModal, setShowTargetsModal] = useState(false);
   const [showWeekManagement, setShowWeekManagement] = useState(false);
-  const [activeTab, setActiveTab] = useState<'team' | 'analytics'>('team');
 
   useEffect(() => {
     loadAvailableWeeks();
@@ -237,9 +235,7 @@ export function AdminDashboard() {
     const totalDiscovery = Object.values(submissions).reduce((sum, sub) => sum + (sub.discovery_calls || 0), 0);
     const totalOppsAdvanced = Object.values(submissions).reduce((sum, sub) => sum + (sub.opportunities_advanced || 0), 0);
 
-    const avgPipelineCoverage = Object.values(submissions).length > 0
-      ? Object.values(submissions).reduce((sum, sub) => sum + (sub.pipeline_coverage_ratio || 0), 0) / Object.values(submissions).length
-      : 0;
+    const totalPipeline = Object.values(submissions).reduce((sum, sub) => sum + (sub.pipeline_coverage_ratio || 0), 0);
 
     const percentToQuotaMTD = totalQuota > 0 ? (totalRevenueMTD / (totalQuota / 3)) * 100 : 0;
     const percentToQuotaQTD = totalQuota > 0 ? (totalRevenueQTD / totalQuota) * 100 : 0;
@@ -255,7 +251,7 @@ export function AdminDashboard() {
       totalMeetings,
       totalDiscovery,
       totalOppsAdvanced,
-      avgPipelineCoverage,
+      totalPipeline,
       percentToQuotaMTD,
       percentToQuotaQTD,
       submittedCount: Object.values(submissions).filter(s => s.status === 'submitted').length,
@@ -313,46 +309,8 @@ export function AdminDashboard() {
             </p>
           </div>
         </div>
-
-        <div className="flex gap-2 border-b border-slate-200">
-          <button
-            onClick={() => setActiveTab('team')}
-            className={`px-6 py-3 font-medium transition-colors relative ${
-              activeTab === 'team'
-                ? 'text-emerald-600'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              Team Dashboard
-            </div>
-            {activeTab === 'team' && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600"></div>
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab('analytics')}
-            className={`px-6 py-3 font-medium transition-colors relative ${
-              activeTab === 'analytics'
-                ? 'text-emerald-600'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <BarChart3 className="w-5 h-5" />
-              Week-over-Week Analytics
-            </div>
-            {activeTab === 'analytics' && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600"></div>
-            )}
-          </button>
-        </div>
       </div>
 
-      {activeTab === 'analytics' ? (
-        <AnalyticsDashboard />
-      ) : (
         <div>
           <div className="mb-8 flex items-start justify-between">
             <div></div>
@@ -438,14 +396,14 @@ export function AdminDashboard() {
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <div className="flex items-center justify-between mb-2">
-            <Activity className="w-8 h-8 text-orange-600" />
-            <span className="text-sm font-medium text-slate-600">Pipeline</span>
+            <DollarSign className="w-8 h-8 text-orange-600" />
+            <span className="text-sm font-medium text-slate-600">Team Pipeline</span>
           </div>
           <p className="text-3xl font-bold text-slate-900">
-            {totals.avgPipelineCoverage.toFixed(1)}x
+            {formatRevenue(totals.totalPipeline)}
           </p>
           <p className="text-sm text-slate-600 mt-1">
-            Avg coverage
+            Weekly total across all reps
           </p>
         </div>
       </div>
@@ -461,11 +419,15 @@ export function AdminDashboard() {
         <div className="space-y-2">
           {reps.map((rep) => {
             const submission = submissions[rep.id];
+            const prevSubmission = previousWeekSubmissions[rep.id];
             const status = submission?.status || 'not_started';
             const isExpanded = expandedReps[rep.id];
             const percentToQuota = rep.quarterly_quota > 0
               ? ((submission?.revenue_qtd || 0) / rep.quarterly_quota) * 100
               : 0;
+
+            const mtdChange = prevSubmission ? calculateChange(submission?.revenue_mtd || 0, prevSubmission.revenue_mtd || 0) : null;
+            const qtdChange = prevSubmission ? calculateChange(submission?.revenue_qtd || 0, prevSubmission.revenue_qtd || 0) : null;
 
             return (
               <div key={rep.id} className="border border-slate-200 rounded-lg overflow-hidden">
@@ -493,10 +455,33 @@ export function AdminDashboard() {
                     </div>
 
                     <div className="text-center min-w-[100px]">
+                      <p className="text-sm text-slate-600">MTD Revenue</p>
+                      <p className="font-semibold text-slate-900">
+                        {formatRevenue(submission?.revenue_mtd || 0)}
+                      </p>
+                      {mtdChange !== null && (
+                        <div className="flex items-center justify-center gap-1 mt-0.5">
+                          {mtdChange > 0.5 ? <TrendingUp className="w-3 h-3 text-emerald-600" /> : mtdChange < -0.5 ? <TrendingDown className="w-3 h-3 text-red-600" /> : null}
+                          <span className={`text-xs font-medium ${mtdChange > 0.5 ? 'text-emerald-600' : mtdChange < -0.5 ? 'text-red-600' : 'text-slate-500'}`}>
+                            {mtdChange > 0 ? '+' : ''}{formatRevenue(Math.abs((submission?.revenue_mtd || 0) - (prevSubmission?.revenue_mtd || 0)))} WOW
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="text-center min-w-[100px]">
                       <p className="text-sm text-slate-600">QTD Revenue</p>
                       <p className="font-semibold text-slate-900">
                         {formatRevenue(submission?.revenue_qtd || 0)}
                       </p>
+                      {qtdChange !== null && (
+                        <div className="flex items-center justify-center gap-1 mt-0.5">
+                          {qtdChange > 0.5 ? <TrendingUp className="w-3 h-3 text-emerald-600" /> : qtdChange < -0.5 ? <TrendingDown className="w-3 h-3 text-red-600" /> : null}
+                          <span className={`text-xs font-medium ${qtdChange > 0.5 ? 'text-emerald-600' : qtdChange < -0.5 ? 'text-red-600' : 'text-slate-500'}`}>
+                            {qtdChange > 0 ? '+' : ''}{formatRevenue(Math.abs((submission?.revenue_qtd || 0) - (prevSubmission?.revenue_qtd || 0)))} WOW
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="text-center min-w-[100px]">
@@ -880,7 +865,6 @@ export function AdminDashboard() {
         </div>
       )}
         </div>
-      )}
 
       {showTargetsModal && (
         <TargetsManagement onClose={() => setShowTargetsModal(false)} />
