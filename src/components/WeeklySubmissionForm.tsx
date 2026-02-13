@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Save, Send, Plus, Trash2, ArrowLeft, Edit2 } from 'lucide-react';
+import { Save, Send, Plus, Trash2, ArrowLeft, Edit2, CheckCircle2, XCircle, MinusCircle } from 'lucide-react';
 import { formatDateShort } from '../lib/dateUtils';
 import { CurrencyInput } from './CurrencyInput';
 
@@ -131,12 +131,13 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
   const [dealBlockers, setDealBlockers] = useState<string[]>(['']);
   const [supportNeeded, setSupportNeeded] = useState<string[]>(['']);
 
-  const [thisWeekGoal, setThisWeekGoal] = useState('');
-  const [lastWeekGoal, setLastWeekGoal] = useState<{
-    goalText: string;
-    achieved?: 'yes' | 'partial' | 'no';
-    notes: string;
-  } | null>(null);
+  const [previousGoals, setPreviousGoals] = useState<Array<{
+    id: string;
+    goal_text: string;
+    status: string;
+    review_notes: string;
+  }>>([]);
+  const [nextWeekGoals, setNextWeekGoals] = useState<string[]>(['']);
 
   const [selfCare, setSelfCare] = useState('');
   const [energyLevel, setEnergyLevel] = useState<'high' | 'medium' | 'low'>('medium');
@@ -232,10 +233,14 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
             successMetric: c.success_metric
           })));
         }
+
+        await loadPreviousWeekData(weekId);
       } else {
         resetForm();
         await loadPreviousWeekData(weekId);
       }
+
+      await loadGoalsForCurrentWeek(weekId);
     } catch (error) {
       console.error('Error loading form data:', error);
     }
@@ -269,7 +274,8 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
     setBlockersHelp('');
     setDealBlockers(['']);
     setSupportNeeded(['']);
-    setThisWeekGoal('');
+    setPreviousGoals([]);
+    setNextWeekGoals(['']);
     setSelfCare('');
     setEnergyLevel('medium');
     setManagerSupport('');
@@ -278,6 +284,25 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
       { text: '', deadline: '', successMetric: '' },
       { text: '', deadline: '', successMetric: '' }
     ]);
+  };
+
+  const loadGoalsForCurrentWeek = async (weekId: string) => {
+    if (!user) return;
+
+    try {
+      const { data: existingGoals } = await supabase
+        .from('weekly_goals')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('week_id', weekId)
+        .order('sort_order');
+
+      if (existingGoals && existingGoals.length > 0) {
+        setNextWeekGoals(existingGoals.map(g => g.goal_text));
+      }
+    } catch (error) {
+      console.error('Error loading goals:', error);
+    }
   };
 
   const loadPreviousWeekData = async (currentWeekId: string) => {
@@ -301,14 +326,6 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
           .maybeSingle();
 
         if (prevSubmission) {
-          if (prevSubmission.this_week_goal) {
-            setLastWeekGoal({
-              goalText: prevSubmission.this_week_goal,
-              achieved: undefined,
-              notes: ''
-            });
-          }
-
           const { data: prevCommitments } = await supabase
             .from('submission_commitments')
             .select('*')
@@ -317,6 +334,22 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
           if (prevCommitments) {
             setLastCommitments(prevCommitments as Commitment[]);
           }
+        }
+
+        const { data: prevGoals } = await supabase
+          .from('weekly_goals')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('week_id', prevWeek.id)
+          .order('sort_order');
+
+        if (prevGoals && prevGoals.length > 0) {
+          setPreviousGoals(prevGoals.map(g => ({
+            id: g.id,
+            goal_text: g.goal_text,
+            status: g.status || 'pending',
+            review_notes: g.review_notes || '',
+          })));
         }
       }
     } catch (error) {
@@ -350,14 +383,6 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
     setBlockersHelp(submission.blockers_help || '');
     setDealBlockers(submission.deal_blockers || ['']);
     setSupportNeeded(submission.support_needed || ['']);
-    setThisWeekGoal(submission.this_week_goal || '');
-    if (submission.last_week_goal_text) {
-      setLastWeekGoal({
-        goalText: submission.last_week_goal_text,
-        achieved: submission.last_week_goal_achieved,
-        notes: submission.last_week_goal_notes || ''
-      });
-    }
     setSelfCare(submission.self_care || '');
     setEnergyLevel(submission.energy_level || 'medium');
     setManagerSupport(submission.manager_support || '');
@@ -402,10 +427,6 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
         blockers_help: blockersHelp,
         deal_blockers: dealBlockers.filter(b => b.trim()),
         support_needed: supportNeeded.filter(s => s.trim()),
-        this_week_goal: thisWeekGoal,
-        last_week_goal_text: lastWeekGoal?.goalText,
-        last_week_goal_achieved: lastWeekGoal?.achieved,
-        last_week_goal_notes: lastWeekGoal?.notes,
         self_care: selfCare,
         energy_level: energyLevel,
         manager_support: managerSupport,
@@ -450,6 +471,37 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
               success_metric: c.successMetric,
               status: 'in_progress'
             })));
+        }
+      }
+
+      await supabase
+        .from('weekly_goals')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('week_id', currentWeek.id);
+
+      const validGoals = nextWeekGoals.filter(g => g.trim());
+      if (validGoals.length > 0) {
+        await supabase
+          .from('weekly_goals')
+          .insert(validGoals.map((g, i) => ({
+            user_id: user.id,
+            week_id: currentWeek.id,
+            goal_text: g,
+            sort_order: i,
+          })));
+      }
+
+      for (const goal of previousGoals) {
+        if (goal.status !== 'pending' || goal.review_notes) {
+          await supabase
+            .from('weekly_goals')
+            .update({
+              status: goal.status,
+              review_notes: goal.review_notes,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', goal.id);
         }
       }
 
@@ -555,52 +607,81 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
           </div>
         )}
 
-        {lastWeekGoal && (
+        {previousGoals.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <h2 className="text-xl font-semibold text-slate-900 mb-4">
-              Last Week's Goal Accountability
+            <h2 className="text-xl font-semibold text-slate-900 mb-2">
+              Previous Week's Goals Review
             </h2>
+            <p className="text-sm text-slate-600 mb-4">
+              How did you do on last week's goals? Mark each one and add notes.
+            </p>
 
-            <div className="border border-slate-200 rounded-lg p-4">
-              <p className="font-medium text-slate-900 mb-3">Last Week's Goal:</p>
-              <p className="text-slate-700 mb-4">{lastWeekGoal.goalText}</p>
+            <div className="space-y-3">
+              {previousGoals.map((goal, index) => {
+                const statusConfig: Record<string, { icon: typeof CheckCircle2; color: string; bg: string; border: string }> = {
+                  hit: { icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200' },
+                  partial: { icon: MinusCircle, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200' },
+                  missed: { icon: XCircle, color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200' },
+                  pending: { icon: MinusCircle, color: 'text-slate-400', bg: 'bg-slate-50', border: 'border-slate-200' },
+                };
+                const config = statusConfig[goal.status] || statusConfig.pending;
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Achieved?
-                  </label>
-                  <select
-                    value={lastWeekGoal.achieved || ''}
-                    onChange={(e) => setLastWeekGoal({
-                      ...lastWeekGoal,
-                      achieved: e.target.value as 'yes' | 'partial' | 'no'
-                    })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                  >
-                    <option value="">Select...</option>
-                    <option value="yes">Yes</option>
-                    <option value="partial">Partial</option>
-                    <option value="no">No</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Notes
-                  </label>
-                  <input
-                    type="text"
-                    value={lastWeekGoal.notes}
-                    onChange={(e) => setLastWeekGoal({
-                      ...lastWeekGoal,
-                      notes: e.target.value
-                    })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                    placeholder="Any additional notes..."
-                  />
-                </div>
-              </div>
+                return (
+                  <div key={goal.id} className={`border rounded-lg p-4 ${config.border} ${config.bg} transition-colors`}>
+                    <p className="font-medium text-slate-900 mb-3">
+                      <span className="text-slate-400 mr-2">#{index + 1}</span>
+                      {goal.goal_text}
+                    </p>
+                    <div className="grid md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
+                        <div className="flex gap-2">
+                          {[
+                            { value: 'hit', label: 'Hit', color: 'emerald' },
+                            { value: 'partial', label: 'Partial', color: 'amber' },
+                            { value: 'missed', label: 'Missed', color: 'red' },
+                          ].map(opt => (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => {
+                                const updated = [...previousGoals];
+                                updated[index] = { ...updated[index], status: opt.value };
+                                setPreviousGoals(updated);
+                              }}
+                              className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition-all ${
+                                goal.status === opt.value
+                                  ? opt.color === 'emerald'
+                                    ? 'bg-emerald-600 text-white border-emerald-600'
+                                    : opt.color === 'amber'
+                                    ? 'bg-amber-500 text-white border-amber-500'
+                                    : 'bg-red-600 text-white border-red-600'
+                                  : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Notes</label>
+                        <input
+                          type="text"
+                          value={goal.review_notes}
+                          onChange={(e) => {
+                            const updated = [...previousGoals];
+                            updated[index] = { ...updated[index], review_notes: e.target.value };
+                            setPreviousGoals(updated);
+                          }}
+                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 bg-white"
+                          placeholder="What happened? Any lessons learned?"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -1363,20 +1444,50 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <h2 className="text-xl font-semibold text-slate-900 mb-4">
-            Next Week's Goal
+          <h2 className="text-xl font-semibold text-slate-900 mb-2">
+            Next Week's Goals
           </h2>
           <p className="text-sm text-slate-600 mb-4">
-            Set a clear, measurable goal for next week (will carry forward for accountability)
+            Set clear, measurable goals for next week. These will carry forward for accountability review.
           </p>
 
-          <textarea
-            value={thisWeekGoal}
-            onChange={(e) => setThisWeekGoal(e.target.value)}
-            rows={3}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-            placeholder="Enter your goal for next week..."
-          />
+          <div className="space-y-3">
+            {nextWeekGoals.map((goal, index) => (
+              <div key={index} className="flex gap-2">
+                <div className="flex items-center justify-center w-8 h-10 text-sm font-semibold text-slate-400">
+                  {index + 1}.
+                </div>
+                <input
+                  type="text"
+                  value={goal}
+                  onChange={(e) => {
+                    const updated = [...nextWeekGoals];
+                    updated[index] = e.target.value;
+                    setNextWeekGoals(updated);
+                  }}
+                  className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                  placeholder={`Goal #${index + 1} - be specific and measurable...`}
+                />
+                {nextWeekGoals.length > 1 && (
+                  <button
+                    onClick={() => setNextWeekGoals(nextWeekGoals.filter((_, i) => i !== index))}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+            ))}
+            {nextWeekGoals.length < 5 && (
+              <button
+                onClick={() => setNextWeekGoals([...nextWeekGoals, ''])}
+                className="flex items-center text-emerald-600 hover:text-emerald-700 text-sm font-medium ml-10"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Add Goal
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
