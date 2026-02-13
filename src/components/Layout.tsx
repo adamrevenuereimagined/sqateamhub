@@ -17,41 +17,12 @@ export function Layout({ children, currentView, onNavigate }: LayoutProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-8">
-              <div className="flex items-center space-x-3">
-                <img src="/sqa-logo.svg" alt="SQA Logo" className="h-10 w-10" />
-                <h1 className="text-xl font-bold text-slate-900">
-                  SQA BD Team Hub
-                </h1>
-              </div>
+              <h1 className="text-xl font-bold text-slate-900">
+                SQA BD Team Hub
+              </h1>
 
-              <div className="hidden md:flex space-x-1">
-                {!isAdmin ? (
-                  <>
-                    <button
-                      onClick={() => onNavigate('dashboard')}
-                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                        currentView === 'dashboard'
-                          ? 'bg-emerald-50 text-emerald-700'
-                          : 'text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      <Home className="w-4 h-4 inline mr-2" />
-                      Dashboard
-                    </button>
-
-                    <button
-                      onClick={() => onNavigate('weekly')}
-                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                        currentView === 'weekly'
-                          ? 'bg-emerald-50 text-emerald-700'
-                          : 'text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      <FileText className="w-4 h-4 inline mr-2" />
-                      Weekly Submission
-                    </button>
-                  </>
-                ) : (
+              {isAdmin && (
+                <div className="hidden md:flex space-x-1">
                   <button
                     onClick={() => onNavigate('admin')}
                     className="px-4 py-2 rounded-lg font-medium bg-emerald-50 text-emerald-700"
@@ -59,8 +30,8 @@ export function Layout({ children, currentView, onNavigate }: LayoutProps) {
                     <Users className="w-4 h-4 inline mr-2" />
                     Team Dashboard
                   </button>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center space-x-4">

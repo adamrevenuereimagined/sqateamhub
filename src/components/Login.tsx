@@ -105,10 +105,6 @@ export function Login() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          <div className="flex items-center justify-center mb-8">
-            <img src="/sqa-logo.svg" alt="SQA Logo" className="h-24 w-24" />
-          </div>
-
           <h1 className="text-2xl font-bold text-center text-slate-900 mb-2">
             SQA BD Team Hub
           </h1>

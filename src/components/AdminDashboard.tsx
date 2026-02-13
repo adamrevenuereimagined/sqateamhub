@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { supabase, Week, User } from '../lib/supabase';
-import { TrendingUp, TrendingDown, Users, Target, Activity, CheckCircle, Clock, AlertCircle, ChevronDown, ChevronRight, Settings, BarChart3 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, Target, Activity, CheckCircle, Clock, AlertCircle, ChevronDown, ChevronRight, Settings, BarChart3, Calendar } from 'lucide-react';
 import { TargetsManagement } from './TargetsManagement';
 import { AnalyticsDashboard } from './AnalyticsDashboard';
+import { WeekManagement } from './WeekManagement';
 
 type WeeklySubmission = {
   id: string;
@@ -50,6 +51,7 @@ export function AdminDashboard() {
   const [expandedReps, setExpandedReps] = useState<{ [userId: string]: boolean }>({});
   const [loading, setLoading] = useState(true);
   const [showTargetsModal, setShowTargetsModal] = useState(false);
+  const [showWeekManagement, setShowWeekManagement] = useState(false);
   const [activeTab, setActiveTab] = useState<'team' | 'analytics'>('team');
 
   useEffect(() => {
@@ -381,13 +383,22 @@ export function AdminDashboard() {
             </select>
           </div>
 
-          <button
-            onClick={() => setShowTargetsModal(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-          >
-            <Settings className="w-4 h-4" />
-            Manage Targets
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowWeekManagement(true)}
+              className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2"
+            >
+              <Calendar className="w-4 h-4" />
+              Manage Weeks
+            </button>
+            <button
+              onClick={() => setShowTargetsModal(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+            >
+              <Settings className="w-4 h-4" />
+              Manage Targets
+            </button>
+          </div>
         </div>
       </div>
 
@@ -444,31 +455,217 @@ export function AdminDashboard() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
-        <div className="flex items-center gap-2 mb-4">
-          <TrendingUp className="w-6 h-6 text-blue-600" />
-          <h3 className="text-xl font-semibold text-slate-900">Team Revenue Trends</h3>
-        </div>
-        <p className="text-sm text-slate-600 mb-6">Track team revenue performance</p>
+        <h3 className="text-xl font-semibold text-slate-900 mb-4">
+          Individual Rep Performance
+        </h3>
+        <p className="text-sm text-slate-600 mb-6">
+          Click on any rep to see their detailed submission
+        </p>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="bg-emerald-50 rounded-lg p-6">
-            <p className="text-sm text-slate-600 mb-2">Quarter-to-Date Revenue</p>
-            <p className="text-3xl font-bold text-slate-900">
-              {formatRevenue(totals.totalRevenueQTD)}
-            </p>
-            <p className="text-sm text-slate-600 mt-2">
-              {totals.percentToQuotaQTD.toFixed(1)}% to quarterly quota
-            </p>
-          </div>
-          <div className="bg-blue-50 rounded-lg p-6">
-            <p className="text-sm text-slate-600 mb-2">Month-to-Date Revenue</p>
-            <p className="text-3xl font-bold text-slate-900">
-              {formatRevenue(totals.totalRevenueMTD)}
-            </p>
-            <p className="text-sm text-slate-600 mt-2">
-              {totals.percentToQuotaMTD.toFixed(1)}% to monthly target
-            </p>
-          </div>
+        <div className="space-y-2">
+          {reps.map((rep) => {
+            const submission = submissions[rep.id];
+            const status = submission?.status || 'not_started';
+            const isExpanded = expandedReps[rep.id];
+            const percentToQuota = rep.quarterly_quota > 0
+              ? ((submission?.revenue_qtd || 0) / rep.quarterly_quota) * 100
+              : 0;
+
+            return (
+              <div key={rep.id} className="border border-slate-200 rounded-lg overflow-hidden">
+                <div
+                  onClick={() => toggleRepExpansion(rep.id)}
+                  className="flex items-center justify-between p-4 hover:bg-slate-50 cursor-pointer"
+                >
+                  <div className="flex items-center gap-4 flex-1">
+                    {isExpanded ? (
+                      <ChevronDown className="w-5 h-5 text-slate-400" />
+                    ) : (
+                      <ChevronRight className="w-5 h-5 text-slate-400" />
+                    )}
+
+                    <div className="flex-1">
+                      <p className="font-semibold text-slate-900">{rep.name}</p>
+                      <p className="text-sm text-slate-500">{rep.email}</p>
+                    </div>
+
+                    <div className="text-center min-w-[100px]">
+                      <p className="text-sm text-slate-600">Quota</p>
+                      <p className="font-semibold text-slate-900">
+                        ${rep.quarterly_quota.toLocaleString()}
+                      </p>
+                    </div>
+
+                    <div className="text-center min-w-[100px]">
+                      <p className="text-sm text-slate-600">QTD Revenue</p>
+                      <p className="font-semibold text-slate-900">
+                        {formatRevenue(submission?.revenue_qtd || 0)}
+                      </p>
+                    </div>
+
+                    <div className="text-center min-w-[100px]">
+                      <p className="text-sm text-slate-600">% to Quota</p>
+                      <p className={`font-semibold ${
+                        percentToQuota >= 100 ? 'text-emerald-600' :
+                        percentToQuota >= 75 ? 'text-blue-600' :
+                        percentToQuota >= 50 ? 'text-amber-600' :
+                        'text-red-600'
+                      }`}>
+                        {percentToQuota.toFixed(1)}%
+                      </p>
+                    </div>
+
+                    <div className={`flex items-center gap-2 px-3 py-1 rounded-lg border ${getStatusColor(status)}`}>
+                      {getStatusIcon(status)}
+                      <span className="text-sm font-medium capitalize">
+                        {status.replace('_', ' ')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {isExpanded && submission && (
+                  <div className="border-t border-slate-200 bg-slate-50 p-6">
+                    <div className="grid md:grid-cols-2 gap-6 mb-6">
+                      <div>
+                        <h4 className="font-semibold text-slate-900 mb-3">Activities This Week</h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-slate-600">Cold Calls:</span>
+                            <span className="font-medium">{submission.cold_calls || 0}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-600">Emails:</span>
+                            <span className="font-medium">{submission.emails || 0}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-600">LI Messages:</span>
+                            <span className="font-medium">{submission.li_messages || 0}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-600">DM Connects:</span>
+                            <span className="font-medium">{submission.decision_maker_connects || 0}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-600">Meetings Booked:</span>
+                            <span className="font-medium">{submission.meetings_booked || 0}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-600">Discovery Calls:</span>
+                            <span className="font-medium">{submission.discovery_calls || 0}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="font-semibold text-slate-900 mb-3">Performance Metrics</h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-slate-600">Revenue MTD:</span>
+                            <span className="font-medium">{formatRevenue(submission.revenue_mtd || 0)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-600">Revenue QTD:</span>
+                            <span className="font-medium">{formatRevenue(submission.revenue_qtd || 0)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-600">Pipeline Amount:</span>
+                            <span className="font-medium">{submission.pipeline_coverage_ratio || 0}x</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-600">Opps Advanced:</span>
+                            <span className="font-medium">{submission.opportunities_advanced || 0}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {submission.wins && submission.wins.length > 0 && submission.wins[0] && (
+                      <div className="mb-6">
+                        <h4 className="font-semibold text-slate-900 mb-3">Wins This Week</h4>
+                        <ul className="space-y-2">
+                          {submission.wins.map((win, idx) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                              <span className="text-slate-700">{win}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {submission.deals_advancing && submission.deals_advancing.length > 0 && (
+                      <div className="mb-6">
+                        <h4 className="font-semibold text-slate-900 mb-3">Deals Advancing</h4>
+                        <div className="space-y-2">
+                          {submission.deals_advancing.map((deal: any, idx: number) => (
+                            <div key={idx} className="bg-white p-3 rounded-lg border border-slate-200">
+                              <p className="font-medium text-slate-900">{deal.dealName}</p>
+                              <p className="text-sm text-slate-600">
+                                Next Stage: {deal.nextStage} | Next Step: {deal.nextStep}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {submission.deals_stalling && submission.deals_stalling.length > 0 && (
+                      <div className="mb-6">
+                        <h4 className="font-semibold text-slate-900 mb-3">Deals At Risk</h4>
+                        <div className="space-y-2">
+                          {submission.deals_stalling.map((deal: any, idx: number) => (
+                            <div key={idx} className="bg-amber-50 p-3 rounded-lg border border-amber-200">
+                              <p className="font-medium text-slate-900">{deal.dealName}</p>
+                              <p className="text-sm text-slate-700">Why Stuck: {deal.whyStuck}</p>
+                              <p className="text-sm text-slate-700">Plan: {deal.yourPlan}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {submission.closing_opportunities && submission.closing_opportunities.length > 0 && (
+                      <div className="mb-6">
+                        <h4 className="font-semibold text-slate-900 mb-3">Closing This Week</h4>
+                        <div className="space-y-2">
+                          {submission.closing_opportunities.map((opp: any, idx: number) => (
+                            <div key={idx} className="bg-emerald-50 p-3 rounded-lg border border-emerald-200">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <p className="font-medium text-slate-900">{opp.companyDeal}</p>
+                                  <p className="text-sm text-slate-700">Close Date: {opp.closeDate}</p>
+                                </div>
+                                <p className="font-bold text-emerald-700">${opp.value?.toLocaleString()}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {submission.blockers_help && (
+                      <div className="mb-6">
+                        <h4 className="font-semibold text-slate-900 mb-3">Blockers & Support Needed</h4>
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                          <p className="text-slate-700">{submission.blockers_help}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {submission.this_week_goal && (
+                      <div>
+                        <h4 className="font-semibold text-slate-900 mb-3">Next Week's Goal</h4>
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                          <p className="text-slate-700">{submission.this_week_goal}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -686,226 +883,18 @@ export function AdminDashboard() {
           </div>
         </div>
       )}
-
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-        <h3 className="text-xl font-semibold text-slate-900 mb-4">
-          Individual Rep Performance
-        </h3>
-        <p className="text-sm text-slate-600 mb-6">
-          Click on any rep to see their detailed submission
-        </p>
-
-        <div className="space-y-2">
-          {reps.map((rep) => {
-            const submission = submissions[rep.id];
-            const status = submission?.status || 'not_started';
-            const isExpanded = expandedReps[rep.id];
-            const percentToQuota = rep.quarterly_quota > 0
-              ? ((submission?.revenue_qtd || 0) / rep.quarterly_quota) * 100
-              : 0;
-
-            return (
-              <div key={rep.id} className="border border-slate-200 rounded-lg overflow-hidden">
-                <div
-                  onClick={() => toggleRepExpansion(rep.id)}
-                  className="flex items-center justify-between p-4 hover:bg-slate-50 cursor-pointer"
-                >
-                  <div className="flex items-center gap-4 flex-1">
-                    {isExpanded ? (
-                      <ChevronDown className="w-5 h-5 text-slate-400" />
-                    ) : (
-                      <ChevronRight className="w-5 h-5 text-slate-400" />
-                    )}
-
-                    <div className="flex-1">
-                      <p className="font-semibold text-slate-900">{rep.name}</p>
-                      <p className="text-sm text-slate-500">{rep.email}</p>
-                    </div>
-
-                    <div className="text-center min-w-[100px]">
-                      <p className="text-sm text-slate-600">Quota</p>
-                      <p className="font-semibold text-slate-900">
-                        ${rep.quarterly_quota.toLocaleString()}
-                      </p>
-                    </div>
-
-                    <div className="text-center min-w-[100px]">
-                      <p className="text-sm text-slate-600">QTD Revenue</p>
-                      <p className="font-semibold text-slate-900">
-                        {formatRevenue(submission?.revenue_qtd || 0)}
-                      </p>
-                    </div>
-
-                    <div className="text-center min-w-[100px]">
-                      <p className="text-sm text-slate-600">% to Quota</p>
-                      <p className={`font-semibold ${
-                        percentToQuota >= 100 ? 'text-emerald-600' :
-                        percentToQuota >= 75 ? 'text-blue-600' :
-                        percentToQuota >= 50 ? 'text-amber-600' :
-                        'text-red-600'
-                      }`}>
-                        {percentToQuota.toFixed(1)}%
-                      </p>
-                    </div>
-
-                    <div className={`flex items-center gap-2 px-3 py-1 rounded-lg border ${getStatusColor(status)}`}>
-                      {getStatusIcon(status)}
-                      <span className="text-sm font-medium capitalize">
-                        {status.replace('_', ' ')}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {isExpanded && submission && (
-                  <div className="border-t border-slate-200 bg-slate-50 p-6">
-                    <div className="grid md:grid-cols-2 gap-6 mb-6">
-                      <div>
-                        <h4 className="font-semibold text-slate-900 mb-3">Activities This Week</h4>
-                        <div className="space-y-2">
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">Cold Calls:</span>
-                            <span className="font-medium">{submission.cold_calls || 0}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">Emails:</span>
-                            <span className="font-medium">{submission.emails || 0}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">LI Messages:</span>
-                            <span className="font-medium">{submission.li_messages || 0}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">DM Connects:</span>
-                            <span className="font-medium">{submission.decision_maker_connects || 0}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">Meetings Booked:</span>
-                            <span className="font-medium">{submission.meetings_booked || 0}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">Discovery Calls:</span>
-                            <span className="font-medium">{submission.discovery_calls || 0}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <h4 className="font-semibold text-slate-900 mb-3">Performance Metrics</h4>
-                        <div className="space-y-2">
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">Revenue MTD:</span>
-                            <span className="font-medium">{formatRevenue(submission.revenue_mtd || 0)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">Revenue QTD:</span>
-                            <span className="font-medium">{formatRevenue(submission.revenue_qtd || 0)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">Pipeline Coverage:</span>
-                            <span className="font-medium">{submission.pipeline_coverage_ratio || 0}x</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">Opps Advanced:</span>
-                            <span className="font-medium">{submission.opportunities_advanced || 0}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {submission.wins && submission.wins.length > 0 && submission.wins[0] && (
-                      <div className="mb-6">
-                        <h4 className="font-semibold text-slate-900 mb-3">Wins This Week</h4>
-                        <ul className="space-y-2">
-                          {submission.wins.map((win, idx) => (
-                            <li key={idx} className="flex items-start gap-2">
-                              <CheckCircle className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
-                              <span className="text-slate-700">{win}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {submission.deals_advancing && submission.deals_advancing.length > 0 && (
-                      <div className="mb-6">
-                        <h4 className="font-semibold text-slate-900 mb-3">Deals Advancing</h4>
-                        <div className="space-y-2">
-                          {submission.deals_advancing.map((deal: any, idx: number) => (
-                            <div key={idx} className="bg-white p-3 rounded-lg border border-slate-200">
-                              <p className="font-medium text-slate-900">{deal.dealName}</p>
-                              <p className="text-sm text-slate-600">
-                                Next Stage: {deal.nextStage} | Next Step: {deal.nextStep}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {submission.deals_stalling && submission.deals_stalling.length > 0 && (
-                      <div className="mb-6">
-                        <h4 className="font-semibold text-slate-900 mb-3">Deals At Risk</h4>
-                        <div className="space-y-2">
-                          {submission.deals_stalling.map((deal: any, idx: number) => (
-                            <div key={idx} className="bg-amber-50 p-3 rounded-lg border border-amber-200">
-                              <p className="font-medium text-slate-900">{deal.dealName}</p>
-                              <p className="text-sm text-slate-700">Why Stuck: {deal.whyStuck}</p>
-                              <p className="text-sm text-slate-700">Plan: {deal.yourPlan}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {submission.closing_opportunities && submission.closing_opportunities.length > 0 && (
-                      <div className="mb-6">
-                        <h4 className="font-semibold text-slate-900 mb-3">Closing This Week</h4>
-                        <div className="space-y-2">
-                          {submission.closing_opportunities.map((opp: any, idx: number) => (
-                            <div key={idx} className="bg-emerald-50 p-3 rounded-lg border border-emerald-200">
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <p className="font-medium text-slate-900">{opp.companyDeal}</p>
-                                  <p className="text-sm text-slate-700">Close Date: {opp.closeDate}</p>
-                                </div>
-                                <p className="font-bold text-emerald-700">${opp.value?.toLocaleString()}</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {submission.blockers_help && (
-                      <div className="mb-6">
-                        <h4 className="font-semibold text-slate-900 mb-3">Blockers & Support Needed</h4>
-                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                          <p className="text-slate-700">{submission.blockers_help}</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {submission.this_week_goal && (
-                      <div>
-                        <h4 className="font-semibold text-slate-900 mb-3">Next Week's Goal</h4>
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                          <p className="text-slate-700">{submission.this_week_goal}</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
         </div>
       )}
 
       {showTargetsModal && (
         <TargetsManagement onClose={() => setShowTargetsModal(false)} />
+      )}
+
+      {showWeekManagement && (
+        <WeekManagement onClose={() => {
+          setShowWeekManagement(false);
+          loadAvailableWeeks();
+        }} />
       )}
     </div>
   );

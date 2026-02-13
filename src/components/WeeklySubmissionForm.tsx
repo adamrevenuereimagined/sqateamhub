@@ -492,8 +492,8 @@ export function WeeklySubmissionForm({ onBack }: Props) {
           onClick={onBack}
           className="flex items-center text-slate-600 hover:text-slate-900 mb-4"
         >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Dashboard
+          <FileText className="w-4 h-4 mr-2" />
+          View Past Submissions
         </button>
 
         <div className="flex items-start justify-between mb-4">
@@ -845,7 +845,7 @@ export function WeeklySubmissionForm({ onBack }: Props) {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Pipeline Coverage
+                Pipeline Amount
                 {targets && (
                   <span className="ml-2 text-xs text-blue-600 font-normal">
                     (Target: {targets.target_pipeline_coverage}x)

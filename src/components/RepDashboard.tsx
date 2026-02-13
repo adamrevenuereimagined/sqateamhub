@@ -510,7 +510,7 @@ export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly' | 'hi
             </div>
 
             <div className="bg-slate-50 rounded-lg p-4">
-              <p className="text-sm text-slate-600 mb-2">Pipeline Coverage</p>
+              <p className="text-sm text-slate-600 mb-2">Pipeline Amount</p>
               <div className="flex items-center justify-between">
                 <div className="flex items-baseline gap-2">
                   <p className="text-2xl font-bold text-slate-900">{submission.pipeline_coverage_ratio.toFixed(1)}x</p>
@@ -566,7 +566,7 @@ export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly' | 'hi
                     <p className="text-2xl font-bold text-slate-900">{mtdMetrics.opportunities_advanced}</p>
                   </div>
                   <div className="bg-blue-50 rounded-lg p-4">
-                    <p className="text-sm text-slate-600 mb-2">Pipeline Coverage</p>
+                    <p className="text-sm text-slate-600 mb-2">Pipeline Amount</p>
                     <p className="text-2xl font-bold text-slate-900">{mtdMetrics.pipeline_coverage_ratio.toFixed(1)}x</p>
                   </div>
                 </div>
@@ -607,7 +607,7 @@ export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly' | 'hi
                     <p className="text-2xl font-bold text-slate-900">{qtdMetrics.opportunities_advanced}</p>
                   </div>
                   <div className="bg-emerald-50 rounded-lg p-4">
-                    <p className="text-sm text-slate-600 mb-2">Pipeline Coverage</p>
+                    <p className="text-sm text-slate-600 mb-2">Pipeline Amount</p>
                     <p className="text-2xl font-bold text-slate-900">{qtdMetrics.pipeline_coverage_ratio.toFixed(1)}x</p>
                   </div>
                 </div>
@@ -739,7 +739,7 @@ export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly' | 'hi
             </div>
 
             <div className="bg-slate-50 rounded-lg p-4">
-              <p className="text-sm text-slate-600 mb-2">Pipeline Coverage</p>
+              <p className="text-sm text-slate-600 mb-2">Pipeline Amount</p>
               <div className="flex items-baseline gap-2">
                 <p className="text-2xl font-bold text-slate-900">
                   {(submission?.pipeline_coverage_ratio || 0).toFixed(1)}x

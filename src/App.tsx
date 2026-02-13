@@ -29,14 +29,10 @@ function AppContent() {
 
   const renderContent = () => {
     if (user.role === 'rep') {
-      switch (currentView) {
-        case 'weekly':
-          return <WeeklySubmissionForm onBack={() => setCurrentView('dashboard')} />;
-        case 'history':
-          return <PastSubmissions onBack={() => setCurrentView('dashboard')} />;
-        default:
-          return <RepDashboard onNavigate={handleNavigate} />;
+      if (currentView === 'history') {
+        return <PastSubmissions onBack={() => setCurrentView('dashboard')} />;
       }
+      return <WeeklySubmissionForm onBack={() => setCurrentView('history')} />;
     } else {
       return <AdminDashboard />;
     }
