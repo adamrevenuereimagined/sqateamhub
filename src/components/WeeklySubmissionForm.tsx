@@ -160,7 +160,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
 
       if (data) {
         setCurrentWeek(data);
-        loadFormData(data.id);
+        loadFormData(data.id, data.start_date);
       }
     } catch (error) {
       console.error('Error loading week:', error);
@@ -185,7 +185,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
     }
   };
 
-  const loadFormData = async (weekId: string) => {
+  const loadFormData = async (weekId: string, startDate: string) => {
     if (!user) return;
 
     try {
@@ -201,10 +201,10 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
         setStatus(submission.status);
         populateFormFromSubmission(submission);
 
-        await loadPreviousWeekData(weekId);
+        await loadPreviousWeekData(startDate);
       } else {
         resetForm();
-        await loadPreviousWeekData(weekId);
+        await loadPreviousWeekData(startDate);
       }
 
       await loadGoalsForCurrentWeek(weekId);
@@ -267,14 +267,14 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
     }
   };
 
-  const loadPreviousWeekData = async (currentWeekId: string) => {
+  const loadPreviousWeekData = async (currentStartDate: string) => {
     if (!user) return;
 
     try {
       const { data: prevWeek } = await supabase
         .from('weeks')
         .select('*')
-        .neq('id', currentWeekId)
+        .lt('start_date', currentStartDate)
         .order('start_date', { ascending: false })
         .limit(1)
         .maybeSingle();
