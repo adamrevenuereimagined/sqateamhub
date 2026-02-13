@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
 import { supabase, Week, User } from '../lib/supabase';
-import { TrendingUp, Users, Target, Activity, CheckCircle, Clock, AlertCircle, ChevronDown, ChevronRight, Settings, BarChart3, Calendar } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, Target, Activity, CheckCircle, Clock, AlertCircle, ChevronDown, ChevronRight, Settings, BarChart3 } from 'lucide-react';
 import { TargetsManagement } from './TargetsManagement';
 import { AnalyticsDashboard } from './AnalyticsDashboard';
-import { WeekManagement } from './WeekManagement';
 
 type WeeklySubmission = {
   id: string;
@@ -51,7 +50,6 @@ export function AdminDashboard() {
   const [expandedReps, setExpandedReps] = useState<{ [userId: string]: boolean }>({});
   const [loading, setLoading] = useState(true);
   const [showTargetsModal, setShowTargetsModal] = useState(false);
-  const [showWeekManagement, setShowWeekManagement] = useState(false);
   const [activeTab, setActiveTab] = useState<'team' | 'analytics'>('team');
 
   useEffect(() => {
@@ -383,22 +381,13 @@ export function AdminDashboard() {
             </select>
           </div>
 
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShowWeekManagement(true)}
-              className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2"
-            >
-              <Calendar className="w-4 h-4" />
-              Manage Weeks
-            </button>
-            <button
-              onClick={() => setShowTargetsModal(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-            >
-              <Settings className="w-4 h-4" />
-              Manage Targets
-            </button>
-          </div>
+          <button
+            onClick={() => setShowTargetsModal(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          >
+            <Settings className="w-4 h-4" />
+            Manage Targets
+          </button>
         </div>
       </div>
 
@@ -455,184 +444,172 @@ export function AdminDashboard() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
-        <h3 className="text-xl font-semibold text-slate-900 mb-4">
-          Team Activity Summary
-        </h3>
+        <div className="flex items-center gap-2 mb-4">
+          <TrendingUp className="w-6 h-6 text-blue-600" />
+          <h3 className="text-xl font-semibold text-slate-900">Team Revenue Trends</h3>
+        </div>
+        <p className="text-sm text-slate-600 mb-6">Track team revenue performance</p>
 
-        <div className="grid md:grid-cols-4 gap-6">
-          <div>
-            <p className="text-sm text-slate-600 mb-1">Cold Calls</p>
-            <p className="text-2xl font-bold text-slate-900">{totals.totalColdCalls}</p>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-emerald-50 rounded-lg p-6">
+            <p className="text-sm text-slate-600 mb-2">Quarter-to-Date Revenue</p>
+            <p className="text-3xl font-bold text-slate-900">
+              {formatRevenue(totals.totalRevenueQTD)}
+            </p>
+            <p className="text-sm text-slate-600 mt-2">
+              {totals.percentToQuotaQTD.toFixed(1)}% to quarterly quota
+            </p>
           </div>
-          <div>
-            <p className="text-sm text-slate-600 mb-1">Emails</p>
-            <p className="text-2xl font-bold text-slate-900">{totals.totalEmails}</p>
-          </div>
-          <div>
-            <p className="text-sm text-slate-600 mb-1">LI Messages</p>
-            <p className="text-2xl font-bold text-slate-900">{totals.totalLiMessages}</p>
-          </div>
-          <div>
-            <p className="text-sm text-slate-600 mb-1">DM Connects</p>
-            <p className="text-2xl font-bold text-slate-900">{totals.totalDMConnects}</p>
-          </div>
-          <div>
-            <p className="text-sm text-slate-600 mb-1">Meetings Booked</p>
-            <p className="text-2xl font-bold text-slate-900">{totals.totalMeetings}</p>
-          </div>
-          <div>
-            <p className="text-sm text-slate-600 mb-1">Discovery Calls</p>
-            <p className="text-2xl font-bold text-slate-900">{totals.totalDiscovery}</p>
-          </div>
-          <div>
-            <p className="text-sm text-slate-600 mb-1">Opps Advanced</p>
-            <p className="text-2xl font-bold text-slate-900">{totals.totalOppsAdvanced}</p>
-          </div>
-          <div>
-            <p className="text-sm text-slate-600 mb-1">Total Activities</p>
-            <p className="text-2xl font-bold text-slate-900">
-              {totals.totalColdCalls + totals.totalEmails + totals.totalLiMessages}
+          <div className="bg-blue-50 rounded-lg p-6">
+            <p className="text-sm text-slate-600 mb-2">Month-to-Date Revenue</p>
+            <p className="text-3xl font-bold text-slate-900">
+              {formatRevenue(totals.totalRevenueMTD)}
+            </p>
+            <p className="text-sm text-slate-600 mt-2">
+              {totals.percentToQuotaMTD.toFixed(1)}% to monthly target
             </p>
           </div>
         </div>
       </div>
 
-      {(Object.keys(previousWeekSubmissions).length > 0 || mtdMetrics || qtdMetrics) && (
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
+        <h3 className="text-xl font-semibold text-slate-900 mb-4">
+          Team Activity Summary
+        </h3>
+
+        <div className="grid md:grid-cols-4 gap-6">
+          {(() => {
+            const previousTotals = Object.keys(previousWeekSubmissions).length > 0 ? {
+              coldCalls: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.cold_calls || 0), 0),
+              emails: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.emails || 0), 0),
+              liMessages: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.li_messages || 0), 0),
+              dmConnects: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.decision_maker_connects || 0), 0),
+              meetings: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.meetings_booked || 0), 0),
+              discovery: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.discovery_calls || 0), 0),
+              oppsAdvanced: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.opportunities_advanced || 0), 0)
+            } : null;
+
+            return (
+              <>
+                <div>
+                  <p className="text-sm text-slate-600 mb-1">Cold Calls</p>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-2xl font-bold text-slate-900">{totals.totalColdCalls}</p>
+                    {previousTotals && (
+                      <div className="flex items-center gap-1">
+                        {getTrendIcon(totals.totalColdCalls, previousTotals.coldCalls)}
+                        <span className={`text-xs font-medium ${getTrendColor(totals.totalColdCalls, previousTotals.coldCalls)}`}>
+                          {Math.abs(calculateChange(totals.totalColdCalls, previousTotals.coldCalls)).toFixed(0)}%
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-600 mb-1">Emails</p>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-2xl font-bold text-slate-900">{totals.totalEmails}</p>
+                    {previousTotals && (
+                      <div className="flex items-center gap-1">
+                        {getTrendIcon(totals.totalEmails, previousTotals.emails)}
+                        <span className={`text-xs font-medium ${getTrendColor(totals.totalEmails, previousTotals.emails)}`}>
+                          {Math.abs(calculateChange(totals.totalEmails, previousTotals.emails)).toFixed(0)}%
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-600 mb-1">LI Messages</p>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-2xl font-bold text-slate-900">{totals.totalLiMessages}</p>
+                    {previousTotals && (
+                      <div className="flex items-center gap-1">
+                        {getTrendIcon(totals.totalLiMessages, previousTotals.liMessages)}
+                        <span className={`text-xs font-medium ${getTrendColor(totals.totalLiMessages, previousTotals.liMessages)}`}>
+                          {Math.abs(calculateChange(totals.totalLiMessages, previousTotals.liMessages)).toFixed(0)}%
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-600 mb-1">DM Connects</p>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-2xl font-bold text-slate-900">{totals.totalDMConnects}</p>
+                    {previousTotals && (
+                      <div className="flex items-center gap-1">
+                        {getTrendIcon(totals.totalDMConnects, previousTotals.dmConnects)}
+                        <span className={`text-xs font-medium ${getTrendColor(totals.totalDMConnects, previousTotals.dmConnects)}`}>
+                          {Math.abs(calculateChange(totals.totalDMConnects, previousTotals.dmConnects)).toFixed(0)}%
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-600 mb-1">Meetings Booked</p>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-2xl font-bold text-slate-900">{totals.totalMeetings}</p>
+                    {previousTotals && (
+                      <div className="flex items-center gap-1">
+                        {getTrendIcon(totals.totalMeetings, previousTotals.meetings)}
+                        <span className={`text-xs font-medium ${getTrendColor(totals.totalMeetings, previousTotals.meetings)}`}>
+                          {Math.abs(calculateChange(totals.totalMeetings, previousTotals.meetings)).toFixed(0)}%
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-600 mb-1">Discovery Calls</p>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-2xl font-bold text-slate-900">{totals.totalDiscovery}</p>
+                    {previousTotals && (
+                      <div className="flex items-center gap-1">
+                        {getTrendIcon(totals.totalDiscovery, previousTotals.discovery)}
+                        <span className={`text-xs font-medium ${getTrendColor(totals.totalDiscovery, previousTotals.discovery)}`}>
+                          {Math.abs(calculateChange(totals.totalDiscovery, previousTotals.discovery)).toFixed(0)}%
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-600 mb-1">Opps Advanced</p>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-2xl font-bold text-slate-900">{totals.totalOppsAdvanced}</p>
+                    {previousTotals && (
+                      <div className="flex items-center gap-1">
+                        {getTrendIcon(totals.totalOppsAdvanced, previousTotals.oppsAdvanced)}
+                        <span className={`text-xs font-medium ${getTrendColor(totals.totalOppsAdvanced, previousTotals.oppsAdvanced)}`}>
+                          {Math.abs(calculateChange(totals.totalOppsAdvanced, previousTotals.oppsAdvanced)).toFixed(0)}%
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-600 mb-1">Total Activities</p>
+                  <p className="text-2xl font-bold text-slate-900">
+                    {totals.totalColdCalls + totals.totalEmails + totals.totalLiMessages}
+                  </p>
+                </div>
+              </>
+            );
+          })()}
+        </div>
+      </div>
+
+      {(mtdMetrics || qtdMetrics) && (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
           <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="w-6 h-6 text-blue-600" />
-            <h3 className="text-xl font-semibold text-slate-900">Team Performance Trends</h3>
+            <Activity className="w-6 h-6 text-blue-600" />
+            <h3 className="text-xl font-semibold text-slate-900">Activity Performance Trends</h3>
           </div>
-          <p className="text-sm text-slate-600 mb-6">Track team progress with Week-over-Week, Month-to-Date, and Quarter-to-Date metrics</p>
+          <p className="text-sm text-slate-600 mb-6">Cumulative team activity metrics for Month-to-Date and Quarter-to-Date</p>
 
           <div className="space-y-6">
-            {Object.keys(previousWeekSubmissions).length > 0 && (
-              <div>
-                <h4 className="text-md font-semibold text-slate-900 mb-3">Week-over-Week (WoW)</h4>
-                <p className="text-xs text-slate-500 mb-3">Current week vs previous week comparison</p>
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {(() => {
-                    const currentTotals = {
-                      coldCalls: Object.values(submissions).reduce((sum, s) => sum + (s.cold_calls || 0), 0),
-                      liMessages: Object.values(submissions).reduce((sum, s) => sum + (s.li_messages || 0), 0),
-                      dmConnects: Object.values(submissions).reduce((sum, s) => sum + (s.decision_maker_connects || 0), 0),
-                      meetings: Object.values(submissions).reduce((sum, s) => sum + (s.meetings_booked || 0), 0),
-                      discovery: Object.values(submissions).reduce((sum, s) => sum + (s.discovery_calls || 0), 0),
-                      oppsAdvanced: Object.values(submissions).reduce((sum, s) => sum + (s.opportunities_advanced || 0), 0)
-                    };
-                    const previousTotals = {
-                      coldCalls: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.cold_calls || 0), 0),
-                      liMessages: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.li_messages || 0), 0),
-                      dmConnects: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.decision_maker_connects || 0), 0),
-                      meetings: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.meetings_booked || 0), 0),
-                      discovery: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.discovery_calls || 0), 0),
-                      oppsAdvanced: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.opportunities_advanced || 0), 0)
-                    };
-
-                    return (
-                      <>
-                        <div className="bg-slate-50 rounded-lg p-4">
-                          <p className="text-sm text-slate-600 mb-2">Cold Calls</p>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-baseline gap-2">
-                              <p className="text-2xl font-bold text-slate-900">{currentTotals.coldCalls}</p>
-                              <p className="text-sm text-slate-500">vs {previousTotals.coldCalls}</p>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              {getTrendIcon(currentTotals.coldCalls, previousTotals.coldCalls)}
-                              <span className={`text-sm font-medium ${getTrendColor(currentTotals.coldCalls, previousTotals.coldCalls)}`}>
-                                {Math.abs(calculateChange(currentTotals.coldCalls, previousTotals.coldCalls)).toFixed(0)}%
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="bg-slate-50 rounded-lg p-4">
-                          <p className="text-sm text-slate-600 mb-2">LinkedIn Messages</p>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-baseline gap-2">
-                              <p className="text-2xl font-bold text-slate-900">{currentTotals.liMessages}</p>
-                              <p className="text-sm text-slate-500">vs {previousTotals.liMessages}</p>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              {getTrendIcon(currentTotals.liMessages, previousTotals.liMessages)}
-                              <span className={`text-sm font-medium ${getTrendColor(currentTotals.liMessages, previousTotals.liMessages)}`}>
-                                {Math.abs(calculateChange(currentTotals.liMessages, previousTotals.liMessages)).toFixed(0)}%
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="bg-slate-50 rounded-lg p-4">
-                          <p className="text-sm text-slate-600 mb-2">DM Connects</p>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-baseline gap-2">
-                              <p className="text-2xl font-bold text-slate-900">{currentTotals.dmConnects}</p>
-                              <p className="text-sm text-slate-500">vs {previousTotals.dmConnects}</p>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              {getTrendIcon(currentTotals.dmConnects, previousTotals.dmConnects)}
-                              <span className={`text-sm font-medium ${getTrendColor(currentTotals.dmConnects, previousTotals.dmConnects)}`}>
-                                {Math.abs(calculateChange(currentTotals.dmConnects, previousTotals.dmConnects)).toFixed(0)}%
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="bg-slate-50 rounded-lg p-4">
-                          <p className="text-sm text-slate-600 mb-2">Meetings Booked</p>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-baseline gap-2">
-                              <p className="text-2xl font-bold text-slate-900">{currentTotals.meetings}</p>
-                              <p className="text-sm text-slate-500">vs {previousTotals.meetings}</p>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              {getTrendIcon(currentTotals.meetings, previousTotals.meetings)}
-                              <span className={`text-sm font-medium ${getTrendColor(currentTotals.meetings, previousTotals.meetings)}`}>
-                                {Math.abs(calculateChange(currentTotals.meetings, previousTotals.meetings)).toFixed(0)}%
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="bg-slate-50 rounded-lg p-4">
-                          <p className="text-sm text-slate-600 mb-2">Discovery Calls</p>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-baseline gap-2">
-                              <p className="text-2xl font-bold text-slate-900">{currentTotals.discovery}</p>
-                              <p className="text-sm text-slate-500">vs {previousTotals.discovery}</p>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              {getTrendIcon(currentTotals.discovery, previousTotals.discovery)}
-                              <span className={`text-sm font-medium ${getTrendColor(currentTotals.discovery, previousTotals.discovery)}`}>
-                                {Math.abs(calculateChange(currentTotals.discovery, previousTotals.discovery)).toFixed(0)}%
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="bg-slate-50 rounded-lg p-4">
-                          <p className="text-sm text-slate-600 mb-2">Opps Advanced</p>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-baseline gap-2">
-                              <p className="text-2xl font-bold text-slate-900">{currentTotals.oppsAdvanced}</p>
-                              <p className="text-sm text-slate-500">vs {previousTotals.oppsAdvanced}</p>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              {getTrendIcon(currentTotals.oppsAdvanced, previousTotals.oppsAdvanced)}
-                              <span className={`text-sm font-medium ${getTrendColor(currentTotals.oppsAdvanced, previousTotals.oppsAdvanced)}`}>
-                                {Math.abs(calculateChange(currentTotals.oppsAdvanced, previousTotals.oppsAdvanced)).toFixed(0)}%
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
-            )}
-
             {mtdMetrics && (
               <div>
                 <h4 className="text-md font-semibold text-slate-900 mb-3">Month-to-Date (MTD)</h4>
@@ -929,13 +906,6 @@ export function AdminDashboard() {
 
       {showTargetsModal && (
         <TargetsManagement onClose={() => setShowTargetsModal(false)} />
-      )}
-
-      {showWeekManagement && (
-        <WeekManagement onClose={() => {
-          setShowWeekManagement(false);
-          loadAvailableWeeks();
-        }} />
       )}
     </div>
   );

@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { supabase, Week, WeeklyActivityTargets } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { FileText, CheckCircle, Clock, AlertCircle, Target, TrendingUp, TrendingDown, Minus, Calendar, Plus } from 'lucide-react';
+import { FileText, CheckCircle, Clock, AlertCircle, Target, TrendingUp, TrendingDown, Minus, Calendar } from 'lucide-react';
 
 type WeeklySubmission = {
   status: string;
+  revenue_mtd: number;
+  revenue_qtd: number;
   cold_calls: number;
   li_messages: number;
   videos: number;
@@ -37,7 +39,6 @@ export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly' | 'hi
   const [submissionStatus, setSubmissionStatus] = useState<'not_started' | 'in_progress' | 'submitted'>('not_started');
   const [targets, setTargets] = useState<WeeklyActivityTargets | null>(null);
   const [loading, setLoading] = useState(true);
-  const [creatingWeek, setCreatingWeek] = useState(false);
 
   useEffect(() => {
     loadDashboardData();
@@ -211,48 +212,6 @@ export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly' | 'hi
     };
   };
 
-  const createNewWeek = async () => {
-    if (!confirm('Create a new week? This will be set as the active week for all reps.')) {
-      return;
-    }
-
-    setCreatingWeek(true);
-    try {
-      const today = new Date();
-      let nextFriday = new Date(today);
-
-      const daysUntilFriday = (5 - today.getDay() + 7) % 7;
-      if (daysUntilFriday === 0) {
-        nextFriday.setDate(today.getDate() + 7);
-      } else {
-        nextFriday.setDate(today.getDate() + daysUntilFriday);
-      }
-
-      const monday = new Date(nextFriday);
-      monday.setDate(nextFriday.getDate() - 4);
-
-      const { error } = await supabase
-        .from('weeks')
-        .insert([
-          {
-            start_date: monday.toISOString().split('T')[0],
-            end_date: nextFriday.toISOString().split('T')[0],
-            status: 'active'
-          }
-        ]);
-
-      if (error) throw error;
-
-      alert('New week created successfully!');
-      await loadDashboardData();
-    } catch (error) {
-      console.error('Error creating week:', error);
-      alert('Failed to create week. Please try again.');
-    } finally {
-      setCreatingWeek(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -339,17 +298,9 @@ export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly' | 'hi
           <div className="bg-amber-50 border border-amber-200 rounded-xl shadow-sm p-8 text-center">
             <Calendar className="w-16 h-16 text-amber-600 mx-auto mb-4" />
             <h3 className="text-2xl font-semibold text-slate-900 mb-2">No Active Week</h3>
-            <p className="text-slate-600 mb-6">
-              There's no active week set up yet. Create a new week to start your submission.
+            <p className="text-slate-600">
+              There's no active week set up yet. Please contact your admin to create weeks for this quarter.
             </p>
-            <button
-              onClick={createNewWeek}
-              disabled={creatingWeek}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50"
-            >
-              <Plus className="w-5 h-5" />
-              {creatingWeek ? 'Creating Week...' : 'Create New Week (Mon-Fri)'}
-            </button>
           </div>
         </div>
       ) : (
@@ -404,11 +355,15 @@ export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly' | 'hi
           </div>
           <div>
             <p className="text-sm text-slate-600 mb-1">MTD Revenue</p>
-            <p className="text-2xl font-bold text-slate-900">$0</p>
+            <p className="text-2xl font-bold text-slate-900">
+              ${(submission?.revenue_mtd || 0).toLocaleString()}
+            </p>
           </div>
           <div>
             <p className="text-sm text-slate-600 mb-1">QTD Revenue</p>
-            <p className="text-2xl font-bold text-slate-900">$0</p>
+            <p className="text-2xl font-bold text-slate-900">
+              ${(submission?.revenue_qtd || 0).toLocaleString()}
+            </p>
           </div>
         </div>
       </div>

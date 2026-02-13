@@ -1,23 +1,28 @@
-<svg viewBox="0 0 432 432" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 446 432" fill="none" xmlns="http://www.w3.org/2000/svg">
   <!-- Top green bar -->
-  <rect width="432" height="88" fill="#2F6F4B"/>
-
-  <!-- Bottom green bar with arrow -->
-  <rect y="344" width="432" height="88" fill="#2F6F4B"/>
-  <path d="M384 408 L432 388 L384 368 Z" fill="white"/>
+  <rect width="446" height="76" fill="#3A7556"/>
 
   <!-- Blue center rectangle -->
-  <rect y="88" width="432" height="256" fill="#3B5CA8"/>
+  <rect y="76" width="446" height="280" fill="#3D5BA3"/>
 
   <!-- Letter S -->
-  <path d="M 80 120 L 160 120 C 175 120 180 125 180 140 L 180 165 C 180 180 175 185 160 185 L 85 185 C 80 185 75 190 75 195 L 75 235 C 75 240 80 245 85 245 L 160 245 L 160 285 L 85 285 C 65 285 55 275 55 255 L 55 195 C 55 175 65 165 85 165 L 155 165 C 160 165 165 160 165 155 L 165 140 C 165 135 160 130 155 130 L 80 130 Z" fill="white"/>
+  <path d="M 30 140 L 130 140 L 130 110 L 60 110 L 60 180 L 120 180 L 120 260 L 30 260 L 30 290 L 135 290 L 135 170 L 75 170 L 75 120 L 145 120 L 145 100 L 30 100 Z" fill="white"/>
+
+  <!-- Letter I (vertical bar) -->
+  <rect x="165" y="100" width="40" height="190" fill="white"/>
 
   <!-- Letter Q -->
-  <rect x="195" y="120" width="30" height="165" fill="white"/>
-  <rect x="195" y="120" width="95" height="30" fill="white"/>
-  <rect x="260" y="120" width="30" height="95" fill="white"/>
-  <rect x="195" y="255" width="95" height="30" fill="white"/>
+  <rect x="225" y="100" width="40" height="190" fill="white"/>
+  <rect x="225" y="100" width="115" height="40" fill="white"/>
+  <rect x="300" y="100" width="40" height="115" fill="white"/>
+  <rect x="225" y="250" width="115" height="40" fill="white"/>
 
   <!-- Letter A -->
-  <path d="M 310 285 L 310 120 L 390 120 L 390 285 L 360 285 L 360 150 L 340 150 L 340 285 Z" fill="white"/>
+  <rect x="360" y="100" width="40" height="190" fill="white"/>
+  <rect x="360" y="100" width="56" height="40" fill="white"/>
+  <rect x="376" y="140" width="40" height="40" fill="white"/>
+
+  <!-- Bottom green bar with arrow -->
+  <rect y="356" width="446" height="76" fill="#3A7556"/>
+  <path d="M 400 394 L 446 394 L 423 418 Z" fill="white"/>
 </svg>
