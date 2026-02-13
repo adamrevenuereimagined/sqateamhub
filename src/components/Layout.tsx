@@ -18,7 +18,7 @@ export function Layout({ children, currentView, onNavigate }: LayoutProps) {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-8">
               <div className="flex items-center space-x-3">
-                <img src="/sqa-logo.svg" alt="SQA Logo" className="h-12" />
+                <img src="/sqa-logo.svg" alt="SQA Logo" className="h-10 w-10" />
                 <h1 className="text-xl font-bold text-slate-900">
                   SQA BD Team Hub
                 </h1>

@@ -403,12 +403,12 @@ export function RepDashboard({ onNavigate }: { onNavigate: (view: 'weekly' | 'hi
             </p>
           </div>
           <div>
-            <p className="text-sm text-slate-600 mb-1">Submission Deadline</p>
-            <p className="text-lg font-semibold text-slate-900">Thursday 5:00 PM PT</p>
+            <p className="text-sm text-slate-600 mb-1">MTD Revenue</p>
+            <p className="text-2xl font-bold text-slate-900">$0</p>
           </div>
           <div>
-            <p className="text-sm text-slate-600 mb-1">Team Meeting</p>
-            <p className="text-lg font-semibold text-slate-900">Friday Morning</p>
+            <p className="text-sm text-slate-600 mb-1">QTD Revenue</p>
+            <p className="text-2xl font-bold text-slate-900">$0</p>
           </div>
         </div>
       </div>
