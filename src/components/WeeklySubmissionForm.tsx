@@ -1449,7 +1449,7 @@ export function WeeklySubmissionForm({ onBack }: Props) {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                What I Need from You as My Manager
+                What I Need from You as My Executive
               </label>
               <textarea
                 value={managerSupport}

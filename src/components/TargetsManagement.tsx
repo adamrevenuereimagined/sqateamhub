@@ -162,7 +162,6 @@ export function TargetsManagement({ onClose }: Props) {
                   <div className="mb-4 flex items-start justify-between">
                     <div>
                       <h3 className="text-lg font-semibold text-slate-900">{rep.name}</h3>
-                      <p className="text-sm text-slate-600">Sales Representative</p>
                     </div>
                     <div className="text-right">
                       <label className="block text-sm font-medium text-slate-700 mb-2">

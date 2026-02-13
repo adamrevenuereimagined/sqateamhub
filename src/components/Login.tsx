@@ -6,6 +6,7 @@ import { Users, LogIn } from 'lucide-react';
 export function Login() {
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUserId, setSelectedUserId] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { signIn } = useAuth();
@@ -39,6 +40,19 @@ export function Login() {
       alert('Please select a user');
       return;
     }
+
+    const selectedUser = users.find(u => u.id === selectedUserId);
+    if (selectedUser?.role === 'admin') {
+      if (!password) {
+        alert('Password required for Executive login');
+        return;
+      }
+      if (password !== 'SQAExec2!') {
+        alert('Incorrect password');
+        return;
+      }
+    }
+
     await signIn(selectedUserId);
   };
 
@@ -117,7 +131,7 @@ export function Login() {
                 <option value="">Choose your name...</option>
                 {users.map((user) => (
                   <option key={user.id} value={user.id}>
-                    {user.name} - {user.role === 'admin' ? 'Manager' : 'Sales Rep'}
+                    {user.name}
                   </option>
                 ))}
               </select>
@@ -127,18 +141,26 @@ export function Login() {
               <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                 <p className="text-sm text-slate-600 mb-1">Logging in as:</p>
                 <p className="font-semibold text-slate-900">{selectedUser.name}</p>
-                <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-medium ${
-                  selectedUser.role === 'admin'
-                    ? 'bg-purple-100 text-purple-800'
-                    : 'bg-blue-100 text-blue-800'
-                }`}>
-                  {selectedUser.role === 'admin' ? 'Manager' : 'Sales Rep'}
-                </span>
                 {selectedUser.role === 'rep' && (
                   <p className="text-sm text-slate-600 mt-2">
                     Quarterly Quota: ${selectedUser.quarterly_quota.toLocaleString()}
                   </p>
                 )}
+              </div>
+            )}
+
+            {selectedUser?.role === 'admin' && (
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Executive Password
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-900"
+                  placeholder="Enter password"
+                />
               </div>
             )}
 

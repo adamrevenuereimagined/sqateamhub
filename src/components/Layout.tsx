@@ -64,7 +64,7 @@ export function Layout({ children, currentView, onNavigate }: LayoutProps) {
               <div className="text-right">
                 <div className="text-sm font-medium text-slate-900">{user?.name}</div>
                 <div className="text-xs text-slate-500">
-                  {user?.role === 'admin' ? 'Manager' : 'Sales Rep'}
+                  {user?.role === 'admin' ? 'Executive' : ''}
                 </div>
               </div>
 
