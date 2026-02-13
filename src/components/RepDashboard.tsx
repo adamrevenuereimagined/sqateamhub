@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { supabase, Week } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { ClipboardList, Edit3, DollarSign, Target, TrendingUp, PieChart, ChevronRight } from 'lucide-react';
-import { formatDate } from '../lib/dateUtils';
+import { ClipboardList, Edit3, DollarSign, Target, TrendingUp, Briefcase, ChevronRight } from 'lucide-react';
+import { formatDate, parseLocalDate } from '../lib/dateUtils';
 
 type SubmissionBrief = {
   week_id: string;
@@ -21,9 +21,12 @@ export function RepDashboard({ onEnterWeek }: Props) {
   const [allWeeks, setAllWeeks] = useState<Week[]>([]);
   const [submittedWeeks, setSubmittedWeeks] = useState<Week[]>([]);
   const [submittedWeekIds, setSubmittedWeekIds] = useState<Set<string>>(new Set());
-  const [latestSubmission, setLatestSubmission] = useState<SubmissionBrief | null>(null);
   const [selectedNewWeekId, setSelectedNewWeekId] = useState('');
   const [selectedEditWeekId, setSelectedEditWeekId] = useState('');
+  const [cumulativeMTD, setCumulativeMTD] = useState(0);
+  const [cumulativeQTD, setCumulativeQTD] = useState(0);
+  const [latestPipeline, setLatestPipeline] = useState(0);
+  const [hasSubmissions, setHasSubmissions] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -57,11 +60,52 @@ export function RepDashboard({ onEnterWeek }: Props) {
 
       if (submWeeks.length > 0) {
         setSelectedEditWeekId(submWeeks[0].id);
-        setLatestSubmission(submissionMap.get(submWeeks[0].id) || null);
       }
 
       const activeWeek = weeks.find(w => w.status === 'active');
       setSelectedNewWeekId(activeWeek?.id || weeks[0]?.id || '');
+
+      const refWeek = activeWeek || weeks[0];
+      if (refWeek && submissions.length > 0) {
+        setHasSubmissions(true);
+
+        const refDate = parseLocalDate(refWeek.end_date);
+        const refMonth = refDate.getMonth();
+        const refYear = refDate.getFullYear();
+        const refQuarter = Math.floor(refMonth / 3);
+
+        const monthWeekIds = new Set(
+          weeks.filter(w => {
+            const d = parseLocalDate(w.end_date);
+            return d.getMonth() === refMonth && d.getFullYear() === refYear;
+          }).map(w => w.id)
+        );
+
+        const quarterWeekIds = new Set(
+          weeks.filter(w => {
+            const d = parseLocalDate(w.end_date);
+            return Math.floor(d.getMonth() / 3) === refQuarter && d.getFullYear() === refYear;
+          }).map(w => w.id)
+        );
+
+        const mtdTotal = submissions
+          .filter(s => monthWeekIds.has(s.week_id))
+          .reduce((sum, s) => sum + (s.revenue_mtd || 0), 0);
+        setCumulativeMTD(mtdTotal);
+
+        const qtdTotal = submissions
+          .filter(s => quarterWeekIds.has(s.week_id))
+          .reduce((sum, s) => sum + (s.revenue_qtd || 0), 0);
+        setCumulativeQTD(qtdTotal);
+
+        for (const week of weeks) {
+          const sub = submissionMap.get(week.id);
+          if (sub && sub.pipeline_coverage_ratio > 0) {
+            setLatestPipeline(sub.pipeline_coverage_ratio);
+            break;
+          }
+        }
+      }
     } catch (error) {
       console.error('Error loading dashboard:', error);
     } finally {
@@ -78,11 +122,7 @@ export function RepDashboard({ onEnterWeek }: Props) {
   }
 
   const quota = user?.quarterly_quota || 0;
-  const qtdRevenue = latestSubmission?.revenue_qtd || 0;
-  const mtdRevenue = latestSubmission?.revenue_mtd || 0;
-  const pipelineCoverage = latestSubmission?.pipeline_coverage_ratio || 0;
-  const qtdProgress = quota > 0 ? Math.min((qtdRevenue / quota) * 100, 100) : 0;
-  const hasSubmissions = latestSubmission !== null;
+  const qtdProgress = quota > 0 ? Math.min((cumulativeQTD / quota) * 100, 100) : 0;
 
   return (
     <div>
@@ -95,7 +135,7 @@ export function RepDashboard({ onEnterWeek }: Props) {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
@@ -114,7 +154,7 @@ export function RepDashboard({ onEnterWeek }: Props) {
             <span className="text-sm font-medium text-slate-500">MTD Revenue</span>
           </div>
           <p className="text-2xl font-bold text-slate-900">
-            {hasSubmissions ? `$${mtdRevenue.toLocaleString()}` : '--'}
+            {hasSubmissions ? `$${cumulativeMTD.toLocaleString()}` : '--'}
           </p>
           {!hasSubmissions && (
             <p className="text-xs text-slate-400 mt-1">Submit a report to track</p>
@@ -129,7 +169,7 @@ export function RepDashboard({ onEnterWeek }: Props) {
             <span className="text-sm font-medium text-slate-500">QTD Revenue</span>
           </div>
           <p className="text-2xl font-bold text-slate-900">
-            {hasSubmissions ? `$${qtdRevenue.toLocaleString()}` : '--'}
+            {hasSubmissions ? `$${cumulativeQTD.toLocaleString()}` : '--'}
           </p>
           {!hasSubmissions && (
             <p className="text-xs text-slate-400 mt-1">Submit a report to track</p>
@@ -138,8 +178,8 @@ export function RepDashboard({ onEnterWeek }: Props) {
 
         <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
-              <PieChart className="w-4 h-4 text-amber-600" />
+            <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center">
+              <TrendingUp className="w-4 h-4 text-teal-600" />
             </div>
             <span className="text-sm font-medium text-slate-500">QTD % to Quota</span>
           </div>
@@ -161,6 +201,23 @@ export function RepDashboard({ onEnterWeek }: Props) {
                 style={{ width: `${qtdProgress}%` }}
               />
             </div>
+          )}
+        </div>
+
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+              <Briefcase className="w-4 h-4 text-amber-600" />
+            </div>
+            <span className="text-sm font-medium text-slate-500">Pipeline</span>
+          </div>
+          <p className="text-2xl font-bold text-slate-900">
+            {hasSubmissions && latestPipeline > 0 ? `$${latestPipeline.toLocaleString()}` : '--'}
+          </p>
+          {hasSubmissions && latestPipeline > 0 && quota > 0 && (
+            <p className="text-xs text-slate-500 mt-1">
+              {(latestPipeline / quota).toFixed(1)}x quota coverage
+            </p>
           )}
         </div>
       </div>
@@ -262,23 +319,6 @@ export function RepDashboard({ onEnterWeek }: Props) {
           </div>
         </div>
       </div>
-
-      {hasSubmissions && pipelineCoverage > 0 && (
-        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-1">Pipeline Coverage</h3>
-              <p className="text-sm text-slate-500">Based on your latest submitted report</p>
-            </div>
-            <div className="text-right">
-              <p className="text-3xl font-bold text-slate-900">{pipelineCoverage.toFixed(1)}x</p>
-              <p className={`text-sm font-medium ${pipelineCoverage >= 3 ? 'text-emerald-600' : pipelineCoverage >= 2 ? 'text-blue-600' : 'text-amber-600'}`}>
-                {pipelineCoverage >= 3 ? 'Strong' : pipelineCoverage >= 2 ? 'On Track' : 'Needs Attention'}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

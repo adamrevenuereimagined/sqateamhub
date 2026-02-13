@@ -383,7 +383,7 @@ export function AdminDashboard() {
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <div className="flex items-center justify-between mb-2">
-            <TrendingUp className="w-8 h-8 text-purple-600" />
+            <TrendingUp className="w-8 h-8 text-blue-600" />
             <span className="text-sm font-medium text-slate-600">MTD Revenue</span>
           </div>
           <p className="text-3xl font-bold text-slate-900">
@@ -463,7 +463,7 @@ export function AdminDashboard() {
                         <div className="flex items-center justify-center gap-1 mt-0.5">
                           {mtdChange > 0.5 ? <TrendingUp className="w-3 h-3 text-emerald-600" /> : mtdChange < -0.5 ? <TrendingDown className="w-3 h-3 text-red-600" /> : null}
                           <span className={`text-xs font-medium ${mtdChange > 0.5 ? 'text-emerald-600' : mtdChange < -0.5 ? 'text-red-600' : 'text-slate-500'}`}>
-                            {mtdChange > 0 ? '+' : ''}{formatRevenue(Math.abs((submission?.revenue_mtd || 0) - (prevSubmission?.revenue_mtd || 0)))} WOW
+                            {mtdChange > 0.5 ? '+' : mtdChange < -0.5 ? '-' : ''}{formatRevenue(Math.abs((submission?.revenue_mtd || 0) - (prevSubmission?.revenue_mtd || 0)))} WoW
                           </span>
                         </div>
                       )}
@@ -478,7 +478,7 @@ export function AdminDashboard() {
                         <div className="flex items-center justify-center gap-1 mt-0.5">
                           {qtdChange > 0.5 ? <TrendingUp className="w-3 h-3 text-emerald-600" /> : qtdChange < -0.5 ? <TrendingDown className="w-3 h-3 text-red-600" /> : null}
                           <span className={`text-xs font-medium ${qtdChange > 0.5 ? 'text-emerald-600' : qtdChange < -0.5 ? 'text-red-600' : 'text-slate-500'}`}>
-                            {qtdChange > 0 ? '+' : ''}{formatRevenue(Math.abs((submission?.revenue_qtd || 0) - (prevSubmission?.revenue_qtd || 0)))} WOW
+                            {qtdChange > 0.5 ? '+' : qtdChange < -0.5 ? '-' : ''}{formatRevenue(Math.abs((submission?.revenue_qtd || 0) - (prevSubmission?.revenue_qtd || 0)))} WoW
                           </span>
                         </div>
                       )}
@@ -551,7 +551,7 @@ export function AdminDashboard() {
                           </div>
                           <div className="flex justify-between">
                             <span className="text-slate-600">Pipeline Amount:</span>
-                            <span className="font-medium">{submission.pipeline_coverage_ratio || 0}x</span>
+                            <span className="font-medium">{formatRevenue(submission.pipeline_coverage_ratio || 0)}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-slate-600">Opps Advanced:</span>
@@ -677,7 +677,7 @@ export function AdminDashboard() {
                       <div className="flex items-center gap-1">
                         {getTrendIcon(totals.totalColdCalls, previousTotals.coldCalls)}
                         <span className={`text-xs font-medium ${getTrendColor(totals.totalColdCalls, previousTotals.coldCalls)}`}>
-                          {Math.abs(calculateChange(totals.totalColdCalls, previousTotals.coldCalls)).toFixed(0)}%
+                          {calculateChange(totals.totalColdCalls, previousTotals.coldCalls) > 0 ? '+' : ''}{calculateChange(totals.totalColdCalls, previousTotals.coldCalls).toFixed(0)}%
                         </span>
                       </div>
                     )}
@@ -691,7 +691,7 @@ export function AdminDashboard() {
                       <div className="flex items-center gap-1">
                         {getTrendIcon(totals.totalEmails, previousTotals.emails)}
                         <span className={`text-xs font-medium ${getTrendColor(totals.totalEmails, previousTotals.emails)}`}>
-                          {Math.abs(calculateChange(totals.totalEmails, previousTotals.emails)).toFixed(0)}%
+                          {calculateChange(totals.totalEmails, previousTotals.emails) > 0 ? '+' : ''}{calculateChange(totals.totalEmails, previousTotals.emails).toFixed(0)}%
                         </span>
                       </div>
                     )}
@@ -705,7 +705,7 @@ export function AdminDashboard() {
                       <div className="flex items-center gap-1">
                         {getTrendIcon(totals.totalLiMessages, previousTotals.liMessages)}
                         <span className={`text-xs font-medium ${getTrendColor(totals.totalLiMessages, previousTotals.liMessages)}`}>
-                          {Math.abs(calculateChange(totals.totalLiMessages, previousTotals.liMessages)).toFixed(0)}%
+                          {calculateChange(totals.totalLiMessages, previousTotals.liMessages) > 0 ? '+' : ''}{calculateChange(totals.totalLiMessages, previousTotals.liMessages).toFixed(0)}%
                         </span>
                       </div>
                     )}
@@ -719,7 +719,7 @@ export function AdminDashboard() {
                       <div className="flex items-center gap-1">
                         {getTrendIcon(totals.totalDMConnects, previousTotals.dmConnects)}
                         <span className={`text-xs font-medium ${getTrendColor(totals.totalDMConnects, previousTotals.dmConnects)}`}>
-                          {Math.abs(calculateChange(totals.totalDMConnects, previousTotals.dmConnects)).toFixed(0)}%
+                          {calculateChange(totals.totalDMConnects, previousTotals.dmConnects) > 0 ? '+' : ''}{calculateChange(totals.totalDMConnects, previousTotals.dmConnects).toFixed(0)}%
                         </span>
                       </div>
                     )}
@@ -733,7 +733,7 @@ export function AdminDashboard() {
                       <div className="flex items-center gap-1">
                         {getTrendIcon(totals.totalMeetings, previousTotals.meetings)}
                         <span className={`text-xs font-medium ${getTrendColor(totals.totalMeetings, previousTotals.meetings)}`}>
-                          {Math.abs(calculateChange(totals.totalMeetings, previousTotals.meetings)).toFixed(0)}%
+                          {calculateChange(totals.totalMeetings, previousTotals.meetings) > 0 ? '+' : ''}{calculateChange(totals.totalMeetings, previousTotals.meetings).toFixed(0)}%
                         </span>
                       </div>
                     )}
@@ -747,7 +747,7 @@ export function AdminDashboard() {
                       <div className="flex items-center gap-1">
                         {getTrendIcon(totals.totalDiscovery, previousTotals.discovery)}
                         <span className={`text-xs font-medium ${getTrendColor(totals.totalDiscovery, previousTotals.discovery)}`}>
-                          {Math.abs(calculateChange(totals.totalDiscovery, previousTotals.discovery)).toFixed(0)}%
+                          {calculateChange(totals.totalDiscovery, previousTotals.discovery) > 0 ? '+' : ''}{calculateChange(totals.totalDiscovery, previousTotals.discovery).toFixed(0)}%
                         </span>
                       </div>
                     )}
@@ -761,7 +761,7 @@ export function AdminDashboard() {
                       <div className="flex items-center gap-1">
                         {getTrendIcon(totals.totalOppsAdvanced, previousTotals.oppsAdvanced)}
                         <span className={`text-xs font-medium ${getTrendColor(totals.totalOppsAdvanced, previousTotals.oppsAdvanced)}`}>
-                          {Math.abs(calculateChange(totals.totalOppsAdvanced, previousTotals.oppsAdvanced)).toFixed(0)}%
+                          {calculateChange(totals.totalOppsAdvanced, previousTotals.oppsAdvanced) > 0 ? '+' : ''}{calculateChange(totals.totalOppsAdvanced, previousTotals.oppsAdvanced).toFixed(0)}%
                         </span>
                       </div>
                     )}

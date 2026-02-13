@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Save, Send, Plus, Trash2, ArrowLeft, Edit2 } from 'lucide-react';
 import { formatDateShort } from '../lib/dateUtils';
+import { CurrencyInput } from './CurrencyInput';
 
 type Week = {
   id: string;
@@ -822,11 +823,9 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                   </span>
                 )}
               </label>
-              <input
-                type="number"
-                step="0.1"
+              <CurrencyInput
                 value={pipelineCoverage}
-                onChange={(e) => setPipelineCoverage(Number(e.target.value))}
+                onChange={setPipelineCoverage}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
               />
             </div>
@@ -835,10 +834,9 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Revenue MTD ($)
               </label>
-              <input
-                type="number"
+              <CurrencyInput
                 value={revenueMtd}
-                onChange={(e) => setRevenueMtd(Number(e.target.value))}
+                onChange={setRevenueMtd}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
               />
             </div>
@@ -847,10 +845,9 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Revenue QTD ($)
               </label>
-              <input
-                type="number"
+              <CurrencyInput
                 value={revenueQtd}
-                onChange={(e) => setRevenueQtd(Number(e.target.value))}
+                onChange={setRevenueQtd}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
               />
             </div>
@@ -859,10 +856,9 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Average Deal Size ($)
               </label>
-              <input
-                type="number"
+              <CurrencyInput
                 value={avgDealSize}
-                onChange={(e) => setAvgDealSize(Number(e.target.value))}
+                onChange={setAvgDealSize}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
               />
             </div>
@@ -1064,16 +1060,15 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                     }}
                     className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                   />
-                  <input
-                    type="number"
-                    placeholder="Value ($)"
-                    value={opp.value || ''}
-                    onChange={(e) => {
+                  <CurrencyInput
+                    value={opp.value || 0}
+                    onChange={(val) => {
                       const newOpps = [...closingOpps];
-                      newOpps[index].value = Number(e.target.value);
+                      newOpps[index].value = val;
                       setClosingOpps(newOpps);
                     }}
                     className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    placeholder="Value"
                   />
                   <input
                     type="date"
