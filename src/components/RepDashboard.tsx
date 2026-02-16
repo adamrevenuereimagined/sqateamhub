@@ -88,15 +88,29 @@ export function RepDashboard({ onEnterWeek }: Props) {
           }).map(w => w.id)
         );
 
-        const mtdTotal = submissions
-          .filter(s => monthWeekIds.has(s.week_id))
-          .reduce((sum, s) => sum + (s.revenue_mtd || 0), 0);
-        setCumulativeMTD(mtdTotal);
+        const weekMap = new Map(weeks.map(w => [w.id, w]));
 
-        const qtdTotal = submissions
-          .filter(s => quarterWeekIds.has(s.week_id))
-          .reduce((sum, s) => sum + (s.revenue_qtd || 0), 0);
-        setCumulativeQTD(qtdTotal);
+        const mtdSubmissions = submissions.filter(s => monthWeekIds.has(s.week_id));
+        const latestMtdSubmission = mtdSubmissions.length > 0
+          ? mtdSubmissions.reduce((latest, s) => {
+              const latestWeek = weekMap.get(latest.week_id);
+              const currentWeek = weekMap.get(s.week_id);
+              if (!latestWeek || !currentWeek) return latest;
+              return new Date(currentWeek.end_date) > new Date(latestWeek.end_date) ? s : latest;
+            })
+          : null;
+        setCumulativeMTD(latestMtdSubmission?.revenue_mtd || 0);
+
+        const qtdSubmissions = submissions.filter(s => quarterWeekIds.has(s.week_id));
+        const latestQtdSubmission = qtdSubmissions.length > 0
+          ? qtdSubmissions.reduce((latest, s) => {
+              const latestWeek = weekMap.get(latest.week_id);
+              const currentWeek = weekMap.get(s.week_id);
+              if (!latestWeek || !currentWeek) return latest;
+              return new Date(currentWeek.end_date) > new Date(latestWeek.end_date) ? s : latest;
+            })
+          : null;
+        setCumulativeQTD(latestQtdSubmission?.revenue_qtd || 0);
 
         for (const week of weeks) {
           const sub = submissionMap.get(week.id);
