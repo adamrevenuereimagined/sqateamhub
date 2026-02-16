@@ -46,9 +46,9 @@ function AppContent() {
           />
         );
       }
-      return <RepDashboard onEnterWeek={handleEnterWeek} />;
+      return <RepDashboard key={currentView} onEnterWeek={handleEnterWeek} />;
     } else {
-      return <AdminDashboard />;
+      return <AdminDashboard key={currentView} />;
     }
   };
 

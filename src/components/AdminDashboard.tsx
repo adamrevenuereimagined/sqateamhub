@@ -72,8 +72,22 @@ export function AdminDashboard() {
 
       if (weeksData && weeksData.length > 0) {
         setAvailableWeeks(weeksData);
-        const activeWeek = weeksData.find(w => w.status === 'active') || weeksData[0];
-        setCurrentWeek(activeWeek);
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const currentWeekByDate = weeksData.find(w => {
+          const startDate = new Date(w.start_date);
+          const endDate = new Date(w.end_date);
+          startDate.setHours(0, 0, 0, 0);
+          endDate.setHours(0, 0, 0, 0);
+          return today >= startDate && today <= endDate;
+        });
+
+        const defaultWeek = currentWeekByDate ||
+                           weeksData.find(w => w.status === 'active') ||
+                           weeksData[0];
+        setCurrentWeek(defaultWeek);
       }
     } catch (error) {
       console.error('Error loading weeks:', error);
