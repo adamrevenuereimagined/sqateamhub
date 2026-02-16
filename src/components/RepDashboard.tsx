@@ -37,7 +37,7 @@ export function RepDashboard({ onEnterWeek }: Props) {
     if (!user) return;
     try {
       const [weeksResult, submissionsResult] = await Promise.all([
-        supabase.from('weeks').select('*').order('start_date', { ascending: false }),
+        supabase.from('weeks').select('*').order('start_date', { ascending: true }),
         supabase.from('weekly_submissions')
           .select('week_id, status, revenue_mtd, revenue_qtd, pipeline_coverage_ratio')
           .eq('user_id', user.id)
@@ -66,9 +66,19 @@ export function RepDashboard({ onEnterWeek }: Props) {
       }
 
       const activeWeek = weeks.find(w => w.status === 'active');
-      setSelectedNewWeekId(activeWeek?.id || weeks[0]?.id || '');
 
-      const refWeek = activeWeek || weeks[0];
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const currentWeekByDate = weeks.find(w => {
+        const startDate = parseLocalDate(w.start_date);
+        const endDate = parseLocalDate(w.end_date);
+        return today >= startDate && today <= endDate;
+      });
+
+      const defaultWeek = currentWeekByDate || activeWeek || weeks[0];
+      setSelectedNewWeekId(defaultWeek?.id || '');
+
+      const refWeek = currentWeekByDate || activeWeek || weeks[0];
       if (refWeek && submissions.length > 0) {
         setHasSubmissions(true);
 
