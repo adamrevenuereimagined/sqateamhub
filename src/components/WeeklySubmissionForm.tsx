@@ -84,9 +84,10 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
 
   const [dealsAdvancing, setDealsAdvancing] = useState<Array<{
     dealName: string;
+    dealAmount: number;
     nextStage: string;
     nextStep: string;
-  }>>([{ dealName: '', nextStage: '', nextStep: '' }]);
+  }>>([{ dealName: '', dealAmount: 0, nextStage: '', nextStep: '' }]);
 
   const [dealsStalling, setDealsStalling] = useState<Array<{
     dealName: string;
@@ -98,8 +99,8 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
   const [newDeals, setNewDeals] = useState<Array<{
     companyName: string;
     dealSource: string;
-    dealPotential: string;
-  }>>([{ companyName: '', dealSource: '', dealPotential: '' }]);
+    potentialRevenue: number;
+  }>>([{ companyName: '', dealSource: '', potentialRevenue: 0 }]);
 
   const [closingOpps, setClosingOpps] = useState<Array<{
     companyDeal: string;
@@ -237,9 +238,9 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
     setRevenueMtd(0);
     setRevenueQtd(0);
     setAvgDealSize(0);
-    setDealsAdvancing([{ dealName: '', nextStage: '', nextStep: '' }]);
+    setDealsAdvancing([{ dealName: '', dealAmount: 0, nextStage: '', nextStep: '' }]);
     setDealsStalling([{ dealName: '', whyStuck: '', yourPlan: '', helpNeeded: '' }]);
-    setNewDeals([{ companyName: '', dealSource: '', dealPotential: '' }]);
+    setNewDeals([{ companyName: '', dealSource: '', potentialRevenue: 0 }]);
     setClosingOpps([{ companyDeal: '', value: 0, closeDate: '', confidenceBlockers: '' }]);
     setF2fMeetings([{ clientProspect: '', dates: '', where: '', purposePrep: '' }]);
     setCallReviewLink('');
@@ -323,9 +324,9 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
     setRevenueMtd(submission.revenue_mtd || 0);
     setRevenueQtd(submission.revenue_qtd || 0);
     setAvgDealSize(submission.average_deal_size || 0);
-    setDealsAdvancing(submission.deals_advancing || [{ dealName: '', nextStage: '', nextStep: '' }]);
+    setDealsAdvancing(submission.deals_advancing || [{ dealName: '', dealAmount: 0, nextStage: '', nextStep: '' }]);
     setDealsStalling(submission.deals_stalling || [{ dealName: '', whyStuck: '', yourPlan: '', helpNeeded: '' }]);
-    setNewDeals(submission.new_deals || [{ companyName: '', dealSource: '', dealPotential: '' }]);
+    setNewDeals(submission.new_deals || [{ companyName: '', dealSource: '', potentialRevenue: 0 }]);
     setClosingOpps(submission.closing_opportunities || [{ companyDeal: '', value: 0, closeDate: '', confidenceBlockers: '' }]);
     setF2fMeetings(submission.f2f_meetings || [{ clientProspect: '', dates: '', where: '', purposePrep: '' }]);
     setCallReviewLink(submission.call_review_link || '');
@@ -635,157 +636,10 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <h2 className="text-xl font-semibold text-slate-900 mb-4">
-            Activity & Performance Metrics
+            Performance Metrics
           </h2>
 
-          <div className="grid md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Cold Calls
-                {targets && (
-                  <span className="ml-2 text-xs text-blue-600 font-normal">
-                    (Target: {targets.target_cold_calls})
-                  </span>
-                )}
-              </label>
-              <input
-                type="number"
-                value={coldCalls}
-                onChange={(e) => setColdCalls(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Emails
-              </label>
-              <input
-                type="number"
-                value={emails}
-                onChange={(e) => setEmails(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                LI Messages
-                {targets && (
-                  <span className="ml-2 text-xs text-blue-600 font-normal">
-                    (Target: {targets.target_li_messages})
-                  </span>
-                )}
-              </label>
-              <input
-                type="number"
-                value={liMessages}
-                onChange={(e) => setLiMessages(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Videos
-                {targets && (
-                  <span className="ml-2 text-xs text-blue-600 font-normal">
-                    (Target: {targets.target_videos})
-                  </span>
-                )}
-              </label>
-              <input
-                type="number"
-                value={videos}
-                onChange={(e) => setVideos(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Decision Maker Connects
-                {targets && (
-                  <span className="ml-2 text-xs text-blue-600 font-normal">
-                    (Target: {targets.target_dm_connects})
-                  </span>
-                )}
-              </label>
-              <input
-                type="number"
-                value={dmConnects}
-                onChange={(e) => setDmConnects(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Meetings Booked
-                {targets && (
-                  <span className="ml-2 text-xs text-blue-600 font-normal">
-                    (Target: {targets.target_meetings_booked})
-                  </span>
-                )}
-              </label>
-              <input
-                type="number"
-                value={meetingsBooked}
-                onChange={(e) => setMeetingsBooked(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Discovery Calls
-                {targets && (
-                  <span className="ml-2 text-xs text-blue-600 font-normal">
-                    (Target: {targets.target_discovery_calls})
-                  </span>
-                )}
-              </label>
-              <input
-                type="number"
-                value={discoveryCalls}
-                onChange={(e) => setDiscoveryCalls(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Opportunities Advanced
-                {targets && (
-                  <span className="ml-2 text-xs text-blue-600 font-normal">
-                    (Target: {targets.target_opportunities_advanced})
-                  </span>
-                )}
-              </label>
-              <input
-                type="number"
-                value={opportunitiesAdvanced}
-                onChange={(e) => setOpportunitiesAdvanced(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Pipeline Amount
-                {targets && targets.target_pipeline_value > 0 && (
-                  <span className="ml-2 text-xs text-blue-600 font-normal">
-                    (Target: ${targets.target_pipeline_value.toLocaleString()})
-                  </span>
-                )}
-              </label>
-              <CurrencyInput
-                value={pipelineCoverage}
-                onChange={setPipelineCoverage}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-
+          <div className="grid md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Revenue MTD ($)
@@ -818,6 +672,156 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
               />
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Pipeline Amount ($)
+              </label>
+              <CurrencyInput
+                value={pipelineCoverage}
+                onChange={setPipelineCoverage}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <h2 className="text-xl font-semibold text-slate-900 mb-4">
+            Activity Metrics
+          </h2>
+
+          <div className="grid md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Cold Calls
+                {targets && (
+                  <span className="ml-2 text-xs text-slate-500 font-normal">
+                    (Goal: {targets.target_cold_calls})
+                  </span>
+                )}
+              </label>
+              <input
+                type="number"
+                value={coldCalls}
+                onChange={(e) => setColdCalls(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Emails
+              </label>
+              <input
+                type="number"
+                value={emails}
+                onChange={(e) => setEmails(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                LI Messages
+                {targets && (
+                  <span className="ml-2 text-xs text-slate-500 font-normal">
+                    (Goal: {targets.target_li_messages})
+                  </span>
+                )}
+              </label>
+              <input
+                type="number"
+                value={liMessages}
+                onChange={(e) => setLiMessages(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Videos
+                {targets && (
+                  <span className="ml-2 text-xs text-slate-500 font-normal">
+                    (Goal: {targets.target_videos})
+                  </span>
+                )}
+              </label>
+              <input
+                type="number"
+                value={videos}
+                onChange={(e) => setVideos(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Decision Maker Connects
+                {targets && (
+                  <span className="ml-2 text-xs text-slate-500 font-normal">
+                    (Goal: {targets.target_dm_connects})
+                  </span>
+                )}
+              </label>
+              <input
+                type="number"
+                value={dmConnects}
+                onChange={(e) => setDmConnects(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Meetings Booked
+                {targets && (
+                  <span className="ml-2 text-xs text-slate-500 font-normal">
+                    (Goal: {targets.target_meetings_booked})
+                  </span>
+                )}
+              </label>
+              <input
+                type="number"
+                value={meetingsBooked}
+                onChange={(e) => setMeetingsBooked(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Discovery Calls
+                {targets && (
+                  <span className="ml-2 text-xs text-slate-500 font-normal">
+                    (Goal: {targets.target_discovery_calls})
+                  </span>
+                )}
+              </label>
+              <input
+                type="number"
+                value={discoveryCalls}
+                onChange={(e) => setDiscoveryCalls(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Opportunities Advanced
+                {targets && (
+                  <span className="ml-2 text-xs text-slate-500 font-normal">
+                    (Goal: {targets.target_opportunities_advanced})
+                  </span>
+                )}
+              </label>
+              <input
+                type="number"
+                value={opportunitiesAdvanced}
+                onChange={(e) => setOpportunitiesAdvanced(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
           </div>
         </div>
 
@@ -833,7 +837,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
               </h3>
               {dealsAdvancing.map((deal, index) => (
                 <div key={index} className="border border-slate-200 rounded-lg p-4 mb-3">
-                  <div className="grid md:grid-cols-3 gap-3">
+                  <div className="grid md:grid-cols-2 gap-3 mb-3">
                     <input
                       type="text"
                       placeholder="Deal Name"
@@ -845,6 +849,18 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                       }}
                       className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                     />
+                    <CurrencyInput
+                      value={deal.dealAmount}
+                      onChange={(value) => {
+                        const newDeals = [...dealsAdvancing];
+                        newDeals[index].dealAmount = value;
+                        setDealsAdvancing(newDeals);
+                      }}
+                      placeholder="Deal Amount"
+                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-3">
                     <input
                       type="text"
                       placeholder="Next Stage"
@@ -871,7 +887,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 </div>
               ))}
               <button
-                onClick={() => setDealsAdvancing([...dealsAdvancing, { dealName: '', nextStage: '', nextStep: '' }])}
+                onClick={() => setDealsAdvancing([...dealsAdvancing, { dealName: '', dealAmount: 0, nextStage: '', nextStep: '' }])}
                 className="flex items-center text-emerald-600 hover:text-emerald-700 text-sm font-medium"
               >
                 <Plus className="w-4 h-4 mr-1" />
@@ -971,22 +987,21 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                       }}
                       className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                     />
-                    <input
-                      type="text"
-                      placeholder="Deal Potential"
-                      value={deal.dealPotential}
-                      onChange={(e) => {
+                    <CurrencyInput
+                      value={deal.potentialRevenue}
+                      onChange={(value) => {
                         const newDealsList = [...newDeals];
-                        newDealsList[index].dealPotential = e.target.value;
+                        newDealsList[index].potentialRevenue = value;
                         setNewDeals(newDealsList);
                       }}
+                      placeholder="Potential Revenue ($)"
                       className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
                 </div>
               ))}
               <button
-                onClick={() => setNewDeals([...newDeals, { companyName: '', dealSource: '', dealPotential: '' }])}
+                onClick={() => setNewDeals([...newDeals, { companyName: '', dealSource: '', potentialRevenue: 0 }])}
                 className="flex items-center text-emerald-600 hover:text-emerald-700 text-sm font-medium"
               >
                 <Plus className="w-4 h-4 mr-1" />
