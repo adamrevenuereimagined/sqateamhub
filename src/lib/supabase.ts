@@ -146,3 +146,16 @@ export type WeeklyActivityTargets = {
   created_at: string;
   updated_at: string;
 };
+
+export function parseNumericFields<T extends Record<string, any>>(data: T, fields: string[]): T {
+  const result = { ...data };
+  for (const field of fields) {
+    if (field in result && result[field] != null) {
+      const value = result[field];
+      if (typeof value === 'string') {
+        result[field] = parseFloat(value) || 0;
+      }
+    }
+  }
+  return result;
+}

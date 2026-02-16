@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase, Week } from '../lib/supabase';
+import { supabase, Week, parseNumericFields } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { ClipboardList, Edit3, DollarSign, Target, TrendingUp, Briefcase, ChevronRight } from 'lucide-react';
 import { formatDate, parseLocalDate } from '../lib/dateUtils';
@@ -44,7 +44,10 @@ export function RepDashboard({ onEnterWeek }: Props) {
       ]);
 
       const weeks = weeksResult.data || [];
-      const submissions = submissionsResult.data || [];
+      const rawSubmissions = submissionsResult.data || [];
+      const submissions = rawSubmissions.map(sub =>
+        parseNumericFields(sub, ['revenue_mtd', 'revenue_qtd', 'pipeline_coverage_ratio'])
+      );
 
       setAllWeeks(weeks);
 

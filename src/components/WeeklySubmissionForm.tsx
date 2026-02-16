@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, parseNumericFields } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Save, Send, Plus, Trash2, ArrowLeft, Edit2, CheckCircle2, XCircle, MinusCircle } from 'lucide-react';
 import { formatDateShort } from '../lib/dateUtils';
@@ -189,14 +189,20 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
     if (!user) return;
 
     try {
-      const { data: submission } = await supabase
+      const { data: rawSubmission } = await supabase
         .from('weekly_submissions')
         .select('*')
         .eq('user_id', user.id)
         .eq('week_id', weekId)
         .maybeSingle();
 
-      if (submission) {
+      if (rawSubmission) {
+        const submission = parseNumericFields(rawSubmission, [
+          'revenue_mtd', 'revenue_qtd', 'cold_calls', 'emails', 'li_messages',
+          'decision_maker_connects', 'meetings_booked', 'discovery_calls',
+          'opportunities_advanced', 'pipeline_coverage_ratio', 'average_deal_size',
+          'prospecting_activities', 'videos'
+        ]);
         setSubmissionId(submission.id);
         setStatus(submission.status);
         populateFormFromSubmission(submission);

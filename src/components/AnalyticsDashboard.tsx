@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase, Week, User } from '../lib/supabase';
+import { supabase, Week, User, parseNumericFields } from '../lib/supabase';
 import { TrendingUp, TrendingDown, Target, Calendar, BarChart3, ArrowRight } from 'lucide-react';
 
 type WeeklySubmission = {
@@ -105,7 +105,12 @@ export function AnalyticsDashboard() {
         const submissionsMap: { [weekId: string]: WeeklySubmission } = {};
         if (submissionsData) {
           submissionsData.forEach((sub: any) => {
-            submissionsMap[sub.week_id] = sub;
+            submissionsMap[sub.week_id] = parseNumericFields(sub, [
+              'revenue_mtd', 'revenue_qtd', 'cold_calls', 'emails', 'li_messages',
+              'decision_maker_connects', 'meetings_booked', 'discovery_calls',
+              'opportunities_advanced', 'pipeline_coverage_ratio', 'average_deal_size',
+              'prospecting_activities', 'videos'
+            ]);
           });
         }
 

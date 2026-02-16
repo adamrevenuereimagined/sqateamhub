@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase, Week, User } from '../lib/supabase';
+import { supabase, Week, User, parseNumericFields } from '../lib/supabase';
 import { TrendingUp, TrendingDown, Users, Target, Activity, CheckCircle, Clock, AlertCircle, ChevronDown, ChevronRight, Settings, Calendar, DollarSign } from 'lucide-react';
 import { TargetsManagement } from './TargetsManagement';
 import { WeekManagement } from './WeekManagement';
@@ -102,7 +102,12 @@ export function AdminDashboard() {
         const submissionsMap: { [userId: string]: WeeklySubmission } = {};
         if (submissionsData) {
           submissionsData.forEach((sub: any) => {
-            submissionsMap[sub.user_id] = sub;
+            submissionsMap[sub.user_id] = parseNumericFields(sub, [
+              'revenue_mtd', 'revenue_qtd', 'cold_calls', 'emails', 'li_messages',
+              'decision_maker_connects', 'meetings_booked', 'discovery_calls',
+              'opportunities_advanced', 'pipeline_coverage_ratio', 'average_deal_size',
+              'prospecting_activities', 'videos'
+            ]);
           });
         }
         setSubmissions(submissionsMap);
@@ -124,7 +129,12 @@ export function AdminDashboard() {
           const previousSubmissionsMap: { [userId: string]: WeeklySubmission } = {};
           if (previousSubmissionsData) {
             previousSubmissionsData.forEach((sub: any) => {
-              previousSubmissionsMap[sub.user_id] = sub;
+              previousSubmissionsMap[sub.user_id] = parseNumericFields(sub, [
+                'revenue_mtd', 'revenue_qtd', 'cold_calls', 'emails', 'li_messages',
+                'decision_maker_connects', 'meetings_booked', 'discovery_calls',
+                'opportunities_advanced', 'pipeline_coverage_ratio', 'average_deal_size',
+                'prospecting_activities', 'videos'
+              ]);
             });
           }
           setPreviousWeekSubmissions(previousSubmissionsMap);
@@ -161,12 +171,28 @@ export function AdminDashboard() {
             .in('week_id', qtdWeekIds);
 
           if (mtdSubmissions && mtdSubmissions.length > 0) {
-            const mtdAgg = aggregateSubmissions(mtdSubmissions);
+            const parsedMtdSubmissions = mtdSubmissions.map(sub =>
+              parseNumericFields(sub, [
+                'revenue_mtd', 'revenue_qtd', 'cold_calls', 'emails', 'li_messages',
+                'decision_maker_connects', 'meetings_booked', 'discovery_calls',
+                'opportunities_advanced', 'pipeline_coverage_ratio', 'average_deal_size',
+                'prospecting_activities', 'videos'
+              ])
+            );
+            const mtdAgg = aggregateSubmissions(parsedMtdSubmissions);
             setMtdMetrics(mtdAgg);
           }
 
           if (qtdSubmissions && qtdSubmissions.length > 0) {
-            const qtdAgg = aggregateSubmissions(qtdSubmissions);
+            const parsedQtdSubmissions = qtdSubmissions.map(sub =>
+              parseNumericFields(sub, [
+                'revenue_mtd', 'revenue_qtd', 'cold_calls', 'emails', 'li_messages',
+                'decision_maker_connects', 'meetings_booked', 'discovery_calls',
+                'opportunities_advanced', 'pipeline_coverage_ratio', 'average_deal_size',
+                'prospecting_activities', 'videos'
+              ])
+            );
+            const qtdAgg = aggregateSubmissions(parsedQtdSubmissions);
             setQtdMetrics(qtdAgg);
           }
         }
