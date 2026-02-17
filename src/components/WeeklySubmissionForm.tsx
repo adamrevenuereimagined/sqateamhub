@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase, parseNumericFields } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Save, Send, Plus, Trash2, ArrowLeft, Edit2, CheckCircle2, XCircle, MinusCircle } from 'lucide-react';
+import { Save, Send, Plus, Trash2, ArrowLeft, Edit2, CheckCircle2, XCircle, MinusCircle, Info } from 'lucide-react';
 import { formatDateShort } from '../lib/dateUtils';
 import { CurrencyInput } from './CurrencyInput';
 
@@ -635,9 +635,17 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <h2 className="text-xl font-semibold text-slate-900 mb-4">
-            Performance Metrics
-          </h2>
+          <div className="flex items-center gap-2 mb-4">
+            <h2 className="text-xl font-semibold text-slate-900">
+              Performance Metrics
+            </h2>
+            <div className="group relative">
+              <Info className="w-5 h-5 text-slate-400 hover:text-slate-600 cursor-help" />
+              <div className="absolute left-0 top-6 hidden group-hover:block bg-slate-900 text-white text-sm rounded-lg p-3 w-80 z-10 shadow-lg">
+                Please use the revenue reports to determine the "contracted-won" amount for the month and quarter. Pipeline is all deal amounts for deals in Discovery or beyond.
+              </div>
+            </div>
+          </div>
 
           <div className="grid md:grid-cols-2 gap-4">
             <div>
@@ -687,9 +695,23 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <h2 className="text-xl font-semibold text-slate-900 mb-4">
-            Activity Metrics
-          </h2>
+          <div className="flex items-center gap-2 mb-4">
+            <h2 className="text-xl font-semibold text-slate-900">
+              Activity Metrics
+            </h2>
+            <a
+              href="https://app-na2.hubspot.com/advanced-builder/242661058/report/229162336"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group relative"
+              title="View report in HubSpot"
+            >
+              <Info className="w-5 h-5 text-blue-500 hover:text-blue-700 cursor-pointer" />
+              <div className="absolute left-0 top-6 hidden group-hover:block bg-slate-900 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap z-10 shadow-lg">
+                Click to view report in HubSpot
+              </div>
+            </a>
+          </div>
 
           <div className="grid md:grid-cols-3 gap-4">
             <div>
