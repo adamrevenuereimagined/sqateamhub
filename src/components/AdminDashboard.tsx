@@ -517,7 +517,6 @@ export function AdminDashboard() {
 
                     <div className="flex-1">
                       <p className="font-semibold text-slate-900">{rep.name}</p>
-                      <p className="text-sm text-slate-500">{rep.email}</p>
                     </div>
 
                     <div className="text-center min-w-[100px]">
