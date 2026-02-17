@@ -9,6 +9,7 @@ type WeeklySubmission = {
   id: string;
   user_id: string;
   status: string;
+  submitted_at: string | null;
   revenue_mtd: number;
   revenue_qtd: number;
   cold_calls: number;
@@ -568,11 +569,24 @@ export function AdminDashboard() {
                       </p>
                     </div>
 
-                    <div className={`flex items-center gap-2 px-3 py-1 rounded-lg border ${getStatusColor(status)}`}>
-                      {getStatusIcon(status)}
-                      <span className="text-sm font-medium capitalize">
-                        {status.replace('_', ' ')}
-                      </span>
+                    <div className="flex flex-col items-end gap-1">
+                      <div className={`flex items-center gap-2 px-3 py-1 rounded-lg border ${getStatusColor(status)}`}>
+                        {getStatusIcon(status)}
+                        <span className="text-sm font-medium capitalize">
+                          {status.replace('_', ' ')}
+                        </span>
+                      </div>
+                      {status === 'submitted' && submission?.submitted_at && (
+                        <span className="text-xs text-slate-500">
+                          {new Date(submission.submitted_at).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true
+                          })}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
