@@ -12,6 +12,7 @@ type WeeklySubmission = {
   revenue_mtd: number;
   revenue_qtd: number;
   cold_calls: number;
+  emails: number;
   li_messages: number;
   videos: number;
   decision_maker_connects: number;
@@ -23,13 +24,21 @@ type WeeklySubmission = {
   deals_stalling: any[];
   new_deals: any[];
   closing_opportunities: any[];
+  f2f_meetings: any[];
   wins: string[];
+  whats_working_well: string;
+  positive_feedback: string;
+  call_review_link: string;
+  call_review_focus: string;
   blockers_help: string;
-  this_week_goal: string;
+  self_care: string;
+  energy_level: string;
+  manager_support: string;
 };
 
 type AggregatedMetrics = {
   cold_calls: number;
+  emails: number;
   li_messages: number;
   videos: number;
   decision_maker_connects: number;
@@ -46,6 +55,7 @@ export function AdminDashboard() {
   const [reps, setReps] = useState<User[]>([]);
   const [submissions, setSubmissions] = useState<{ [userId: string]: WeeklySubmission }>({});
   const [previousWeekSubmissions, setPreviousWeekSubmissions] = useState<{ [userId: string]: WeeklySubmission }>({});
+  const [weeklyGoals, setWeeklyGoals] = useState<{ [userId: string]: Array<{ goal_text: string; status: string; review_notes: string }> }>({});
   const [mtdMetrics, setMtdMetrics] = useState<AggregatedMetrics | null>(null);
   const [qtdMetrics, setQtdMetrics] = useState<AggregatedMetrics | null>(null);
   const [expandedReps, setExpandedReps] = useState<{ [userId: string]: boolean }>({});
@@ -125,6 +135,27 @@ export function AdminDashboard() {
           });
         }
         setSubmissions(submissionsMap);
+
+        const { data: goalsData } = await supabase
+          .from('weekly_goals')
+          .select('user_id, goal_text, status, review_notes')
+          .eq('week_id', currentWeek.id)
+          .order('sort_order');
+
+        const goalsMap: { [userId: string]: Array<{ goal_text: string; status: string; review_notes: string }> } = {};
+        if (goalsData) {
+          goalsData.forEach((goal: any) => {
+            if (!goalsMap[goal.user_id]) {
+              goalsMap[goal.user_id] = [];
+            }
+            goalsMap[goal.user_id].push({
+              goal_text: goal.goal_text,
+              status: goal.status || 'pending',
+              review_notes: goal.review_notes || '',
+            });
+          });
+        }
+        setWeeklyGoals(goalsMap);
 
         const { data: previousWeekData } = await supabase
           .from('weeks')
@@ -222,6 +253,7 @@ export function AdminDashboard() {
     const uniqueWeeks = new Set(submissions.map(s => s.week_id));
     return {
       cold_calls: submissions.reduce((sum, s) => sum + (s.cold_calls || 0), 0),
+      emails: submissions.reduce((sum, s) => sum + (s.emails || 0), 0),
       li_messages: submissions.reduce((sum, s) => sum + (s.li_messages || 0), 0),
       videos: submissions.reduce((sum, s) => sum + (s.videos || 0), 0),
       decision_maker_connects: submissions.reduce((sum, s) => sum + (s.decision_maker_connects || 0), 0),
@@ -665,6 +697,82 @@ export function AdminDashboard() {
                       </div>
                     )}
 
+                    {(submission.whats_working_well || submission.positive_feedback) && (
+                      <div className="mb-6">
+                        <h4 className="font-semibold text-slate-900 mb-3">What's Working Well & Positive Feedback</h4>
+                        <div className="space-y-3">
+                          {submission.whats_working_well && (
+                            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                              <p className="text-sm font-medium text-slate-700 mb-1">What's Working Well:</p>
+                              <p className="text-slate-700">{submission.whats_working_well}</p>
+                            </div>
+                          )}
+                          {submission.positive_feedback && (
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                              <p className="text-sm font-medium text-slate-700 mb-1">Positive Feedback from Prospects/Clients:</p>
+                              <p className="text-slate-700">{submission.positive_feedback}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {submission.f2f_meetings && submission.f2f_meetings.length > 0 && (
+                      <div className="mb-6">
+                        <h4 className="font-semibold text-slate-900 mb-3">Face-to-Face Meetings Next Week</h4>
+                        <div className="space-y-2">
+                          {submission.f2f_meetings.map((meeting: any, idx: number) => (
+                            <div key={idx} className="bg-white p-3 rounded-lg border border-slate-200">
+                              <p className="font-medium text-slate-900">{meeting.clientProspect}</p>
+                              <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
+                                <div>
+                                  <span className="text-slate-600">Date(s): </span>
+                                  <span className="text-slate-900">{meeting.dates}</span>
+                                </div>
+                                <div>
+                                  <span className="text-slate-600">Where: </span>
+                                  <span className="text-slate-900">{meeting.where}</span>
+                                </div>
+                              </div>
+                              {meeting.purposePrep && (
+                                <p className="text-sm text-slate-700 mt-2">
+                                  <span className="text-slate-600">Purpose/Prep: </span>
+                                  {meeting.purposePrep}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {(submission.call_review_link || submission.call_review_focus) && (
+                      <div className="mb-6">
+                        <h4 className="font-semibold text-slate-900 mb-3">Call Review & Skill Development</h4>
+                        <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3">
+                          {submission.call_review_link && (
+                            <div>
+                              <p className="text-sm font-medium text-slate-700 mb-1">Call to Review:</p>
+                              <a
+                                href={submission.call_review_link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline text-sm break-all"
+                              >
+                                {submission.call_review_link}
+                              </a>
+                            </div>
+                          )}
+                          {submission.call_review_focus && (
+                            <div>
+                              <p className="text-sm font-medium text-slate-700 mb-1">What to Evaluate:</p>
+                              <p className="text-slate-700 text-sm">{submission.call_review_focus}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     {submission.blockers_help && (
                       <div className="mb-6">
                         <h4 className="font-semibold text-slate-900 mb-3">Blockers & Support Needed</h4>
@@ -674,11 +782,49 @@ export function AdminDashboard() {
                       </div>
                     )}
 
-                    {submission.this_week_goal && (
+                    {weeklyGoals[rep.id] && weeklyGoals[rep.id].length > 0 && (
+                      <div className="mb-6">
+                        <h4 className="font-semibold text-slate-900 mb-3">Next Week's Goals</h4>
+                        <div className="space-y-2">
+                          {weeklyGoals[rep.id].map((goal: any, idx: number) => (
+                            <div key={idx} className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                              <p className="text-slate-700">
+                                <span className="font-medium text-slate-900">#{idx + 1}</span> {goal.goal_text}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {(submission.self_care || submission.energy_level || submission.manager_support) && (
                       <div>
-                        <h4 className="font-semibold text-slate-900 mb-3">Next Week's Goal</h4>
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                          <p className="text-slate-700">{submission.this_week_goal}</p>
+                        <h4 className="font-semibold text-slate-900 mb-3">Personal Check-In</h4>
+                        <div className="space-y-3">
+                          {submission.self_care && (
+                            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                              <p className="text-sm font-medium text-slate-700 mb-1">How They're Taking Care of Themselves:</p>
+                              <p className="text-slate-700">{submission.self_care}</p>
+                            </div>
+                          )}
+                          {submission.energy_level && (
+                            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                              <p className="text-sm font-medium text-slate-700 mb-1">Energy Level:</p>
+                              <p className={`font-medium capitalize ${
+                                submission.energy_level === 'high' ? 'text-emerald-600' :
+                                submission.energy_level === 'medium' ? 'text-amber-600' :
+                                'text-red-600'
+                              }`}>
+                                {submission.energy_level}
+                              </p>
+                            </div>
+                          )}
+                          {submission.manager_support && (
+                            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                              <p className="text-sm font-medium text-slate-700 mb-1">What They Need from You:</p>
+                              <p className="text-slate-700">{submission.manager_support}</p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
