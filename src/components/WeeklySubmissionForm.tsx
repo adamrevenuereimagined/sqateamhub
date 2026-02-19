@@ -734,6 +734,11 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Emails
+                {targets && (
+                  <span className="ml-2 text-xs text-slate-500 font-normal">
+                    (Goal: {targets.target_emails})
+                  </span>
+                )}
               </label>
               <input
                 type="number"
