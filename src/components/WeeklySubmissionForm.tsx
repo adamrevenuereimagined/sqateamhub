@@ -172,14 +172,19 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
     if (!user) return;
 
     try {
-      const { data: targetsData } = await supabase
+      const { data: targetsData, error } = await supabase
         .from('weekly_activity_targets')
         .select('*')
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (targetsData) {
+      if (error) {
+        console.error('Error loading targets:', error);
+      } else if (targetsData) {
+        console.log('Loaded targets:', targetsData);
         setTargets(targetsData);
+      } else {
+        console.log('No targets found for user:', user.id);
       }
     } catch (error) {
       console.error('Error loading targets:', error);
