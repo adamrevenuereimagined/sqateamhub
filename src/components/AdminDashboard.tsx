@@ -135,11 +135,15 @@ export function AdminDashboard() {
         }
         setSubmissions(submissionsMap);
 
-        const { data: goalsData } = await supabase
+        const { data: goalsData, error: goalsError } = await supabase
           .from('weekly_goals')
           .select('user_id, goal_text, status, review_notes')
           .eq('week_id', currentWeek.id)
           .order('sort_order');
+
+        if (goalsError) {
+          console.error('Error loading goals:', goalsError);
+        }
 
         const goalsMap: { [userId: string]: Array<{ goal_text: string; status: string; review_notes: string }> } = {};
         if (goalsData) {
