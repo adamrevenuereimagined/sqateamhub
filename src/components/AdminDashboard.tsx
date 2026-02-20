@@ -3,7 +3,7 @@ import { supabase, Week, User, parseNumericFields } from '../lib/supabase';
 import { TrendingUp, TrendingDown, Users, Target, Activity, CheckCircle, Clock, AlertCircle, ChevronDown, ChevronRight, Settings, Calendar, DollarSign } from 'lucide-react';
 import { TargetsManagement } from './TargetsManagement';
 import { WeekManagement } from './WeekManagement';
-import { formatDate } from '../lib/dateUtils';
+import { formatDate, parseLocalDate } from '../lib/dateUtils';
 
 type WeeklySubmission = {
   id: string;
@@ -88,10 +88,8 @@ export function AdminDashboard() {
         today.setHours(0, 0, 0, 0);
 
         const currentWeekByDate = weeksData.find(w => {
-          const startDate = new Date(w.start_date);
-          const endDate = new Date(w.end_date);
-          startDate.setHours(0, 0, 0, 0);
-          endDate.setHours(0, 0, 0, 0);
+          const startDate = parseLocalDate(w.start_date);
+          const endDate = parseLocalDate(w.end_date);
           return today >= startDate && today <= endDate;
         });
 
