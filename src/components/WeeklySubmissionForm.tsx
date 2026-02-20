@@ -1216,19 +1216,6 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                What's in Your Way / How Can I Help
-              </label>
-              <textarea
-                value={blockersHelp}
-                onChange={(e) => setBlockersHelp(e.target.value)}
-                rows={3}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                placeholder="Share any obstacles or challenges..."
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
                 What's Blocking Deals from Advancing (up to 5)
               </label>
               {dealBlockers.map((blocker, index) => (
