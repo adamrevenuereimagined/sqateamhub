@@ -554,6 +554,15 @@ export function AdminDashboard() {
 
                     <div className="flex-1">
                       <p className="font-semibold text-slate-900">{rep.name}</p>
+                      {weeklyGoals[rep.id] && weeklyGoals[rep.id].length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {weeklyGoals[rep.id].map((goal: any, idx: number) => (
+                            <p key={idx} className="text-xs text-slate-600">
+                              <span className="font-medium text-slate-700">Goal {idx + 1}:</span> {goal.goal_text}
+                            </p>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     <div className="text-center min-w-[100px]">
