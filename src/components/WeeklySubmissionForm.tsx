@@ -410,22 +410,36 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
         setSubmissionId(data.id);
       }
 
-      await supabase
+      const { error: deleteError } = await supabase
         .from('weekly_goals')
         .delete()
         .eq('user_id', user.id)
         .eq('week_id', currentWeek.id);
 
+      if (deleteError) {
+        console.error('Error deleting goals:', deleteError);
+      }
+
       const validGoals = nextWeekGoals.filter(g => g.trim());
+      console.log('Saving goals:', validGoals, 'for week:', currentWeek.id);
       if (validGoals.length > 0) {
-        await supabase
+        const goalsToInsert = validGoals.map((g, i) => ({
+          user_id: user.id,
+          week_id: currentWeek.id,
+          goal_text: g,
+          sort_order: i,
+        }));
+        console.log('Goals to insert:', goalsToInsert);
+
+        const { error: insertError } = await supabase
           .from('weekly_goals')
-          .insert(validGoals.map((g, i) => ({
-            user_id: user.id,
-            week_id: currentWeek.id,
-            goal_text: g,
-            sort_order: i,
-          })));
+          .insert(goalsToInsert);
+
+        if (insertError) {
+          console.error('Error inserting goals:', insertError);
+          throw insertError;
+        }
+        console.log('Goals inserted successfully');
       }
 
       for (const goal of previousGoals) {
