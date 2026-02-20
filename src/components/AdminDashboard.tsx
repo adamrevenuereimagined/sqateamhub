@@ -143,6 +143,7 @@ export function AdminDashboard() {
 
         const goalsMap: { [userId: string]: Array<{ goal_text: string; status: string; review_notes: string }> } = {};
         if (goalsData) {
+          console.log('Goals data loaded:', goalsData);
           goalsData.forEach((goal: any) => {
             if (!goalsMap[goal.user_id]) {
               goalsMap[goal.user_id] = [];
@@ -154,6 +155,7 @@ export function AdminDashboard() {
             });
           });
         }
+        console.log('Goals map:', goalsMap);
         setWeeklyGoals(goalsMap);
 
         const { data: previousWeekData } = await supabase
@@ -554,6 +556,10 @@ export function AdminDashboard() {
 
                     <div className="flex-1">
                       <p className="font-semibold text-slate-900">{rep.name}</p>
+                      {(() => {
+                        console.log(`Rep ${rep.name} (${rep.id}) goals:`, weeklyGoals[rep.id]);
+                        return null;
+                      })()}
                       {weeklyGoals[rep.id] && weeklyGoals[rep.id].length > 0 && (
                         <div className="mt-2 space-y-1">
                           {weeklyGoals[rep.id].map((goal: any, idx: number) => (
