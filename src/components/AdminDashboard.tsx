@@ -79,7 +79,7 @@ export function AdminDashboard() {
       const { data: weeksData } = await supabase
         .from('weeks')
         .select('*')
-        .order('start_date', { ascending: false });
+        .order('end_date', { ascending: false });
 
       if (weeksData && weeksData.length > 0) {
         setAvailableWeeks(weeksData);
@@ -266,7 +266,10 @@ export function AdminDashboard() {
     };
   };
 
-  const formatRevenue = (value: number): string => {
+  const formatRevenue = (value: number, useRounding: boolean = true): string => {
+    if (!useRounding) {
+      return `$${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    }
     if (value >= 1000000) {
       return `$${(value / 1000000).toFixed(1)}M`;
     } else if (value >= 1000) {
@@ -310,6 +313,14 @@ export function AdminDashboard() {
 
     const totalPipeline = Object.values(submissions).reduce((sum, sub) => sum + (sub.pipeline_coverage_ratio || 0), 0);
 
+    const totalWonDeals = Object.values(submissions).reduce((sum, sub) => {
+      return sum + (sub.wins?.filter((w: string) => w && w.trim()).length || 0);
+    }, 0);
+
+    const totalDealsAdvancing = Object.values(submissions).reduce((sum, sub) => {
+      return sum + (sub.deals_advancing?.length || 0);
+    }, 0);
+
     const percentToQuotaMTD = totalQuota > 0 ? (totalRevenueMTD / (totalQuota / 3)) * 100 : 0;
     const percentToQuotaQTD = totalQuota > 0 ? (totalRevenueQTD / totalQuota) * 100 : 0;
 
@@ -325,6 +336,8 @@ export function AdminDashboard() {
       totalDiscovery,
       totalOppsAdvanced,
       totalPipeline,
+      totalWonDeals,
+      totalDealsAdvancing,
       percentToQuotaMTD,
       percentToQuotaQTD,
       submittedCount: Object.values(submissions).filter(s => s.status === 'submitted').length,
@@ -429,7 +442,7 @@ export function AdminDashboard() {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-4 gap-6 mb-8">
+      <div className="grid md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <div className="flex items-center justify-between mb-2">
             <Users className="w-8 h-8 text-emerald-600" />
@@ -447,7 +460,7 @@ export function AdminDashboard() {
             <span className="text-sm font-medium text-slate-600">QTD Revenue</span>
           </div>
           <p className="text-3xl font-bold text-slate-900">
-            {formatRevenue(totals.totalRevenueQTD)}
+            {formatRevenue(totals.totalRevenueQTD, false)}
           </p>
           <p className="text-sm text-slate-600 mt-1">
             {totals.percentToQuotaQTD.toFixed(1)}% to quota
@@ -460,7 +473,7 @@ export function AdminDashboard() {
             <span className="text-sm font-medium text-slate-600">MTD Revenue</span>
           </div>
           <p className="text-3xl font-bold text-slate-900">
-            {formatRevenue(totals.totalRevenueMTD)}
+            {formatRevenue(totals.totalRevenueMTD, false)}
           </p>
           <p className="text-sm text-slate-600 mt-1">
             {totals.percentToQuotaMTD.toFixed(1)}% to monthly
@@ -473,10 +486,36 @@ export function AdminDashboard() {
             <span className="text-sm font-medium text-slate-600">Team Pipeline</span>
           </div>
           <p className="text-3xl font-bold text-slate-900">
-            {formatRevenue(totals.totalPipeline)}
+            {formatRevenue(totals.totalPipeline, false)}
           </p>
           <p className="text-sm text-slate-600 mt-1">
             Weekly total across all reps
+          </p>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <div className="flex items-center justify-between mb-2">
+            <CheckCircle className="w-8 h-8 text-emerald-600" />
+            <span className="text-sm font-medium text-slate-600">Won Deals</span>
+          </div>
+          <p className="text-3xl font-bold text-slate-900">
+            {totals.totalWonDeals}
+          </p>
+          <p className="text-sm text-slate-600 mt-1">
+            This week across all reps
+          </p>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <div className="flex items-center justify-between mb-2">
+            <TrendingUp className="w-8 h-8 text-blue-600" />
+            <span className="text-sm font-medium text-slate-600">Deals Advancing</span>
+          </div>
+          <p className="text-3xl font-bold text-slate-900">
+            {totals.totalDealsAdvancing}
+          </p>
+          <p className="text-sm text-slate-600 mt-1">
+            This week across all reps
           </p>
         </div>
       </div>
