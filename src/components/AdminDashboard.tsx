@@ -624,6 +624,13 @@ export function AdminDashboard() {
                       </p>
                     </div>
 
+                    <div className="text-center min-w-[120px]">
+                      <p className="text-sm text-slate-600">Pipeline Coverage</p>
+                      <p className="font-semibold text-slate-900">
+                        {formatRevenue(submission?.pipeline_coverage_ratio || 0)}
+                      </p>
+                    </div>
+
                     <div className="flex flex-col items-end gap-1">
                       <div className={`flex items-center gap-2 px-3 py-1 rounded-lg border ${getStatusColor(status)}`}>
                         {getStatusIcon(status)}
