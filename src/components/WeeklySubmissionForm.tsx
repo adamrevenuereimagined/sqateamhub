@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase, parseNumericFields } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Save, Send, Plus, Trash2, ArrowLeft, Edit2, CheckCircle2, XCircle, MinusCircle, Info } from 'lucide-react';
+import { Save, Send, Plus, Trash2, ArrowLeft, CreditCard as Edit2, CheckCircle2, XCircle, MinusCircle, Info } from 'lucide-react';
 import { formatDateShort } from '../lib/dateUtils';
 import { CurrencyInput } from './CurrencyInput';
 
@@ -33,6 +33,7 @@ type WeeklySubmission = {
   revenue_mtd?: number;
   revenue_qtd?: number;
   average_deal_size?: number;
+  deals_won_this_week?: number;
   deals_advancing?: any[];
   deals_stalling?: any[];
   new_deals?: any[];
@@ -81,6 +82,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
   const [revenueMtd, setRevenueMtd] = useState(0);
   const [revenueQtd, setRevenueQtd] = useState(0);
   const [avgDealSize, setAvgDealSize] = useState(0);
+  const [dealsWonThisWeek, setDealsWonThisWeek] = useState(0);
 
   const [dealsAdvancing, setDealsAdvancing] = useState<Array<{
     dealName: string;
@@ -206,7 +208,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
         const submission = parseNumericFields(rawSubmission, [
           'revenue_mtd', 'revenue_qtd', 'cold_calls', 'emails', 'li_messages',
           'decision_maker_connects', 'meetings_booked', 'discovery_calls',
-          'opportunities_advanced', 'pipeline_coverage_ratio', 'average_deal_size',
+          'opportunities_advanced', 'pipeline_coverage_ratio', 'average_deal_size', 'deals_won_this_week',
           'prospecting_activities', 'videos'
         ]);
         setSubmissionId(submission.id);
@@ -329,6 +331,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
     setRevenueMtd(submission.revenue_mtd || 0);
     setRevenueQtd(submission.revenue_qtd || 0);
     setAvgDealSize(submission.average_deal_size || 0);
+    setDealsWonThisWeek(submission.deals_won_this_week || 0);
     setDealsAdvancing(submission.deals_advancing || [{ dealName: '', dealAmount: 0, nextStage: '', nextStep: '' }]);
     setDealsStalling(submission.deals_stalling || [{ dealName: '', whyStuck: '', yourPlan: '', helpNeeded: '' }]);
     setNewDeals(submission.new_deals || [{ companyName: '', dealSource: '', potentialRevenue: 0 }]);
@@ -373,6 +376,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
         revenue_mtd: revenueMtd,
         revenue_qtd: revenueQtd,
         average_deal_size: avgDealSize,
+        deals_won_this_week: dealsWonThisWeek,
         deals_advancing: dealsAdvancing.filter(d => d.dealName),
         deals_stalling: dealsStalling.filter(d => d.dealName),
         new_deals: newDeals.filter(d => d.companyName),
@@ -708,6 +712,19 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 value={pipelineCoverage}
                 onChange={setPipelineCoverage}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Deals Won This Week
+              </label>
+              <input
+                type="number"
+                value={dealsWonThisWeek}
+                onChange={(e) => setDealsWonThisWeek(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                min="0"
               />
             </div>
           </div>
