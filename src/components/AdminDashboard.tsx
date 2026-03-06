@@ -339,10 +339,6 @@ export function AdminDashboard() {
 
     const totalPipeline = Object.values(submissions).reduce((sum, sub) => sum + (sub.pipeline_coverage_ratio || 0), 0);
 
-    const totalWonDeals = Object.values(submissions).reduce((sum, sub) => {
-      return sum + (sub.wins?.filter((w: string) => w && w.trim()).length || 0);
-    }, 0);
-
     const totalDealsAdvancing = Object.values(submissions).reduce((sum, sub) => {
       return sum + (sub.deals_advancing?.length || 0);
     }, 0);
@@ -362,7 +358,6 @@ export function AdminDashboard() {
       totalDiscovery,
       totalOppsAdvanced,
       totalPipeline,
-      totalWonDeals,
       totalDealsAdvancing,
       percentToQuotaMTD,
       percentToQuotaQTD,
@@ -516,19 +511,6 @@ export function AdminDashboard() {
           </p>
           <p className="text-sm text-slate-600 mt-1">
             Weekly total across all reps
-          </p>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <div className="flex items-center justify-between mb-2">
-            <CheckCircle className="w-8 h-8 text-emerald-600" />
-            <span className="text-sm font-medium text-slate-600">Won Deals</span>
-          </div>
-          <p className="text-3xl font-bold text-slate-900">
-            {totals.totalWonDeals}
-          </p>
-          <p className="text-sm text-slate-600 mt-1">
-            This week across all reps
           </p>
         </div>
 
