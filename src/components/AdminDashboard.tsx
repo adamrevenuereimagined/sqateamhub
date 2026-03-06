@@ -57,6 +57,7 @@ export function AdminDashboard() {
   const [submissions, setSubmissions] = useState<{ [userId: string]: WeeklySubmission }>({});
   const [previousWeekSubmissions, setPreviousWeekSubmissions] = useState<{ [userId: string]: WeeklySubmission }>({});
   const [weeklyGoals, setWeeklyGoals] = useState<{ [userId: string]: Array<{ goal_text: string; status: string; review_notes: string }> }>({});
+  const [previousWeekGoals, setPreviousWeekGoals] = useState<{ [userId: string]: Array<{ goal_text: string; status: string; review_notes: string }> }>({});
   const [mtdMetrics, setMtdMetrics] = useState<AggregatedMetrics | null>(null);
   const [qtdMetrics, setQtdMetrics] = useState<AggregatedMetrics | null>(null);
   const [expandedReps, setExpandedReps] = useState<{ [userId: string]: boolean }>({});
@@ -188,6 +189,27 @@ export function AdminDashboard() {
             });
           }
           setPreviousWeekSubmissions(previousSubmissionsMap);
+
+          const { data: previousGoalsData } = await supabase
+            .from('weekly_goals')
+            .select('user_id, goal_text, status, review_notes')
+            .eq('week_id', previousWeekData.id)
+            .order('sort_order');
+
+          const previousGoalsMap: { [userId: string]: Array<{ goal_text: string; status: string; review_notes: string }> } = {};
+          if (previousGoalsData) {
+            previousGoalsData.forEach((goal: any) => {
+              if (!previousGoalsMap[goal.user_id]) {
+                previousGoalsMap[goal.user_id] = [];
+              }
+              previousGoalsMap[goal.user_id].push({
+                goal_text: goal.goal_text,
+                status: goal.status || 'pending',
+                review_notes: goal.review_notes || '',
+              });
+            });
+          }
+          setPreviousWeekGoals(previousGoalsMap);
         }
 
         const currentDate = new Date(currentWeek.end_date);
@@ -560,16 +582,23 @@ export function AdminDashboard() {
 
                     <div className="flex-1">
                       <p className="font-semibold text-slate-900">{rep.name}</p>
-                      {(() => {
-                        console.log(`Rep ${rep.name} (${rep.id}) goals:`, weeklyGoals[rep.id]);
-                        return null;
-                      })()}
-                      {weeklyGoals[rep.id] && weeklyGoals[rep.id].length > 0 && (
+                      {previousWeekGoals[rep.id] && previousWeekGoals[rep.id].length > 0 && (
                         <div className="mt-2 space-y-1">
-                          {weeklyGoals[rep.id].map((goal: any, idx: number) => (
-                            <p key={idx} className="text-xs text-slate-600">
-                              <span className="font-medium text-slate-700">Goal {idx + 1}:</span> {goal.goal_text}
-                            </p>
+                          {previousWeekGoals[rep.id].map((goal: any, idx: number) => (
+                            <div key={idx} className="flex items-start gap-2">
+                              <p className="text-xs text-slate-600">
+                                <span className="font-medium text-slate-700">Goal {idx + 1}:</span> {goal.goal_text}
+                              </p>
+                              {goal.status !== 'pending' && (
+                                <span className={`text-xs font-medium px-2 py-0.5 rounded ${
+                                  goal.status === 'hit' ? 'bg-emerald-100 text-emerald-700' :
+                                  goal.status === 'partial' ? 'bg-amber-100 text-amber-700' :
+                                  'bg-red-100 text-red-700'
+                                }`}>
+                                  {goal.status === 'hit' ? '✓ Hit' : goal.status === 'partial' ? '◐ Partial' : '✗ Missed'}
+                                </span>
+                              )}
+                            </div>
                           ))}
                         </div>
                       )}
