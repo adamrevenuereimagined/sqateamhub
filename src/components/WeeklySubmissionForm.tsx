@@ -461,10 +461,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
 
       setStatus(submitNow ? 'submitted' : 'in_progress');
       alert(submitNow ? 'Submitted successfully!' : 'Saved as draft');
-
-      if (submitNow) {
-        onBack();
-      }
+      onBack();
     } catch (error) {
       console.error('Error saving:', error);
       alert('Failed to save. Please try again.');
