@@ -398,10 +398,15 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
       let finalSubmissionId = submissionId;
 
       if (submissionId) {
-        await supabase
+        const { error: updateError } = await supabase
           .from('weekly_submissions')
           .update(submissionData)
           .eq('id', submissionId);
+
+        if (updateError) {
+          console.error('Error updating submission:', updateError);
+          throw updateError;
+        }
       } else {
         const { data, error } = await supabase
           .from('weekly_submissions')
@@ -409,7 +414,10 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error inserting submission:', error);
+          throw error;
+        }
         finalSubmissionId = data.id;
         setSubmissionId(data.id);
       }
@@ -462,9 +470,10 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
       setStatus(submitNow ? 'submitted' : 'in_progress');
       alert(submitNow ? 'Submitted successfully!' : 'Saved as draft');
       onBack();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving:', error);
-      alert('Failed to save. Please try again.');
+      const errorMessage = error?.message || 'Unknown error';
+      alert(`Failed to save: ${errorMessage}\n\nPlease check the console for details.`);
     } finally {
       setSaving(false);
     }
