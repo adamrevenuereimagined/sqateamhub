@@ -348,6 +348,14 @@ export function AdminDashboard() {
     const percentToQuotaMTD = totalQuota > 0 ? (totalRevenueMTD / (totalQuota / 3)) * 100 : 0;
     const percentToQuotaQTD = totalQuota > 0 ? (totalRevenueQTD / totalQuota) * 100 : 0;
 
+    const prevTotalRevenueMTD = Object.values(previousWeekSubmissions).reduce((sum, sub) => sum + (sub.revenue_mtd || 0), 0);
+    const prevTotalRevenueQTD = Object.values(previousWeekSubmissions).reduce((sum, sub) => sum + (sub.revenue_qtd || 0), 0);
+    const prevTotalPipeline = Object.values(previousWeekSubmissions).reduce((sum, sub) => sum + (sub.pipeline_coverage_ratio || 0), 0);
+    const prevTotalDealsWon = Object.values(previousWeekSubmissions).reduce((sum, sub) => sum + (sub.deals_won_this_week || 0), 0);
+    const prevTotalDealsAdvancing = Object.values(previousWeekSubmissions).reduce((sum, sub) => {
+      return sum + (sub.deals_advancing?.length || 0);
+    }, 0);
+
     return {
       totalQuota,
       totalRevenueMTD,
@@ -364,6 +372,11 @@ export function AdminDashboard() {
       totalDealsAdvancing,
       percentToQuotaMTD,
       percentToQuotaQTD,
+      prevTotalRevenueMTD,
+      prevTotalRevenueQTD,
+      prevTotalPipeline,
+      prevTotalDealsWon,
+      prevTotalDealsAdvancing,
       submittedCount: Object.values(submissions).filter(s => s.status === 'submitted').length,
       inProgressCount: Object.values(submissions).filter(s => s.status === 'in_progress').length,
       notStartedCount: reps.length - Object.keys(submissions).length
@@ -481,27 +494,33 @@ export function AdminDashboard() {
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <div className="flex items-center justify-between mb-2">
             <Target className="w-8 h-8 text-blue-600" />
-            <span className="text-sm font-medium text-slate-600">QTD Revenue</span>
+            <span className="text-sm font-medium text-slate-600">QTD Revenue (Bookings)</span>
           </div>
           <p className="text-3xl font-bold text-slate-900">
             {formatRevenue(totals.totalRevenueQTD, false)}
           </p>
-          <p className="text-sm text-slate-600 mt-1">
-            {totals.percentToQuotaQTD.toFixed(1)}% to quota
-          </p>
+          <div className="flex items-center gap-2 mt-1">
+            {getTrendIcon(totals.totalRevenueQTD, totals.prevTotalRevenueQTD)}
+            <p className={`text-sm font-medium ${getTrendColor(totals.totalRevenueQTD, totals.prevTotalRevenueQTD)}`}>
+              {formatRevenue(totals.totalRevenueQTD - totals.prevTotalRevenueQTD, true)} vs last week
+            </p>
+          </div>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <div className="flex items-center justify-between mb-2">
             <TrendingUp className="w-8 h-8 text-blue-600" />
-            <span className="text-sm font-medium text-slate-600">MTD Revenue</span>
+            <span className="text-sm font-medium text-slate-600">MTD Revenue (Bookings)</span>
           </div>
           <p className="text-3xl font-bold text-slate-900">
             {formatRevenue(totals.totalRevenueMTD, false)}
           </p>
-          <p className="text-sm text-slate-600 mt-1">
-            {totals.percentToQuotaMTD.toFixed(1)}% to monthly
-          </p>
+          <div className="flex items-center gap-2 mt-1">
+            {getTrendIcon(totals.totalRevenueMTD, totals.prevTotalRevenueMTD)}
+            <p className={`text-sm font-medium ${getTrendColor(totals.totalRevenueMTD, totals.prevTotalRevenueMTD)}`}>
+              {formatRevenue(totals.totalRevenueMTD - totals.prevTotalRevenueMTD, true)} vs last week
+            </p>
+          </div>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
@@ -512,9 +531,12 @@ export function AdminDashboard() {
           <p className="text-3xl font-bold text-slate-900">
             {formatRevenue(totals.totalPipeline, false)}
           </p>
-          <p className="text-sm text-slate-600 mt-1">
-            Weekly total across all reps
-          </p>
+          <div className="flex items-center gap-2 mt-1">
+            {getTrendIcon(totals.totalPipeline, totals.prevTotalPipeline)}
+            <p className={`text-sm font-medium ${getTrendColor(totals.totalPipeline, totals.prevTotalPipeline)}`}>
+              {formatRevenue(totals.totalPipeline - totals.prevTotalPipeline, true)} vs last week
+            </p>
+          </div>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
@@ -525,9 +547,12 @@ export function AdminDashboard() {
           <p className="text-3xl font-bold text-slate-900">
             {totals.totalDealsWon}
           </p>
-          <p className="text-sm text-slate-600 mt-1">
-            This week across all reps
-          </p>
+          <div className="flex items-center gap-2 mt-1">
+            {getTrendIcon(totals.totalDealsWon, totals.prevTotalDealsWon)}
+            <p className={`text-sm font-medium ${getTrendColor(totals.totalDealsWon, totals.prevTotalDealsWon)}`}>
+              {totals.totalDealsWon - totals.prevTotalDealsWon > 0 ? '+' : ''}{totals.totalDealsWon - totals.prevTotalDealsWon} vs last week
+            </p>
+          </div>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
@@ -538,9 +563,12 @@ export function AdminDashboard() {
           <p className="text-3xl font-bold text-slate-900">
             {totals.totalDealsAdvancing}
           </p>
-          <p className="text-sm text-slate-600 mt-1">
-            This week across all reps
-          </p>
+          <div className="flex items-center gap-2 mt-1">
+            {getTrendIcon(totals.totalDealsAdvancing, totals.prevTotalDealsAdvancing)}
+            <p className={`text-sm font-medium ${getTrendColor(totals.totalDealsAdvancing, totals.prevTotalDealsAdvancing)}`}>
+              {totals.totalDealsAdvancing - totals.prevTotalDealsAdvancing > 0 ? '+' : ''}{totals.totalDealsAdvancing - totals.prevTotalDealsAdvancing} vs last week
+            </p>
+          </div>
         </div>
       </div>
 
