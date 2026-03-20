@@ -327,8 +327,17 @@ export function AdminDashboard() {
 
   const calculateTotals = () => {
     const totalQuota = reps.reduce((sum, rep) => sum + rep.quarterly_quota, 0);
-    const totalRevenueMTD = Object.values(submissions).reduce((sum, sub) => sum + (sub.revenue_mtd || 0), 0);
-    const totalRevenueQTD = Object.values(submissions).reduce((sum, sub) => sum + (sub.revenue_qtd || 0), 0);
+
+    const totalRevenueMTD = reps.reduce((sum, rep) => {
+      const sub = submissions[rep.id];
+      return sum + (sub?.revenue_mtd || 0);
+    }, 0);
+
+    const totalRevenueQTD = reps.reduce((sum, rep) => {
+      const sub = submissions[rep.id];
+      return sum + (sub?.revenue_qtd || 0);
+    }, 0);
+
     const totalColdCalls = Object.values(submissions).reduce((sum, sub) => sum + (sub.cold_calls || 0), 0);
     const totalEmails = Object.values(submissions).reduce((sum, sub) => sum + (sub.emails || 0), 0);
     const totalLiMessages = Object.values(submissions).reduce((sum, sub) => sum + (sub.li_messages || 0), 0);
@@ -348,8 +357,16 @@ export function AdminDashboard() {
     const percentToQuotaMTD = totalQuota > 0 ? (totalRevenueMTD / (totalQuota / 3)) * 100 : 0;
     const percentToQuotaQTD = totalQuota > 0 ? (totalRevenueQTD / totalQuota) * 100 : 0;
 
-    const prevTotalRevenueMTD = Object.values(previousWeekSubmissions).reduce((sum, sub) => sum + (sub.revenue_mtd || 0), 0);
-    const prevTotalRevenueQTD = Object.values(previousWeekSubmissions).reduce((sum, sub) => sum + (sub.revenue_qtd || 0), 0);
+    const prevTotalRevenueMTD = reps.reduce((sum, rep) => {
+      const sub = previousWeekSubmissions[rep.id];
+      return sum + (sub?.revenue_mtd || 0);
+    }, 0);
+
+    const prevTotalRevenueQTD = reps.reduce((sum, rep) => {
+      const sub = previousWeekSubmissions[rep.id];
+      return sum + (sub?.revenue_qtd || 0);
+    }, 0);
+
     const prevTotalPipeline = Object.values(previousWeekSubmissions).reduce((sum, sub) => sum + (sub.pipeline_coverage_ratio || 0), 0);
     const prevTotalDealsWon = Object.values(previousWeekSubmissions).reduce((sum, sub) => sum + (sub.deals_won_this_week || 0), 0);
     const prevTotalDealsAdvancing = Object.values(previousWeekSubmissions).reduce((sum, sub) => {
