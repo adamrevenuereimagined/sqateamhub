@@ -39,6 +39,7 @@ type WeeklySubmission = {
   new_deals?: any[];
   closing_opportunities?: any[];
   f2f_meetings?: any[];
+  previous_week_f2f_meetings_outcome?: any[];
   call_review_link?: string;
   call_review_focus?: string;
   blockers_help?: string;
@@ -117,6 +118,15 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
     where: string;
     purposePrep: string;
   }>>([{ clientProspect: '', dates: '', where: '', purposePrep: '' }]);
+
+  const [previousWeekMeetings, setPreviousWeekMeetings] = useState<Array<{
+    clientProspect: string;
+    dates: string;
+    where: string;
+    goalOutcome: string;
+    goalMet: boolean | null;
+    notes: string;
+  }>>([]);
 
   const [callReviewLink, setCallReviewLink] = useState('');
   const [callReviewFocus, setCallReviewFocus] = useState('');
@@ -309,6 +319,24 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
             review_notes: g.review_notes || '',
           })));
         }
+
+        const { data: prevSubmission } = await supabase
+          .from('weekly_submissions')
+          .select('f2f_meetings')
+          .eq('user_id', user.id)
+          .eq('week_id', prevWeek.id)
+          .maybeSingle();
+
+        if (prevSubmission && prevSubmission.f2f_meetings && Array.isArray(prevSubmission.f2f_meetings) && prevSubmission.f2f_meetings.length > 0) {
+          setPreviousWeekMeetings(prevSubmission.f2f_meetings.map((m: any) => ({
+            clientProspect: m.clientProspect || '',
+            dates: m.dates || '',
+            where: m.where || '',
+            goalOutcome: m.purposePrep || '',
+            goalMet: null,
+            notes: ''
+          })));
+        }
       }
     } catch (error) {
       console.error('Error loading previous week data:', error);
@@ -337,6 +365,9 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
     setNewDeals(submission.new_deals || [{ companyName: '', dealSource: '', potentialRevenue: 0 }]);
     setClosingOpps(submission.closing_opportunities || [{ companyDeal: '', value: 0, closeDate: '', confidenceBlockers: '' }]);
     setF2fMeetings(submission.f2f_meetings || [{ clientProspect: '', dates: '', where: '', purposePrep: '' }]);
+    if (submission.previous_week_f2f_meetings_outcome && Array.isArray(submission.previous_week_f2f_meetings_outcome) && submission.previous_week_f2f_meetings_outcome.length > 0) {
+      setPreviousWeekMeetings(submission.previous_week_f2f_meetings_outcome);
+    }
     setCallReviewLink(submission.call_review_link || '');
     setCallReviewFocus(submission.call_review_focus || '');
     setBlockersHelp(submission.blockers_help || '');
@@ -382,6 +413,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
         new_deals: newDeals.filter(d => d.companyName),
         closing_opportunities: closingOpps.filter(o => o.companyDeal),
         f2f_meetings: f2fMeetings.filter(m => m.clientProspect),
+        previous_week_f2f_meetings_outcome: previousWeekMeetings.length > 0 ? previousWeekMeetings : null,
         call_review_link: callReviewLink,
         call_review_focus: callReviewFocus,
         blockers_help: blockersHelp,
@@ -1145,6 +1177,93 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
           </div>
         </div>
 
+        {previousWeekMeetings.length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <h2 className="text-xl font-semibold text-slate-900 mb-4">
+              Last Week's F2F Meetings - Did You Meet Your Goals?
+            </h2>
+            <p className="text-sm text-slate-600 mb-4">
+              Review each meeting from last week and indicate whether you achieved the desired outcome.
+            </p>
+
+            <div className="space-y-4">
+              {previousWeekMeetings.map((meeting, index) => (
+                <div key={index} className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                  <div className="mb-3">
+                    <p className="font-medium text-slate-900">{meeting.clientProspect}</p>
+                    <p className="text-sm text-slate-600">
+                      {meeting.dates} • {meeting.where}
+                    </p>
+                    <p className="text-sm text-slate-700 mt-2">
+                      <span className="font-medium">Goal: </span>
+                      {meeting.goalOutcome}
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Did you meet this goal? <span className="text-red-600">*</span>
+                      </label>
+                      <div className="flex gap-3">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = [...previousWeekMeetings];
+                            updated[index].goalMet = true;
+                            setPreviousWeekMeetings(updated);
+                          }}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
+                            meeting.goalMet === true
+                              ? 'bg-emerald-50 border-emerald-500 text-emerald-700'
+                              : 'border-slate-300 text-slate-700 hover:border-emerald-300'
+                          }`}
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          Yes
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = [...previousWeekMeetings];
+                            updated[index].goalMet = false;
+                            setPreviousWeekMeetings(updated);
+                          }}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
+                            meeting.goalMet === false
+                              ? 'bg-red-50 border-red-500 text-red-700'
+                              : 'border-slate-300 text-slate-700 hover:border-red-300'
+                          }`}
+                        >
+                          <XCircle className="w-4 h-4" />
+                          No
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Notes (what happened, what's next, etc.)
+                      </label>
+                      <textarea
+                        value={meeting.notes}
+                        onChange={(e) => {
+                          const updated = [...previousWeekMeetings];
+                          updated[index].notes = e.target.value;
+                          setPreviousWeekMeetings(updated);
+                        }}
+                        placeholder="Add any relevant notes about the meeting outcome..."
+                        rows={2}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <h2 className="text-xl font-semibold text-slate-900 mb-4">
             Face-to-Face Meetings Next Week
@@ -1189,7 +1308,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                   />
                   <input
                     type="text"
-                    placeholder="Purpose/Prep Needed"
+                    placeholder="Meeting Goal/Outcome Desired"
                     value={meeting.purposePrep}
                     onChange={(e) => {
                       const newMeetings = [...f2fMeetings];

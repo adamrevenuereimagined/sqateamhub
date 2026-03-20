@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase, Week, User, parseNumericFields } from '../lib/supabase';
-import { TrendingUp, TrendingDown, Users, Target, Activity, CheckCircle, Clock, AlertCircle, ChevronDown, ChevronRight, Settings, Calendar, DollarSign } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, Target, Activity, CheckCircle, Clock, AlertCircle, ChevronDown, ChevronRight, Settings, Calendar, DollarSign, XCircle } from 'lucide-react';
 import { TargetsManagement } from './TargetsManagement';
 import { WeekManagement } from './WeekManagement';
 import { formatDate, parseLocalDate } from '../lib/dateUtils';
@@ -963,7 +963,7 @@ export function AdminDashboard() {
                               </div>
                               {meeting.purposePrep && (
                                 <p className="text-sm text-slate-700 mt-2">
-                                  <span className="text-slate-600">Purpose/Prep: </span>
+                                  <span className="text-slate-600">Meeting Goal/Outcome Desired: </span>
                                   {meeting.purposePrep}
                                 </p>
                               )}
@@ -972,6 +972,52 @@ export function AdminDashboard() {
                         </div>
                       )}
                     </div>
+
+                    {submission.previous_week_f2f_meetings_outcome && submission.previous_week_f2f_meetings_outcome.length > 0 && (
+                      <div className="mb-6">
+                        <h4 className="font-semibold text-slate-900 mb-3">Previous Week's F2F Meeting Results</h4>
+                        <div className="space-y-3">
+                          {submission.previous_week_f2f_meetings_outcome.map((meeting: any, idx: number) => (
+                            <div key={idx} className={`p-4 rounded-lg border ${
+                              meeting.goalMet === true
+                                ? 'bg-emerald-50 border-emerald-200'
+                                : meeting.goalMet === false
+                                ? 'bg-red-50 border-red-200'
+                                : 'bg-slate-50 border-slate-200'
+                            }`}>
+                              <div className="flex items-start justify-between mb-2">
+                                <p className="font-medium text-slate-900">{meeting.clientProspect}</p>
+                                {meeting.goalMet === true && (
+                                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-emerald-100 text-emerald-700">
+                                    <CheckCircle className="w-3 h-3" />
+                                    Goal Met
+                                  </span>
+                                )}
+                                {meeting.goalMet === false && (
+                                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-700">
+                                    <XCircle className="w-3 h-3" />
+                                    Goal Not Met
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-sm text-slate-600 mb-2">
+                                {meeting.dates} • {meeting.where}
+                              </p>
+                              <p className="text-sm text-slate-700 mb-2">
+                                <span className="font-medium">Goal: </span>
+                                {meeting.goalOutcome}
+                              </p>
+                              {meeting.notes && (
+                                <p className="text-sm text-slate-700 mt-2 pt-2 border-t border-slate-200">
+                                  <span className="font-medium">Notes: </span>
+                                  {meeting.notes}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {(submission.call_review_link || submission.call_review_focus) && (
                       <div className="mb-6">
