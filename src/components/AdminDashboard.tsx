@@ -940,9 +940,13 @@ export function AdminDashboard() {
                       </div>
                     )}
 
-                    {submission.f2f_meetings && submission.f2f_meetings.length > 0 && (
-                      <div className="mb-6">
-                        <h4 className="font-semibold text-slate-900 mb-3">Face-to-Face Meetings Next Week</h4>
+                    <div className="mb-6">
+                      <h4 className="font-semibold text-slate-900 mb-3">Face-to-Face Meetings Next Week</h4>
+                      {(!submission.f2f_meetings || submission.f2f_meetings.length === 0) ? (
+                        <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+                          <p className="font-bold text-red-600 text-center">NONE</p>
+                        </div>
+                      ) : (
                         <div className="space-y-2">
                           {submission.f2f_meetings.map((meeting: any, idx: number) => (
                             <div key={idx} className="bg-white p-3 rounded-lg border border-slate-200">
@@ -966,8 +970,8 @@ export function AdminDashboard() {
                             </div>
                           ))}
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
 
                     {(submission.call_review_link || submission.call_review_focus) && (
                       <div className="mb-6">
