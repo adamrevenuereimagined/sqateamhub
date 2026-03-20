@@ -60,6 +60,10 @@ export function AdminDashboard() {
   const [previousWeekGoals, setPreviousWeekGoals] = useState<{ [userId: string]: Array<{ goal_text: string; status: string; review_notes: string }> }>({});
   const [mtdMetrics, setMtdMetrics] = useState<AggregatedMetrics | null>(null);
   const [qtdMetrics, setQtdMetrics] = useState<AggregatedMetrics | null>(null);
+  const [mtdMaxRevenue, setMtdMaxRevenue] = useState<{ [userId: string]: number }>({});
+  const [qtdMaxRevenue, setQtdMaxRevenue] = useState<{ [userId: string]: number }>({});
+  const [prevMtdMaxRevenue, setPrevMtdMaxRevenue] = useState<{ [userId: string]: number }>({});
+  const [prevQtdMaxRevenue, setPrevQtdMaxRevenue] = useState<{ [userId: string]: number }>({});
   const [expandedReps, setExpandedReps] = useState<{ [userId: string]: boolean }>({});
   const [loading, setLoading] = useState(true);
   const [showTargetsModal, setShowTargetsModal] = useState(false);
@@ -217,6 +221,11 @@ export function AdminDashboard() {
         const quarter = Math.floor(currentDate.getMonth() / 3);
         const quarterStart = new Date(currentDate.getFullYear(), quarter * 3, 1);
 
+        const previousWeekDate = previousWeekData ? new Date(previousWeekData.end_date) : null;
+        const prevMonthStart = previousWeekDate ? new Date(previousWeekDate.getFullYear(), previousWeekDate.getMonth(), 1) : null;
+        const prevQuarter = previousWeekDate ? Math.floor(previousWeekDate.getMonth() / 3) : null;
+        const prevQuarterStart = previousWeekDate && prevQuarter !== null ? new Date(previousWeekDate.getFullYear(), prevQuarter * 3, 1) : null;
+
         const { data: allWeeks } = await supabase
           .from('weeks')
           .select('id, start_date, end_date')
@@ -232,6 +241,20 @@ export function AdminDashboard() {
             .filter(w => new Date(w.start_date) >= quarterStart)
             .map(w => w.id);
 
+          const prevMtdWeekIds = prevMonthStart ? allWeeks
+            .filter(w => {
+              const wStart = new Date(w.start_date);
+              return wStart >= prevMonthStart && wStart <= (previousWeekDate || new Date());
+            })
+            .map(w => w.id) : [];
+
+          const prevQtdWeekIds = prevQuarterStart ? allWeeks
+            .filter(w => {
+              const wStart = new Date(w.start_date);
+              return wStart >= prevQuarterStart && wStart <= (previousWeekDate || new Date());
+            })
+            .map(w => w.id) : [];
+
           const { data: mtdSubmissions } = await supabase
             .from('weekly_submissions')
             .select('*')
@@ -241,6 +264,16 @@ export function AdminDashboard() {
             .from('weekly_submissions')
             .select('*')
             .in('week_id', qtdWeekIds);
+
+          const { data: prevMtdSubmissions } = prevMtdWeekIds.length > 0 ? await supabase
+            .from('weekly_submissions')
+            .select('*')
+            .in('week_id', prevMtdWeekIds) : { data: null };
+
+          const { data: prevQtdSubmissions } = prevQtdWeekIds.length > 0 ? await supabase
+            .from('weekly_submissions')
+            .select('*')
+            .in('week_id', prevQtdWeekIds) : { data: null };
 
           if (mtdSubmissions && mtdSubmissions.length > 0) {
             const parsedMtdSubmissions = mtdSubmissions.map(sub =>
@@ -267,6 +300,50 @@ export function AdminDashboard() {
             const qtdAgg = aggregateSubmissions(parsedQtdSubmissions);
             setQtdMetrics(qtdAgg);
           }
+
+          const mtdMaxByUser: { [userId: string]: number } = {};
+          if (mtdSubmissions) {
+            mtdSubmissions.forEach((sub: any) => {
+              const revMtd = parseFloat(sub.revenue_mtd) || 0;
+              if (!mtdMaxByUser[sub.user_id] || revMtd > mtdMaxByUser[sub.user_id]) {
+                mtdMaxByUser[sub.user_id] = revMtd;
+              }
+            });
+          }
+          setMtdMaxRevenue(mtdMaxByUser);
+
+          const qtdMaxByUser: { [userId: string]: number } = {};
+          if (qtdSubmissions) {
+            qtdSubmissions.forEach((sub: any) => {
+              const revQtd = parseFloat(sub.revenue_qtd) || 0;
+              if (!qtdMaxByUser[sub.user_id] || revQtd > qtdMaxByUser[sub.user_id]) {
+                qtdMaxByUser[sub.user_id] = revQtd;
+              }
+            });
+          }
+          setQtdMaxRevenue(qtdMaxByUser);
+
+          const prevMtdMaxByUser: { [userId: string]: number } = {};
+          if (prevMtdSubmissions) {
+            prevMtdSubmissions.forEach((sub: any) => {
+              const revMtd = parseFloat(sub.revenue_mtd) || 0;
+              if (!prevMtdMaxByUser[sub.user_id] || revMtd > prevMtdMaxByUser[sub.user_id]) {
+                prevMtdMaxByUser[sub.user_id] = revMtd;
+              }
+            });
+          }
+          setPrevMtdMaxRevenue(prevMtdMaxByUser);
+
+          const prevQtdMaxByUser: { [userId: string]: number } = {};
+          if (prevQtdSubmissions) {
+            prevQtdSubmissions.forEach((sub: any) => {
+              const revQtd = parseFloat(sub.revenue_qtd) || 0;
+              if (!prevQtdMaxByUser[sub.user_id] || revQtd > prevQtdMaxByUser[sub.user_id]) {
+                prevQtdMaxByUser[sub.user_id] = revQtd;
+              }
+            });
+          }
+          setPrevQtdMaxRevenue(prevQtdMaxByUser);
         }
       }
     } catch (error) {
@@ -329,13 +406,11 @@ export function AdminDashboard() {
     const totalQuota = reps.reduce((sum, rep) => sum + rep.quarterly_quota, 0);
 
     const totalRevenueMTD = reps.reduce((sum, rep) => {
-      const sub = submissions[rep.id];
-      return sum + (sub?.revenue_mtd || 0);
+      return sum + (mtdMaxRevenue[rep.id] || 0);
     }, 0);
 
     const totalRevenueQTD = reps.reduce((sum, rep) => {
-      const sub = submissions[rep.id];
-      return sum + (sub?.revenue_qtd || 0);
+      return sum + (qtdMaxRevenue[rep.id] || 0);
     }, 0);
 
     const totalColdCalls = Object.values(submissions).reduce((sum, sub) => sum + (sub.cold_calls || 0), 0);
@@ -358,13 +433,11 @@ export function AdminDashboard() {
     const percentToQuotaQTD = totalQuota > 0 ? (totalRevenueQTD / totalQuota) * 100 : 0;
 
     const prevTotalRevenueMTD = reps.reduce((sum, rep) => {
-      const sub = previousWeekSubmissions[rep.id];
-      return sum + (sub?.revenue_mtd || 0);
+      return sum + (prevMtdMaxRevenue[rep.id] || 0);
     }, 0);
 
     const prevTotalRevenueQTD = reps.reduce((sum, rep) => {
-      const sub = previousWeekSubmissions[rep.id];
-      return sum + (sub?.revenue_qtd || 0);
+      return sum + (prevQtdMaxRevenue[rep.id] || 0);
     }, 0);
 
     const prevTotalPipeline = Object.values(previousWeekSubmissions).reduce((sum, sub) => sum + (sub.pipeline_coverage_ratio || 0), 0);
@@ -603,12 +676,18 @@ export function AdminDashboard() {
             const prevSubmission = previousWeekSubmissions[rep.id];
             const status = submission?.status || 'not_started';
             const isExpanded = expandedReps[rep.id];
+
+            const repMtdRevenue = mtdMaxRevenue[rep.id] || 0;
+            const repQtdRevenue = qtdMaxRevenue[rep.id] || 0;
+            const prevRepMtdRevenue = prevMtdMaxRevenue[rep.id] || 0;
+            const prevRepQtdRevenue = prevQtdMaxRevenue[rep.id] || 0;
+
             const percentToQuota = rep.quarterly_quota > 0
-              ? ((submission?.revenue_qtd || 0) / rep.quarterly_quota) * 100
+              ? (repQtdRevenue / rep.quarterly_quota) * 100
               : 0;
 
-            const mtdChange = prevSubmission ? calculateChange(submission?.revenue_mtd || 0, prevSubmission.revenue_mtd || 0) : null;
-            const qtdChange = prevSubmission ? calculateChange(submission?.revenue_qtd || 0, prevSubmission.revenue_qtd || 0) : null;
+            const mtdChange = calculateChange(repMtdRevenue, prevRepMtdRevenue);
+            const qtdChange = calculateChange(repQtdRevenue, prevRepQtdRevenue);
 
             return (
               <div key={rep.id} className="border border-slate-200 rounded-lg overflow-hidden">
@@ -657,31 +736,27 @@ export function AdminDashboard() {
                     <div className="text-center min-w-[100px]">
                       <p className="text-sm text-slate-600">MTD Revenue</p>
                       <p className="font-semibold text-slate-900">
-                        {formatRevenue(submission?.revenue_mtd || 0)}
+                        {formatRevenue(repMtdRevenue)}
                       </p>
-                      {mtdChange !== null && (
-                        <div className="flex items-center justify-center gap-1 mt-0.5">
-                          {mtdChange > 0.5 ? <TrendingUp className="w-3 h-3 text-emerald-600" /> : mtdChange < -0.5 ? <TrendingDown className="w-3 h-3 text-red-600" /> : null}
-                          <span className={`text-xs font-medium ${mtdChange > 0.5 ? 'text-emerald-600' : mtdChange < -0.5 ? 'text-red-600' : 'text-slate-500'}`}>
-                            {mtdChange > 0.5 ? '+' : mtdChange < -0.5 ? '-' : ''}{formatRevenue(Math.abs((submission?.revenue_mtd || 0) - (prevSubmission?.revenue_mtd || 0)))} WoW
-                          </span>
-                        </div>
-                      )}
+                      <div className="flex items-center justify-center gap-1 mt-0.5">
+                        {mtdChange > 0.5 ? <TrendingUp className="w-3 h-3 text-emerald-600" /> : mtdChange < -0.5 ? <TrendingDown className="w-3 h-3 text-red-600" /> : null}
+                        <span className={`text-xs font-medium ${mtdChange > 0.5 ? 'text-emerald-600' : mtdChange < -0.5 ? 'text-red-600' : 'text-slate-500'}`}>
+                          {mtdChange > 0.5 ? '+' : mtdChange < -0.5 ? '-' : ''}{formatRevenue(Math.abs(repMtdRevenue - prevRepMtdRevenue))} WoW
+                        </span>
+                      </div>
                     </div>
 
                     <div className="text-center min-w-[100px]">
                       <p className="text-sm text-slate-600">QTD Revenue</p>
                       <p className="font-semibold text-slate-900">
-                        {formatRevenue(submission?.revenue_qtd || 0)}
+                        {formatRevenue(repQtdRevenue)}
                       </p>
-                      {qtdChange !== null && (
-                        <div className="flex items-center justify-center gap-1 mt-0.5">
-                          {qtdChange > 0.5 ? <TrendingUp className="w-3 h-3 text-emerald-600" /> : qtdChange < -0.5 ? <TrendingDown className="w-3 h-3 text-red-600" /> : null}
-                          <span className={`text-xs font-medium ${qtdChange > 0.5 ? 'text-emerald-600' : qtdChange < -0.5 ? 'text-red-600' : 'text-slate-500'}`}>
-                            {qtdChange > 0.5 ? '+' : qtdChange < -0.5 ? '-' : ''}{formatRevenue(Math.abs((submission?.revenue_qtd || 0) - (prevSubmission?.revenue_qtd || 0)))} WoW
-                          </span>
-                        </div>
-                      )}
+                      <div className="flex items-center justify-center gap-1 mt-0.5">
+                        {qtdChange > 0.5 ? <TrendingUp className="w-3 h-3 text-emerald-600" /> : qtdChange < -0.5 ? <TrendingDown className="w-3 h-3 text-red-600" /> : null}
+                        <span className={`text-xs font-medium ${qtdChange > 0.5 ? 'text-emerald-600' : qtdChange < -0.5 ? 'text-red-600' : 'text-slate-500'}`}>
+                          {qtdChange > 0.5 ? '+' : qtdChange < -0.5 ? '-' : ''}{formatRevenue(Math.abs(repQtdRevenue - prevRepQtdRevenue))} WoW
+                        </span>
+                      </div>
                     </div>
 
                     <div className="text-center min-w-[100px]">
