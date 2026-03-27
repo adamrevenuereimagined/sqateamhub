@@ -56,6 +56,7 @@ export function RepDashboard({ onEnterWeek }: Props) {
         supabase.from('weekly_submissions')
           .select('week_id, status, revenue_mtd, revenue_qtd, pipeline_coverage_ratio, deals_won_this_week, deals_advancing_this_week')
           .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
       ]);
 
       const weeks = weeksResult.data || [];
