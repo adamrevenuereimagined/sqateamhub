@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { ClipboardList, CreditCard as Edit3, DollarSign, Target, TrendingUp, Briefcase, ChevronRight } from 'lucide-react';
 import { formatDate, parseLocalDate } from '../lib/dateUtils';
 import { formatCurrency, formatNumber } from '../lib/formatters';
+import { MetricsTrendGraph } from './MetricsTrendGraph';
 
 type SubmissionBrief = {
   week_id: string;
@@ -11,6 +12,17 @@ type SubmissionBrief = {
   revenue_mtd: number;
   revenue_qtd: number;
   pipeline_coverage_ratio: number;
+  deals_won_this_week?: number;
+  deals_advancing_this_week?: number;
+};
+
+type TrendDataPoint = {
+  weekLabel: string;
+  qtdRevenue: number;
+  mtdRevenue: number;
+  pipeline: number;
+  dealsWon: number;
+  dealsAdvancing: number;
 };
 
 type Props = {
@@ -29,6 +41,8 @@ export function RepDashboard({ onEnterWeek }: Props) {
   const [latestPipeline, setLatestPipeline] = useState(0);
   const [hasSubmissions, setHasSubmissions] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [trendData, setTrendData] = useState<TrendDataPoint[]>([]);
+  const [selectedMetric, setSelectedMetric] = useState<'qtd' | 'mtd' | 'pipeline' | 'dealsWon' | 'dealsAdvancing'>('qtd');
 
   useEffect(() => {
     loadData();
@@ -40,14 +54,14 @@ export function RepDashboard({ onEnterWeek }: Props) {
       const [weeksResult, submissionsResult] = await Promise.all([
         supabase.from('weeks').select('*').order('start_date', { ascending: true }),
         supabase.from('weekly_submissions')
-          .select('week_id, status, revenue_mtd, revenue_qtd, pipeline_coverage_ratio')
+          .select('week_id, status, revenue_mtd, revenue_qtd, pipeline_coverage_ratio, deals_won_this_week, deals_advancing_this_week')
           .eq('user_id', user.id)
       ]);
 
       const weeks = weeksResult.data || [];
       const rawSubmissions = submissionsResult.data || [];
       const submissions = rawSubmissions.map(sub =>
-        parseNumericFields(sub, ['revenue_mtd', 'revenue_qtd', 'pipeline_coverage_ratio'])
+        parseNumericFields(sub, ['revenue_mtd', 'revenue_qtd', 'pipeline_coverage_ratio', 'deals_won_this_week', 'deals_advancing_this_week'])
       );
 
       setAllWeeks(weeks);
@@ -133,6 +147,25 @@ export function RepDashboard({ onEnterWeek }: Props) {
             break;
           }
         }
+
+        // Build trend data for the current quarter
+        const quarterWeeks = weeks.filter(w => quarterWeekIds.has(w.id));
+        const trend: TrendDataPoint[] = quarterWeeks
+          .filter(w => submissionMap.has(w.id))
+          .map(w => {
+            const sub = submissionMap.get(w.id)!;
+            const endDate = parseLocalDate(w.end_date);
+            const weekLabel = `${endDate.getMonth() + 1}/${endDate.getDate()}`;
+            return {
+              weekLabel,
+              qtdRevenue: sub.revenue_qtd || 0,
+              mtdRevenue: sub.revenue_mtd || 0,
+              pipeline: sub.pipeline_coverage_ratio || 0,
+              dealsWon: sub.deals_won_this_week || 0,
+              dealsAdvancing: sub.deals_advancing_this_week || 0,
+            };
+          });
+        setTrendData(trend);
       }
     } catch (error) {
       console.error('Error loading dashboard:', error);
@@ -249,6 +282,70 @@ export function RepDashboard({ onEnterWeek }: Props) {
           )}
         </div>
       </div>
+
+      {trendData.length > 0 && (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-xl font-semibold text-slate-900">Performance Trends</h3>
+              <p className="text-sm text-slate-600 mt-1">Track your metrics throughout the quarter</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSelectedMetric('qtd')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  selectedMetric === 'qtd'
+                    ? 'bg-blue-100 text-blue-700 border-2 border-blue-300'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                QTD Revenue
+              </button>
+              <button
+                onClick={() => setSelectedMetric('mtd')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  selectedMetric === 'mtd'
+                    ? 'bg-blue-100 text-blue-700 border-2 border-blue-300'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                MTD Revenue
+              </button>
+              <button
+                onClick={() => setSelectedMetric('pipeline')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  selectedMetric === 'pipeline'
+                    ? 'bg-orange-100 text-orange-700 border-2 border-orange-300'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                Pipeline
+              </button>
+              <button
+                onClick={() => setSelectedMetric('dealsWon')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  selectedMetric === 'dealsWon'
+                    ? 'bg-emerald-100 text-emerald-700 border-2 border-emerald-300'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                Deals Won
+              </button>
+              <button
+                onClick={() => setSelectedMetric('dealsAdvancing')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  selectedMetric === 'dealsAdvancing'
+                    ? 'bg-blue-100 text-blue-700 border-2 border-blue-300'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                Deals Advancing
+              </button>
+            </div>
+          </div>
+          <MetricsTrendGraph trendData={trendData} selectedMetric={selectedMetric} />
+        </div>
+      )}
 
       <div className="grid md:grid-cols-2 gap-6 mb-8">
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
