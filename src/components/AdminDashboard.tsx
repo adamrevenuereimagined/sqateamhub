@@ -382,13 +382,15 @@ export function AdminDashboard() {
             const mtdRevenue = Object.values(maxRevenueByUser).reduce((sum, rev) => sum + rev.mtd, 0);
 
             const pipeline = parsedSubs.reduce((sum, sub) => {
-              const avgDeal = parseFloat(sub.average_deal_size) || 0;
-              const pipelineCov = parseFloat(sub.pipeline_coverage_ratio) || 0;
-              return sum + (avgDeal * pipelineCov);
+              const pipelineValue = parseFloat(sub.pipeline_coverage_ratio) || 0;
+              return sum + pipelineValue;
             }, 0);
 
             const dealsWon = parsedSubs.reduce((sum, sub) => sum + (parseInt(sub.deals_won_this_week) || 0), 0);
-            const dealsAdvancing = parsedSubs.reduce((sum, sub) => sum + (parseInt(sub.opportunities_advanced) || 0), 0);
+            const dealsAdvancing = parsedSubs.reduce((sum, sub) => {
+              const advancing = sub.deals_advancing?.length || 0;
+              return sum + Math.max(0, advancing);
+            }, 0);
 
             const weekStart = new Date(week.start_date);
             const weekLabel = `${weekStart.getMonth() + 1}/${weekStart.getDate()}`;
