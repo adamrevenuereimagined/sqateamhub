@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { supabase, Week, parseNumericFields } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { ClipboardList, Edit3, DollarSign, Target, TrendingUp, Briefcase, ChevronRight } from 'lucide-react';
+import { ClipboardList, CreditCard as Edit3, DollarSign, Target, TrendingUp, Briefcase, ChevronRight } from 'lucide-react';
 import { formatDate, parseLocalDate } from '../lib/dateUtils';
+import { formatCurrency, formatNumber } from '../lib/formatters';
 
 type SubmissionBrief = {
   week_id: string;
@@ -170,7 +171,7 @@ export function RepDashboard({ onEnterWeek }: Props) {
             </div>
             <span className="text-sm font-medium text-slate-500">Quarterly Quota</span>
           </div>
-          <p className="text-2xl font-bold text-slate-900">${quota.toLocaleString()}</p>
+          <p className="text-2xl font-bold text-slate-900">{formatCurrency(quota)}</p>
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
@@ -181,7 +182,7 @@ export function RepDashboard({ onEnterWeek }: Props) {
             <span className="text-sm font-medium text-slate-500">MTD Revenue</span>
           </div>
           <p className="text-2xl font-bold text-slate-900">
-            {hasSubmissions ? `$${cumulativeMTD.toLocaleString()}` : '--'}
+            {hasSubmissions ? formatCurrency(cumulativeMTD) : '--'}
           </p>
           {!hasSubmissions && (
             <p className="text-xs text-slate-400 mt-1">Submit a report to track</p>
@@ -196,7 +197,7 @@ export function RepDashboard({ onEnterWeek }: Props) {
             <span className="text-sm font-medium text-slate-500">QTD Revenue</span>
           </div>
           <p className="text-2xl font-bold text-slate-900">
-            {hasSubmissions ? `$${cumulativeQTD.toLocaleString()}` : '--'}
+            {hasSubmissions ? formatCurrency(cumulativeQTD) : '--'}
           </p>
           {!hasSubmissions && (
             <p className="text-xs text-slate-400 mt-1">Submit a report to track</p>
@@ -239,7 +240,7 @@ export function RepDashboard({ onEnterWeek }: Props) {
             <span className="text-sm font-medium text-slate-500">Pipeline</span>
           </div>
           <p className="text-2xl font-bold text-slate-900">
-            {hasSubmissions && latestPipeline > 0 ? `$${latestPipeline.toLocaleString()}` : '--'}
+            {hasSubmissions && latestPipeline > 0 ? formatCurrency(latestPipeline) : '--'}
           </p>
           {hasSubmissions && latestPipeline > 0 && quota > 0 && (
             <p className="text-xs text-slate-500 mt-1">

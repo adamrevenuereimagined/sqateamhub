@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { formatCurrencyCompact } from '../lib/formatters';
 
 type TrendDataPoint = {
   weekLabel: string;
@@ -14,16 +15,6 @@ type MetricsTrendGraphProps = {
   selectedMetric: 'qtd' | 'mtd' | 'pipeline' | 'dealsWon' | 'dealsAdvancing';
 };
 
-const formatCurrency = (val: number): string => {
-  if (val >= 1000000) {
-    return `$${(val / 1000000).toFixed(1)}M`;
-  } else if (val >= 1000) {
-    return `$${(val / 1000).toFixed(0)}K`;
-  } else {
-    return `$${val.toFixed(0)}`;
-  }
-};
-
 export function MetricsTrendGraph({ trendData, selectedMetric }: MetricsTrendGraphProps) {
   const { maxValue, points, color, label, formatter } = useMemo(() => {
     let values: number[] = [];
@@ -36,19 +27,19 @@ export function MetricsTrendGraph({ trendData, selectedMetric }: MetricsTrendGra
         values = trendData.map(d => d.qtdRevenue);
         label = 'QTD Revenue';
         color = '#3b82f6';
-        formatter = formatCurrency;
+        formatter = formatCurrencyCompact;
         break;
       case 'mtd':
         values = trendData.map(d => d.mtdRevenue);
         label = 'MTD Revenue';
         color = '#3b82f6';
-        formatter = formatCurrency;
+        formatter = formatCurrencyCompact;
         break;
       case 'pipeline':
         values = trendData.map(d => d.pipeline);
         label = 'Pipeline';
         color = '#f97316';
-        formatter = formatCurrency;
+        formatter = formatCurrencyCompact;
         break;
       case 'dealsWon':
         values = trendData.map(d => d.dealsWon);

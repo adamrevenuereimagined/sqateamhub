@@ -5,6 +5,7 @@ import { TargetsManagement } from './TargetsManagement';
 import { WeekManagement } from './WeekManagement';
 import { MetricsTrendGraph } from './MetricsTrendGraph';
 import { formatDate, parseLocalDate } from '../lib/dateUtils';
+import { formatCurrency, formatNumber } from '../lib/formatters';
 
 type WeeklySubmission = {
   id: string;
@@ -431,17 +432,6 @@ export function AdminDashboard() {
     };
   };
 
-  const formatRevenue = (value: number, useRounding: boolean = true): string => {
-    if (!useRounding) {
-      return `$${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-    }
-    if (value >= 1000000) {
-      return `$${(value / 1000000).toFixed(1)}M`;
-    } else if (value >= 1000) {
-      return `$${(value / 1000).toFixed(0)}K`;
-    }
-    return `$${value.toFixed(0)}`;
-  };
 
   const calculateChange = (current: number, previous: number): number => {
     if (previous === 0) return current > 0 ? 100 : 0;
@@ -649,12 +639,12 @@ export function AdminDashboard() {
             <span className="text-sm font-medium text-slate-600">QTD Revenue (Bookings)</span>
           </div>
           <p className="text-3xl font-bold text-slate-900">
-            {formatRevenue(totals.totalRevenueQTD, false)}
+            {formatCurrency(totals.totalRevenueQTD)}
           </p>
           <div className="flex items-center gap-2 mt-1">
             {getTrendIcon(totals.totalRevenueQTD, totals.prevTotalRevenueQTD)}
             <p className={`text-sm font-medium ${getTrendColor(totals.totalRevenueQTD, totals.prevTotalRevenueQTD)}`}>
-              {formatRevenue(totals.totalRevenueQTD - totals.prevTotalRevenueQTD, true)} vs last week
+              {formatCurrency(totals.totalRevenueQTD - totals.prevTotalRevenueQTD, true)} vs last week
             </p>
           </div>
         </div>
@@ -665,12 +655,12 @@ export function AdminDashboard() {
             <span className="text-sm font-medium text-slate-600">MTD Revenue (Bookings)</span>
           </div>
           <p className="text-3xl font-bold text-slate-900">
-            {formatRevenue(totals.totalRevenueMTD, false)}
+            {formatCurrency(totals.totalRevenueMTD)}
           </p>
           <div className="flex items-center gap-2 mt-1">
             {getTrendIcon(totals.totalRevenueMTD, totals.prevTotalRevenueMTD)}
             <p className={`text-sm font-medium ${getTrendColor(totals.totalRevenueMTD, totals.prevTotalRevenueMTD)}`}>
-              {formatRevenue(totals.totalRevenueMTD - totals.prevTotalRevenueMTD, true)} vs last week
+              {formatCurrency(totals.totalRevenueMTD - totals.prevTotalRevenueMTD, true)} vs last week
             </p>
           </div>
         </div>
@@ -681,12 +671,12 @@ export function AdminDashboard() {
             <span className="text-sm font-medium text-slate-600">Team Pipeline</span>
           </div>
           <p className="text-3xl font-bold text-slate-900">
-            {formatRevenue(totals.totalPipeline, false)}
+            {formatCurrency(totals.totalPipeline)}
           </p>
           <div className="flex items-center gap-2 mt-1">
             {getTrendIcon(totals.totalPipeline, totals.prevTotalPipeline)}
             <p className={`text-sm font-medium ${getTrendColor(totals.totalPipeline, totals.prevTotalPipeline)}`}>
-              {formatRevenue(totals.totalPipeline - totals.prevTotalPipeline, true)} vs last week
+              {formatCurrency(totals.totalPipeline - totals.prevTotalPipeline, true)} vs last week
             </p>
           </div>
         </div>
@@ -897,19 +887,19 @@ export function AdminDashboard() {
                     <div className="text-center min-w-[100px]">
                       <p className="text-sm text-slate-600">Quota</p>
                       <p className="font-semibold text-slate-900">
-                        ${rep.quarterly_quota.toLocaleString()}
+                        {formatCurrency(rep.quarterly_quota)}
                       </p>
                     </div>
 
                     <div className="text-center min-w-[100px]">
                       <p className="text-sm text-slate-600">MTD Revenue</p>
                       <p className="font-semibold text-slate-900">
-                        {formatRevenue(repMtdRevenue)}
+                        {formatCurrency(repMtdRevenue)}
                       </p>
                       <div className="flex items-center justify-center gap-1 mt-0.5">
                         {mtdChange > 0.5 ? <TrendingUp className="w-3 h-3 text-emerald-600" /> : mtdChange < -0.5 ? <TrendingDown className="w-3 h-3 text-red-600" /> : null}
                         <span className={`text-xs font-medium ${mtdChange > 0.5 ? 'text-emerald-600' : mtdChange < -0.5 ? 'text-red-600' : 'text-slate-500'}`}>
-                          {mtdChange > 0.5 ? '+' : mtdChange < -0.5 ? '-' : ''}{formatRevenue(Math.abs(repMtdRevenue - prevRepMtdRevenue))} WoW
+                          {mtdChange > 0.5 ? '+' : mtdChange < -0.5 ? '-' : ''}{formatCurrency(Math.abs(repMtdRevenue - prevRepMtdRevenue))} WoW
                         </span>
                       </div>
                     </div>
@@ -917,12 +907,12 @@ export function AdminDashboard() {
                     <div className="text-center min-w-[100px]">
                       <p className="text-sm text-slate-600">QTD Revenue</p>
                       <p className="font-semibold text-slate-900">
-                        {formatRevenue(repQtdRevenue)}
+                        {formatCurrency(repQtdRevenue)}
                       </p>
                       <div className="flex items-center justify-center gap-1 mt-0.5">
                         {qtdChange > 0.5 ? <TrendingUp className="w-3 h-3 text-emerald-600" /> : qtdChange < -0.5 ? <TrendingDown className="w-3 h-3 text-red-600" /> : null}
                         <span className={`text-xs font-medium ${qtdChange > 0.5 ? 'text-emerald-600' : qtdChange < -0.5 ? 'text-red-600' : 'text-slate-500'}`}>
-                          {qtdChange > 0.5 ? '+' : qtdChange < -0.5 ? '-' : ''}{formatRevenue(Math.abs(repQtdRevenue - prevRepQtdRevenue))} WoW
+                          {qtdChange > 0.5 ? '+' : qtdChange < -0.5 ? '-' : ''}{formatCurrency(Math.abs(repQtdRevenue - prevRepQtdRevenue))} WoW
                         </span>
                       </div>
                     </div>
@@ -942,7 +932,7 @@ export function AdminDashboard() {
                     <div className="text-center min-w-[120px]">
                       <p className="text-sm text-slate-600">Pipeline Coverage</p>
                       <p className="font-semibold text-slate-900">
-                        {formatRevenue(submission?.pipeline_coverage_ratio || 0)}
+                        {formatCurrency(submission?.pipeline_coverage_ratio || 0)}
                       </p>
                     </div>
 
@@ -1006,15 +996,15 @@ export function AdminDashboard() {
                         <div className="space-y-2">
                           <div className="flex justify-between">
                             <span className="text-slate-600">Revenue MTD:</span>
-                            <span className="font-medium">{formatRevenue(submission.revenue_mtd || 0)}</span>
+                            <span className="font-medium">{formatCurrency(submission.revenue_mtd || 0)}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-slate-600">Revenue QTD:</span>
-                            <span className="font-medium">{formatRevenue(submission.revenue_qtd || 0)}</span>
+                            <span className="font-medium">{formatCurrency(submission.revenue_qtd || 0)}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-slate-600">Pipeline Amount:</span>
-                            <span className="font-medium">{formatRevenue(submission.pipeline_coverage_ratio || 0)}</span>
+                            <span className="font-medium">{formatCurrency(submission.pipeline_coverage_ratio || 0)}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-slate-600">Opps Advanced:</span>
@@ -1080,7 +1070,7 @@ export function AdminDashboard() {
                                   <p className="font-medium text-slate-900">{opp.companyDeal}</p>
                                   <p className="text-sm text-slate-700">Close Date: {opp.closeDate}</p>
                                 </div>
-                                <p className="font-bold text-emerald-700">${opp.value?.toLocaleString()}</p>
+                                <p className="font-bold text-emerald-700">{formatCurrency(opp.value || 0)}</p>
                               </div>
                             </div>
                           ))}

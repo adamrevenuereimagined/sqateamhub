@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Save, Send, Plus, Trash2, ArrowLeft, CreditCard as Edit2, CheckCircle2, XCircle, MinusCircle, Info } from 'lucide-react';
 import { formatDateShort } from '../lib/dateUtils';
 import { CurrencyInput } from './CurrencyInput';
+import { formatCurrency } from '../lib/formatters';
 
 type Week = {
   id: string;
@@ -529,7 +530,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
         <div className="mb-4">
           <h1 className="text-3xl font-bold text-slate-900 mb-2">Weekly Submission</h1>
           <p className="text-sm text-slate-500">
-            {user?.name} | Q Quota: ${user?.quarterly_quota.toLocaleString()} | Due: Thursday 5:00 PM PT
+            {user?.name} | Q Quota: {formatCurrency(user?.quarterly_quota || 0)} | Due: Thursday 5:00 PM PT
           </p>
         </div>
 
