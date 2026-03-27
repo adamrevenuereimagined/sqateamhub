@@ -3,6 +3,7 @@ import { supabase, Week, User, parseNumericFields } from '../lib/supabase';
 import { TrendingUp, TrendingDown, Users, Target, Activity, CheckCircle, Clock, AlertCircle, ChevronDown, ChevronRight, Settings, Calendar, DollarSign, XCircle } from 'lucide-react';
 import { TargetsManagement } from './TargetsManagement';
 import { WeekManagement } from './WeekManagement';
+import { MetricsTrendGraph } from './MetricsTrendGraph';
 import { formatDate, parseLocalDate } from '../lib/dateUtils';
 
 type WeeklySubmission = {
@@ -68,6 +69,15 @@ export function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [showTargetsModal, setShowTargetsModal] = useState(false);
   const [showWeekManagement, setShowWeekManagement] = useState(false);
+  const [weeklyTrendData, setWeeklyTrendData] = useState<Array<{
+    weekLabel: string;
+    qtdRevenue: number;
+    mtdRevenue: number;
+    pipeline: number;
+    dealsWon: number;
+    dealsAdvancing: number;
+  }>>([]);
+  const [selectedMetric, setSelectedMetric] = useState<'qtd' | 'mtd' | 'pipeline' | 'dealsWon' | 'dealsAdvancing'>('qtd');
 
   useEffect(() => {
     loadAvailableWeeks();
@@ -344,6 +354,56 @@ export function AdminDashboard() {
             });
           }
           setPrevQtdMaxRevenue(prevQtdMaxByUser);
+
+          const quarterWeeks = allWeeks.filter(w => new Date(w.start_date) >= quarterStart);
+          const trendData = quarterWeeks.map(week => {
+            const weekSubs = qtdSubmissions?.filter((s: any) => s.week_id === week.id) || [];
+
+            const parsedSubs = weekSubs.map(sub =>
+              parseNumericFields(sub, [
+                'revenue_mtd', 'revenue_qtd', 'cold_calls', 'emails', 'li_messages',
+                'decision_maker_connects', 'meetings_booked', 'discovery_calls',
+                'opportunities_advanced', 'pipeline_coverage_ratio', 'average_deal_size',
+                'prospecting_activities', 'videos', 'deals_won_this_week'
+              ])
+            );
+
+            const maxRevenueByUser: { [userId: string]: { mtd: number; qtd: number } } = {};
+            parsedSubs.forEach((sub: any) => {
+              const revMtd = parseFloat(sub.revenue_mtd) || 0;
+              const revQtd = parseFloat(sub.revenue_qtd) || 0;
+
+              if (!maxRevenueByUser[sub.user_id] || revQtd > maxRevenueByUser[sub.user_id].qtd) {
+                maxRevenueByUser[sub.user_id] = { mtd: revMtd, qtd: revQtd };
+              }
+            });
+
+            const qtdRevenue = Object.values(maxRevenueByUser).reduce((sum, rev) => sum + rev.qtd, 0);
+            const mtdRevenue = Object.values(maxRevenueByUser).reduce((sum, rev) => sum + rev.mtd, 0);
+
+            const pipeline = parsedSubs.reduce((sum, sub) => {
+              const avgDeal = parseFloat(sub.average_deal_size) || 0;
+              const pipelineCov = parseFloat(sub.pipeline_coverage_ratio) || 0;
+              return sum + (avgDeal * pipelineCov);
+            }, 0);
+
+            const dealsWon = parsedSubs.reduce((sum, sub) => sum + (parseInt(sub.deals_won_this_week) || 0), 0);
+            const dealsAdvancing = parsedSubs.reduce((sum, sub) => sum + (parseInt(sub.opportunities_advanced) || 0), 0);
+
+            const weekStart = new Date(week.start_date);
+            const weekLabel = `${weekStart.getMonth() + 1}/${weekStart.getDate()}`;
+
+            return {
+              weekLabel,
+              qtdRevenue,
+              mtdRevenue,
+              pipeline,
+              dealsWon,
+              dealsAdvancing,
+            };
+          });
+
+          setWeeklyTrendData(trendData);
         }
       }
     } catch (error) {
@@ -660,6 +720,68 @@ export function AdminDashboard() {
             </p>
           </div>
         </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-xl font-semibold text-slate-900">Quarterly Trends</h3>
+            <p className="text-sm text-slate-600">Weekly progression of key metrics</p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setSelectedMetric('qtd')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                selectedMetric === 'qtd'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              QTD Revenue
+            </button>
+            <button
+              onClick={() => setSelectedMetric('mtd')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                selectedMetric === 'mtd'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              MTD Revenue
+            </button>
+            <button
+              onClick={() => setSelectedMetric('pipeline')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                selectedMetric === 'pipeline'
+                  ? 'bg-orange-600 text-white'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              Pipeline
+            </button>
+            <button
+              onClick={() => setSelectedMetric('dealsWon')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                selectedMetric === 'dealsWon'
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              Deals Won
+            </button>
+            <button
+              onClick={() => setSelectedMetric('dealsAdvancing')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                selectedMetric === 'dealsAdvancing'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              Deals Advancing
+            </button>
+          </div>
+        </div>
+        <MetricsTrendGraph trendData={weeklyTrendData} selectedMetric={selectedMetric} />
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
