@@ -54,7 +54,7 @@ export function RepDashboard({ onEnterWeek }: Props) {
       const [weeksResult, submissionsResult] = await Promise.all([
         supabase.from('weeks').select('*').order('start_date', { ascending: true }),
         supabase.from('weekly_submissions')
-          .select('week_id, status, revenue_mtd, revenue_qtd, pipeline_coverage_ratio, deals_won_this_week, deals_advancing_this_week')
+          .select('week_id, status, revenue_mtd, revenue_qtd, pipeline_coverage_ratio, deals_won_this_week, deals_advancing')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
       ]);
@@ -62,7 +62,7 @@ export function RepDashboard({ onEnterWeek }: Props) {
       const weeks = weeksResult.data || [];
       const rawSubmissions = submissionsResult.data || [];
       const submissions = rawSubmissions.map(sub =>
-        parseNumericFields(sub, ['revenue_mtd', 'revenue_qtd', 'pipeline_coverage_ratio', 'deals_won_this_week', 'deals_advancing_this_week'])
+        parseNumericFields(sub, ['revenue_mtd', 'revenue_qtd', 'pipeline_coverage_ratio', 'deals_won_this_week'])
       );
 
       setAllWeeks(weeks);
