@@ -386,6 +386,22 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
   const handleSave = async (submitNow: boolean = false) => {
     if (!user || !currentWeek) return;
 
+    if (submitNow) {
+      const validGoals = nextWeekGoals.filter(g => g.trim());
+      if (validGoals.length === 0) {
+        alert('Please add at least one goal for next week before submitting.');
+        return;
+      }
+
+      if (previousGoals.length > 0) {
+        const allGoalsReviewed = previousGoals.every(g => g.status !== 'pending');
+        if (!allGoalsReviewed) {
+          alert('Please review all previous week goals (mark as Hit, Partial, or Missed) before submitting.');
+          return;
+        }
+      }
+    }
+
     setSaving(true);
 
     try {
@@ -547,8 +563,9 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
       <div className="space-y-6">
         {previousGoals.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <h2 className="text-xl font-semibold text-slate-900 mb-2">
+            <h2 className="text-xl font-semibold text-slate-900 mb-2 flex items-center gap-2">
               Previous Week's Goals Review
+              <span className="text-red-500 text-sm">*Required</span>
             </h2>
             <p className="text-sm text-slate-600 mb-4">
               How did you do on last week's goals? Mark each one and add notes.
@@ -569,10 +586,15 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                     <p className="font-medium text-slate-900 mb-3">
                       <span className="text-slate-400 mr-2">#{index + 1}</span>
                       {goal.goal_text}
+                      {goal.status === 'pending' && (
+                        <span className="ml-2 text-xs text-red-500 font-normal">- Please select status</span>
+                      )}
                     </p>
                     <div className="grid md:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                          Status <span className="text-red-500">*</span>
+                        </label>
                         <div className="flex gap-2">
                           {[
                             { value: 'hit', label: 'Hit', color: 'emerald' },
@@ -1450,8 +1472,9 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <h2 className="text-xl font-semibold text-slate-900 mb-2">
+          <h2 className="text-xl font-semibold text-slate-900 mb-2 flex items-center gap-2">
             Next Week's Goals
+            <span className="text-red-500 text-sm">*Required</span>
           </h2>
           <p className="text-sm text-slate-600 mb-4">
             Set clear, measurable goals for next week. These will carry forward for accountability review.
