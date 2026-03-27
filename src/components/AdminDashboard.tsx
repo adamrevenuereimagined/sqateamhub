@@ -534,7 +534,7 @@ export function AdminDashboard() {
       case 'in_progress':
         return <Clock className="w-5 h-5 text-amber-600" />;
       default:
-        return <AlertCircle className="w-5 h-5 text-slate-400" />;
+        return <AlertCircle className="w-5 h-5 text-red-600" />;
     }
   };
 
@@ -545,7 +545,7 @@ export function AdminDashboard() {
       case 'in_progress':
         return 'bg-amber-50 text-amber-700 border-amber-200';
       default:
-        return 'bg-slate-50 text-slate-700 border-slate-200';
+        return 'bg-red-100 text-red-700 border-red-300 font-bold';
     }
   };
 
@@ -848,10 +848,18 @@ export function AdminDashboard() {
             const qtdChange = calculateChange(repQtdRevenue, prevRepQtdRevenue);
 
             return (
-              <div key={rep.id} className="border border-slate-200 rounded-lg overflow-hidden">
+              <div key={rep.id} className={`border rounded-lg overflow-hidden ${
+                status === 'not_started'
+                  ? 'border-red-400 bg-red-50'
+                  : 'border-slate-200'
+              }`}>
                 <div
                   onClick={() => toggleRepExpansion(rep.id)}
-                  className="flex items-center justify-between p-4 hover:bg-slate-50 cursor-pointer"
+                  className={`flex items-center justify-between p-4 cursor-pointer ${
+                    status === 'not_started'
+                      ? 'hover:bg-red-100'
+                      : 'hover:bg-slate-50'
+                  }`}
                 >
                   <div className="flex items-center gap-4 flex-1">
                     {isExpanded ? (
@@ -861,7 +869,14 @@ export function AdminDashboard() {
                     )}
 
                     <div className="flex-1">
-                      <p className="font-semibold text-slate-900">{rep.name}</p>
+                      <p className="font-semibold text-slate-900">
+                        {rep.name}
+                        {status === 'not_started' && (
+                          <span className="ml-2 text-xs font-bold text-red-600 bg-red-200 px-2 py-1 rounded">
+                            NOT STARTED
+                          </span>
+                        )}
+                      </p>
                       {previousWeekGoals[rep.id] && previousWeekGoals[rep.id].length > 0 && (
                         <div className="mt-2 space-y-1">
                           {previousWeekGoals[rep.id].map((goal: any, idx: number) => (
