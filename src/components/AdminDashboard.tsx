@@ -81,6 +81,8 @@ export function AdminDashboard() {
     dealsAdvancing: number;
   }>>([]);
   const [selectedMetric, setSelectedMetric] = useState<'qtd' | 'mtd' | 'pipeline' | 'dealsWon' | 'dealsAdvancing'>('qtd');
+  const [showExecutiveSummary, setShowExecutiveSummary] = useState(false);
+  const [executiveSummary, setExecutiveSummary] = useState('');
 
   useEffect(() => {
     loadAvailableWeeks();
@@ -571,6 +573,176 @@ export function AdminDashboard() {
     setExpandedReps(prev => ({ ...prev, [userId]: !prev[userId] }));
   };
 
+  const generateExecutiveSummary = () => {
+    if (!currentWeek) return;
+
+    const totals = calculateTotals();
+    const previousTotals = Object.keys(previousWeekSubmissions).length > 0 ? {
+      coldCalls: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.cold_calls || 0), 0),
+      emails: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.emails || 0), 0),
+      liMessages: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.li_messages || 0), 0),
+      dmConnects: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.decision_maker_connects || 0), 0),
+      meetings: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.meetings_booked || 0), 0),
+      discovery: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.discovery_calls || 0), 0),
+      opportunities: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.opportunities_advanced || 0), 0),
+      dealsWon: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.deals_won_this_week || 0), 0),
+    } : null;
+
+    const weekLabel = `${new Date(currentWeek.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${new Date(currentWeek.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+
+    const topPerformers = reps
+      .filter(rep => submissions[rep.id])
+      .map(rep => ({
+        name: rep.name,
+        qtdRevenue: qtdMaxRevenue[rep.id] || 0,
+        mtdRevenue: mtdMaxRevenue[rep.id] || 0,
+        meetings: submissions[rep.id]?.meetings_booked || 0,
+        dealsWon: submissions[rep.id]?.deals_won_this_week || 0,
+        quota: rep.quarterly_quota,
+        percentToQuota: rep.quarterly_quota > 0 ? ((qtdMaxRevenue[rep.id] || 0) / rep.quarterly_quota) * 100 : 0,
+      }))
+      .sort((a, b) => b.percentToQuota - a.percentToQuota);
+
+    const highlights: string[] = [];
+    const lowlights: string[] = [];
+
+    if (totals.totalDealsWon > 0) {
+      highlights.push(`Team closed ${totals.totalDealsWon} deal${totals.totalDealsWon > 1 ? 's' : ''} this week`);
+    }
+
+    if (previousTotals) {
+      const meetingsChange = calculateChange(totals.totalMeetings, previousTotals.meetings);
+      if (meetingsChange > 10) {
+        highlights.push(`Meetings booked increased ${meetingsChange.toFixed(0)}% from last week`);
+      } else if (meetingsChange < -10) {
+        lowlights.push(`Meetings booked decreased ${Math.abs(meetingsChange).toFixed(0)}% from last week`);
+      }
+
+      const callsChange = calculateChange(totals.totalColdCalls, previousTotals.coldCalls);
+      if (callsChange > 15) {
+        highlights.push(`Cold calling activity up ${callsChange.toFixed(0)}%`);
+      } else if (callsChange < -15) {
+        lowlights.push(`Cold calling activity down ${Math.abs(callsChange).toFixed(0)}%`);
+      }
+
+      const discoveryChange = calculateChange(totals.totalDiscovery, previousTotals.discovery);
+      if (discoveryChange > 10) {
+        highlights.push(`Discovery calls increased ${discoveryChange.toFixed(0)}%`);
+      }
+    }
+
+    if (topPerformers.length > 0 && topPerformers[0].percentToQuota >= 80) {
+      highlights.push(`${topPerformers[0].name} is at ${topPerformers[0].percentToQuota.toFixed(0)}% of quarterly quota`);
+    }
+
+    const submittedCount = reps.filter(rep => submissions[rep.id]?.status === 'submitted').length;
+    const notSubmittedCount = reps.length - submittedCount;
+    if (notSubmittedCount > 0) {
+      lowlights.push(`${notSubmittedCount} rep${notSubmittedCount > 1 ? 's have' : ' has'} not submitted their weekly report`);
+    }
+
+    const behindQuota = topPerformers.filter(p => p.percentToQuota < 50).length;
+    if (behindQuota > 0) {
+      lowlights.push(`${behindQuota} rep${behindQuota > 1 ? 's are' : ' is'} below 50% of quarterly quota`);
+    }
+
+    const totalActivities = totals.totalColdCalls + totals.totalEmails + totals.totalLiMessages;
+    const avgActivitiesPerRep = totalActivities / reps.length;
+
+    let summary = `Subject: Sales Performance Update - Week of ${weekLabel}\n\n`;
+    summary += `Executive Team,\n\n`;
+    summary += `Below is the weekly sales performance summary for the week of ${weekLabel}.\n\n`;
+
+    summary += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    summary += `KEY METRICS\n`;
+    summary += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+    summary += `Team Performance:\n`;
+    summary += `• Total Revenue MTD: ${formatCurrency(totals.totalRevenueMTD)}\n`;
+    summary += `• Total Revenue QTD: ${formatCurrency(totals.totalRevenueQTD)}\n`;
+    summary += `• Deals Won This Week: ${totals.totalDealsWon}\n`;
+    summary += `• Meetings Booked: ${totals.totalMeetings}${previousTotals ? ` (${calculateChange(totals.totalMeetings, previousTotals.meetings) > 0 ? '+' : ''}${calculateChange(totals.totalMeetings, previousTotals.meetings).toFixed(0)}% vs. last week)` : ''}\n`;
+    summary += `• Discovery Calls: ${totals.totalDiscovery}${previousTotals ? ` (${calculateChange(totals.totalDiscovery, previousTotals.discovery) > 0 ? '+' : ''}${calculateChange(totals.totalDiscovery, previousTotals.discovery).toFixed(0)}% vs. last week)` : ''}\n`;
+    summary += `• Opportunities Advanced: ${totals.totalOpportunities}\n\n`;
+
+    summary += `Activity Levels:\n`;
+    summary += `• Cold Calls: ${totals.totalColdCalls}${previousTotals ? ` (${calculateChange(totals.totalColdCalls, previousTotals.coldCalls) > 0 ? '+' : ''}${calculateChange(totals.totalColdCalls, previousTotals.coldCalls).toFixed(0)}% vs. last week)` : ''}\n`;
+    summary += `• Emails: ${totals.totalEmails}\n`;
+    summary += `• LinkedIn Messages: ${totals.totalLiMessages}\n`;
+    summary += `• Total Prospecting Activities: ${totalActivities}\n`;
+    summary += `• Average Activities per Rep: ${avgActivitiesPerRep.toFixed(0)}\n\n`;
+
+    if (highlights.length > 0) {
+      summary += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+      summary += `HIGHLIGHTS\n`;
+      summary += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+      highlights.forEach(highlight => {
+        summary += `✓ ${highlight}\n`;
+      });
+      summary += `\n`;
+    }
+
+    if (lowlights.length > 0) {
+      summary += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+      summary += `AREAS FOR ATTENTION\n`;
+      summary += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+      lowlights.forEach(lowlight => {
+        summary += `⚠ ${lowlight}\n`;
+      });
+      summary += `\n`;
+    }
+
+    summary += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    summary += `TOP PERFORMERS (BY QUOTA ATTAINMENT)\n`;
+    summary += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+    topPerformers.slice(0, 3).forEach((performer, idx) => {
+      summary += `${idx + 1}. ${performer.name}\n`;
+      summary += `   • QTD Revenue: ${formatCurrency(performer.qtdRevenue)} (${performer.percentToQuota.toFixed(0)}% of quota)\n`;
+      summary += `   • Meetings Booked: ${performer.meetings}\n`;
+      summary += `   • Deals Won This Week: ${performer.dealsWon}\n\n`;
+    });
+
+    summary += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    summary += `TRENDS & OUTLOOK\n`;
+    summary += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+    if (previousTotals) {
+      const overallTrend = (
+        calculateChange(totals.totalMeetings, previousTotals.meetings) +
+        calculateChange(totals.totalColdCalls, previousTotals.coldCalls) +
+        calculateChange(totals.totalDiscovery, previousTotals.discovery)
+      ) / 3;
+
+      if (overallTrend > 5) {
+        summary += `The team is showing strong momentum with activity levels trending upward across multiple metrics. `;
+      } else if (overallTrend < -5) {
+        summary += `Activity levels are trending downward and may require management attention to course-correct. `;
+      } else {
+        summary += `Activity levels are relatively stable week-over-week. `;
+      }
+    }
+
+    const avgQuotaAttainment = topPerformers.reduce((sum, p) => sum + p.percentToQuota, 0) / topPerformers.length;
+    summary += `Team average quota attainment is ${avgQuotaAttainment.toFixed(0)}%.`;
+
+    if (avgQuotaAttainment < 50) {
+      summary += ` The team will need to accelerate performance significantly to meet quarterly targets.`;
+    } else if (avgQuotaAttainment >= 80) {
+      summary += ` The team is well-positioned to meet or exceed quarterly targets.`;
+    } else {
+      summary += ` The team is making progress but needs sustained effort to hit quarterly targets.`;
+    }
+
+    summary += `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+    summary += `Please let me know if you need any additional details or analysis.\n\n`;
+    summary += `Best regards,\n`;
+    summary += `Sales Operations`;
+
+    setExecutiveSummary(summary);
+    setShowExecutiveSummary(true);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -634,6 +806,13 @@ export function AdminDashboard() {
             >
               <Settings className="w-4 h-4" />
               Manage Targets
+            </button>
+            <button
+              onClick={generateExecutiveSummary}
+              className="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors flex items-center gap-2"
+            >
+              <Activity className="w-4 h-4" />
+              Create Weekly Summary
             </button>
           </div>
         </div>
@@ -1694,6 +1873,44 @@ export function AdminDashboard() {
           setShowWeekManagement(false);
           loadAvailableWeeks();
         }} />
+      )}
+
+      {showExecutiveSummary && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-slate-200 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-slate-900">Executive Summary</h2>
+              <button
+                onClick={() => setShowExecutiveSummary(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6">
+              <pre className="whitespace-pre-wrap font-mono text-sm text-slate-800 leading-relaxed">
+                {executiveSummary}
+              </pre>
+            </div>
+            <div className="p-6 border-t border-slate-200 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(executiveSummary);
+                  alert('Summary copied to clipboard!');
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Copy to Clipboard
+              </button>
+              <button
+                onClick={() => setShowExecutiveSummary(false)}
+                className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
