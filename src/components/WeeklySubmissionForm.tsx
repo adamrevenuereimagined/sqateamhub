@@ -40,6 +40,7 @@ type WeeklySubmission = {
   new_deals?: any[];
   closing_opportunities?: any[];
   f2f_meetings?: any[];
+  f2f_meetings_held_last_week?: any[];
   previous_week_f2f_meetings_outcome?: any[];
   call_review_link?: string;
   call_review_focus?: string;
@@ -114,6 +115,13 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
   }>>([{ companyDeal: '', value: 0, closeDate: '', confidenceBlockers: '' }]);
 
   const [f2fMeetings, setF2fMeetings] = useState<Array<{
+    clientProspect: string;
+    dates: string;
+    where: string;
+    purposePrep: string;
+  }>>([{ clientProspect: '', dates: '', where: '', purposePrep: '' }]);
+
+  const [f2fMeetingsHeldLastWeek, setF2fMeetingsHeldLastWeek] = useState<Array<{
     clientProspect: string;
     dates: string;
     where: string;
@@ -261,6 +269,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
     setNewDeals([{ companyName: '', dealSource: '', potentialRevenue: 0 }]);
     setClosingOpps([{ companyDeal: '', value: 0, closeDate: '', confidenceBlockers: '' }]);
     setF2fMeetings([{ clientProspect: '', dates: '', where: '', purposePrep: '' }]);
+    setF2fMeetingsHeldLastWeek([{ clientProspect: '', dates: '', where: '', purposePrep: '' }]);
     setCallReviewLink('');
     setCallReviewFocus('');
     setBlockersHelp('');
@@ -366,6 +375,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
     setNewDeals(submission.new_deals || [{ companyName: '', dealSource: '', potentialRevenue: 0 }]);
     setClosingOpps(submission.closing_opportunities || [{ companyDeal: '', value: 0, closeDate: '', confidenceBlockers: '' }]);
     setF2fMeetings(submission.f2f_meetings || [{ clientProspect: '', dates: '', where: '', purposePrep: '' }]);
+    setF2fMeetingsHeldLastWeek(submission.f2f_meetings_held_last_week || [{ clientProspect: '', dates: '', where: '', purposePrep: '' }]);
     if (submission.previous_week_f2f_meetings_outcome && Array.isArray(submission.previous_week_f2f_meetings_outcome) && submission.previous_week_f2f_meetings_outcome.length > 0) {
       setPreviousWeekMeetings(submission.previous_week_f2f_meetings_outcome);
     }
@@ -430,6 +440,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
         new_deals: newDeals.filter(d => d.companyName),
         closing_opportunities: closingOpps.filter(o => o.companyDeal),
         f2f_meetings: f2fMeetings.filter(m => m.clientProspect),
+        f2f_meetings_held_last_week: f2fMeetingsHeldLastWeek.filter(m => m.clientProspect),
         previous_week_f2f_meetings_outcome: previousWeekMeetings.length > 0 ? previousWeekMeetings : null,
         call_review_link: callReviewLink,
         call_review_focus: callReviewFocus,
@@ -1286,6 +1297,72 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
             </div>
           </div>
         )}
+
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <h2 className="text-xl font-semibold text-slate-900 mb-4">
+            Face-to-Face Meetings HELD Last Week
+          </h2>
+
+          <div className="space-y-3">
+            {f2fMeetingsHeldLastWeek.map((meeting, index) => (
+              <div key={index} className="border border-slate-200 rounded-lg p-4">
+                <div className="grid md:grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    placeholder="Client/Prospect"
+                    value={meeting.clientProspect}
+                    onChange={(e) => {
+                      const newMeetings = [...f2fMeetingsHeldLastWeek];
+                      newMeetings[index].clientProspect = e.target.value;
+                      setF2fMeetingsHeldLastWeek(newMeetings);
+                    }}
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Date(s)"
+                    value={meeting.dates}
+                    onChange={(e) => {
+                      const newMeetings = [...f2fMeetingsHeldLastWeek];
+                      newMeetings[index].dates = e.target.value;
+                      setF2fMeetingsHeldLastWeek(newMeetings);
+                    }}
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Where"
+                    value={meeting.where}
+                    onChange={(e) => {
+                      const newMeetings = [...f2fMeetingsHeldLastWeek];
+                      newMeetings[index].where = e.target.value;
+                      setF2fMeetingsHeldLastWeek(newMeetings);
+                    }}
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Meeting Goal/Outcome Achieved"
+                    value={meeting.purposePrep}
+                    onChange={(e) => {
+                      const newMeetings = [...f2fMeetingsHeldLastWeek];
+                      newMeetings[index].purposePrep = e.target.value;
+                      setF2fMeetingsHeldLastWeek(newMeetings);
+                    }}
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+            ))}
+            <button
+              onClick={() => setF2fMeetingsHeldLastWeek([...f2fMeetingsHeldLastWeek, { clientProspect: '', dates: '', where: '', purposePrep: '' }])}
+              className="flex items-center text-emerald-600 hover:text-emerald-700 text-sm font-medium"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Add Meeting
+            </button>
+          </div>
+        </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <h2 className="text-xl font-semibold text-slate-900 mb-4">
