@@ -994,6 +994,21 @@ export function AdminDashboard() {
                       <p className="font-semibold text-slate-900">
                         {formatCurrency(submission?.pipeline_coverage_ratio || 0)}
                       </p>
+                      <div className="flex items-center justify-center gap-1 mt-0.5">
+                        {(() => {
+                          const currentPipeline = submission?.pipeline_coverage_ratio || 0;
+                          const prevPipeline = prevSubmission?.pipeline_coverage_ratio || 0;
+                          const pipelineChange = calculateChange(currentPipeline, prevPipeline);
+                          return (
+                            <>
+                              {pipelineChange > 0.5 ? <TrendingUp className="w-3 h-3 text-emerald-600" /> : pipelineChange < -0.5 ? <TrendingDown className="w-3 h-3 text-red-600" /> : null}
+                              <span className={`text-xs font-medium ${pipelineChange > 0.5 ? 'text-emerald-600' : pipelineChange < -0.5 ? 'text-red-600' : 'text-slate-500'}`}>
+                                {pipelineChange > 0.5 ? '+' : pipelineChange < -0.5 ? '-' : ''}{formatCurrency(Math.abs(currentPipeline - prevPipeline))} WoW
+                              </span>
+                            </>
+                          );
+                        })()}
+                      </div>
                     </div>
 
                     <div className="flex flex-col items-end gap-1">
