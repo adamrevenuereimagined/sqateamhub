@@ -61,6 +61,7 @@ export function AdminDashboard() {
   const [previousWeekSubmissions, setPreviousWeekSubmissions] = useState<{ [userId: string]: WeeklySubmission }>({});
   const [weeklyGoals, setWeeklyGoals] = useState<{ [userId: string]: Array<{ goal_text: string; status: string; review_notes: string }> }>({});
   const [previousWeekGoals, setPreviousWeekGoals] = useState<{ [userId: string]: Array<{ goal_text: string; status: string; review_notes: string }> }>({});
+  const [activityTargets, setActivityTargets] = useState<{ [userId: string]: any }>({});
   const [mtdMetrics, setMtdMetrics] = useState<AggregatedMetrics | null>(null);
   const [qtdMetrics, setQtdMetrics] = useState<AggregatedMetrics | null>(null);
   const [mtdMaxRevenue, setMtdMaxRevenue] = useState<{ [userId: string]: number }>({});
@@ -178,6 +179,22 @@ export function AdminDashboard() {
         }
         console.log('Goals map:', goalsMap);
         setWeeklyGoals(goalsMap);
+
+        const { data: targetsData, error: targetsError } = await supabase
+          .from('weekly_activity_targets')
+          .select('*');
+
+        if (targetsError) {
+          console.error('Error loading activity targets:', targetsError);
+        }
+
+        const targetsMap: { [userId: string]: any } = {};
+        if (targetsData) {
+          targetsData.forEach((target: any) => {
+            targetsMap[target.user_id] = target;
+          });
+        }
+        setActivityTargets(targetsMap);
 
         const { data: previousWeekData } = await supabase
           .from('weeks')
@@ -1039,30 +1056,140 @@ export function AdminDashboard() {
                       <div>
                         <h4 className="font-semibold text-slate-900 mb-3">Activities This Week</h4>
                         <div className="space-y-2">
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">Cold Calls:</span>
-                            <span className="font-medium">{submission.cold_calls || 0}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">Emails:</span>
-                            <span className="font-medium">{submission.emails || 0}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">LI Messages:</span>
-                            <span className="font-medium">{submission.li_messages || 0}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">Decision Maker Connects:</span>
-                            <span className="font-medium">{submission.decision_maker_connects || 0}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">Meetings Booked:</span>
-                            <span className="font-medium">{submission.meetings_booked || 0}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">Discovery Calls:</span>
-                            <span className="font-medium">{submission.discovery_calls || 0}</span>
-                          </div>
+                          {(() => {
+                            const target = activityTargets[rep.id];
+                            return (
+                              <>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-slate-600">Cold Calls:</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium">{submission.cold_calls || 0}</span>
+                                    {target?.target_cold_calls && (
+                                      <span className={`text-xs px-2 py-0.5 rounded ${
+                                        (submission.cold_calls || 0) >= target.target_cold_calls
+                                          ? 'bg-emerald-100 text-emerald-700'
+                                          : 'bg-amber-100 text-amber-700'
+                                      }`}>
+                                        / {target.target_cold_calls}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-slate-600">Emails:</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium">{submission.emails || 0}</span>
+                                    {target?.target_emails && (
+                                      <span className={`text-xs px-2 py-0.5 rounded ${
+                                        (submission.emails || 0) >= target.target_emails
+                                          ? 'bg-emerald-100 text-emerald-700'
+                                          : 'bg-amber-100 text-amber-700'
+                                      }`}>
+                                        / {target.target_emails}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-slate-600">LI Messages:</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium">{submission.li_messages || 0}</span>
+                                    {target?.target_li_messages && (
+                                      <span className={`text-xs px-2 py-0.5 rounded ${
+                                        (submission.li_messages || 0) >= target.target_li_messages
+                                          ? 'bg-emerald-100 text-emerald-700'
+                                          : 'bg-amber-100 text-amber-700'
+                                      }`}>
+                                        / {target.target_li_messages}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-slate-600">Decision Maker Connects:</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium">{submission.decision_maker_connects || 0}</span>
+                                    {target?.target_dm_connects && (
+                                      <span className={`text-xs px-2 py-0.5 rounded ${
+                                        (submission.decision_maker_connects || 0) >= target.target_dm_connects
+                                          ? 'bg-emerald-100 text-emerald-700'
+                                          : 'bg-amber-100 text-amber-700'
+                                      }`}>
+                                        / {target.target_dm_connects}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-slate-600">Meetings Booked:</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium">{submission.meetings_booked || 0}</span>
+                                    {target?.target_meetings_booked && (
+                                      <span className={`text-xs px-2 py-0.5 rounded ${
+                                        (submission.meetings_booked || 0) >= target.target_meetings_booked
+                                          ? 'bg-emerald-100 text-emerald-700'
+                                          : 'bg-amber-100 text-amber-700'
+                                      }`}>
+                                        / {target.target_meetings_booked}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </>
+                            );
+                          })()}
+                          {(() => {
+                            const target = activityTargets[rep.id];
+                            return (
+                              <>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-slate-600">Discovery Calls:</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium">{submission.discovery_calls || 0}</span>
+                                    {target?.target_discovery_calls && (
+                                      <span className={`text-xs px-2 py-0.5 rounded ${
+                                        (submission.discovery_calls || 0) >= target.target_discovery_calls
+                                          ? 'bg-emerald-100 text-emerald-700'
+                                          : 'bg-amber-100 text-amber-700'
+                                      }`}>
+                                        / {target.target_discovery_calls}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-slate-600">Videos:</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium">{submission.videos || 0}</span>
+                                    {target?.target_videos && (
+                                      <span className={`text-xs px-2 py-0.5 rounded ${
+                                        (submission.videos || 0) >= target.target_videos
+                                          ? 'bg-emerald-100 text-emerald-700'
+                                          : 'bg-amber-100 text-amber-700'
+                                      }`}>
+                                        / {target.target_videos}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-slate-600">Opportunities Advanced:</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium">{submission.opportunities_advanced || 0}</span>
+                                    {target?.target_opportunities_advanced && (
+                                      <span className={`text-xs px-2 py-0.5 rounded ${
+                                        (submission.opportunities_advanced || 0) >= target.target_opportunities_advanced
+                                          ? 'bg-emerald-100 text-emerald-700'
+                                          : 'bg-amber-100 text-amber-700'
+                                      }`}>
+                                        / {target.target_opportunities_advanced}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </>
+                            );
+                          })()}
                         </div>
                       </div>
 
