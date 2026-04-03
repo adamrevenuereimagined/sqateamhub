@@ -23,6 +23,7 @@ type WeeklySubmission = {
   discovery_calls: number;
   opportunities_advanced: number;
   pipeline_coverage_ratio: number;
+  deals_won_this_week: number;
   deals_advancing: any[];
   deals_stalling: any[];
   new_deals: any[];
@@ -145,7 +146,7 @@ export function AdminDashboard() {
               'revenue_mtd', 'revenue_qtd', 'cold_calls', 'emails', 'li_messages',
               'decision_maker_connects', 'meetings_booked', 'discovery_calls',
               'opportunities_advanced', 'pipeline_coverage_ratio', 'average_deal_size',
-              'prospecting_activities', 'videos'
+              'prospecting_activities', 'videos', 'deals_won_this_week'
             ]);
           });
         }
@@ -199,7 +200,7 @@ export function AdminDashboard() {
                 'revenue_mtd', 'revenue_qtd', 'cold_calls', 'emails', 'li_messages',
                 'decision_maker_connects', 'meetings_booked', 'discovery_calls',
                 'opportunities_advanced', 'pipeline_coverage_ratio', 'average_deal_size',
-                'prospecting_activities', 'videos'
+                'prospecting_activities', 'videos', 'deals_won_this_week'
               ]);
             });
           }
@@ -292,7 +293,7 @@ export function AdminDashboard() {
                 'revenue_mtd', 'revenue_qtd', 'cold_calls', 'emails', 'li_messages',
                 'decision_maker_connects', 'meetings_booked', 'discovery_calls',
                 'opportunities_advanced', 'pipeline_coverage_ratio', 'average_deal_size',
-                'prospecting_activities', 'videos'
+                'prospecting_activities', 'videos', 'deals_won_this_week'
               ])
             );
             const mtdAgg = aggregateSubmissions(parsedMtdSubmissions);
@@ -305,7 +306,7 @@ export function AdminDashboard() {
                 'revenue_mtd', 'revenue_qtd', 'cold_calls', 'emails', 'li_messages',
                 'decision_maker_connects', 'meetings_booked', 'discovery_calls',
                 'opportunities_advanced', 'pipeline_coverage_ratio', 'average_deal_size',
-                'prospecting_activities', 'videos'
+                'prospecting_activities', 'videos', 'deals_won_this_week'
               ])
             );
             const qtdAgg = aggregateSubmissions(parsedQtdSubmissions);
