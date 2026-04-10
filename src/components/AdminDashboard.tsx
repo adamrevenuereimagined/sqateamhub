@@ -267,24 +267,24 @@ export function AdminDashboard() {
 
         if (allWeeks) {
           const mtdWeekIds = allWeeks
-            .filter(w => new Date(w.start_date) >= monthStart)
+            .filter(w => new Date(w.end_date) >= monthStart)
             .map(w => w.id);
 
           const qtdWeekIds = allWeeks
-            .filter(w => new Date(w.start_date) >= quarterStart)
+            .filter(w => new Date(w.end_date) >= quarterStart)
             .map(w => w.id);
 
           const prevMtdWeekIds = prevMonthStart ? allWeeks
             .filter(w => {
-              const wStart = new Date(w.start_date);
-              return wStart >= prevMonthStart && wStart <= (previousWeekDate || new Date());
+              const wEnd = new Date(w.end_date);
+              return wEnd >= prevMonthStart && wEnd <= (previousWeekDate || new Date());
             })
             .map(w => w.id) : [];
 
           const prevQtdWeekIds = prevQuarterStart ? allWeeks
             .filter(w => {
-              const wStart = new Date(w.start_date);
-              return wStart >= prevQuarterStart && wStart <= (previousWeekDate || new Date());
+              const wEnd = new Date(w.end_date);
+              return wEnd >= prevQuarterStart && wEnd <= (previousWeekDate || new Date());
             })
             .map(w => w.id) : [];
 
