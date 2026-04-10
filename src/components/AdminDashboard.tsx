@@ -377,40 +377,58 @@ export function AdminDashboard() {
           setPrevQtdMaxRevenue(prevQtdMaxByUser);
 
           const quarterWeeks = allWeeks.filter(w => new Date(w.start_date) >= quarterStart);
-          const trendData = quarterWeeks.map(week => {
-            const weekSubs = qtdSubmissions?.filter((s: any) => s.week_id === week.id) || [];
 
-            const parsedSubs = weekSubs.map(sub =>
-              parseNumericFields(sub, [
-                'revenue_mtd', 'revenue_qtd', 'cold_calls', 'emails', 'li_messages',
-                'decision_maker_connects', 'meetings_booked', 'discovery_calls',
-                'opportunities_advanced', 'pipeline_coverage_ratio', 'average_deal_size',
-                'prospecting_activities', 'videos', 'deals_won_this_week'
-              ])
+          const allParsedQtdSubs = (qtdSubmissions || []).map((sub: any) => ({
+            ...parseNumericFields(sub, [
+              'revenue_mtd', 'revenue_qtd', 'cold_calls', 'emails', 'li_messages',
+              'decision_maker_connects', 'meetings_booked', 'discovery_calls',
+              'opportunities_advanced', 'pipeline_coverage_ratio', 'average_deal_size',
+              'prospecting_activities', 'videos', 'deals_won_this_week'
+            ]),
+            week_end_date: allWeeks.find(w => w.id === sub.week_id)?.end_date || '',
+          }));
+
+          const trendData = quarterWeeks.map(week => {
+            const weekEndDate = week.end_date;
+
+            const subsUpToThisWeek = allParsedQtdSubs.filter(
+              (s: any) => s.week_end_date && s.week_end_date <= weekEndDate
             );
 
-            const maxRevenueByUser: { [userId: string]: { mtd: number; qtd: number } } = {};
-            parsedSubs.forEach((sub: any) => {
-              const revMtd = parseFloat(sub.revenue_mtd) || 0;
-              const revQtd = parseFloat(sub.revenue_qtd) || 0;
+            const thisWeekSubs = allParsedQtdSubs.filter(
+              (s: any) => s.week_id === week.id
+            );
 
-              if (!maxRevenueByUser[sub.user_id] || revQtd > maxRevenueByUser[sub.user_id].qtd) {
-                maxRevenueByUser[sub.user_id] = { mtd: revMtd, qtd: revQtd };
+            const maxQtdByUser: { [userId: string]: number } = {};
+            const maxMtdByUser: { [userId: string]: number } = {};
+            subsUpToThisWeek.forEach((sub: any) => {
+              const revQtd = parseFloat(sub.revenue_qtd) || 0;
+              const revMtd = parseFloat(sub.revenue_mtd) || 0;
+              if (!maxQtdByUser[sub.user_id] || revQtd > maxQtdByUser[sub.user_id]) {
+                maxQtdByUser[sub.user_id] = revQtd;
+              }
+              if (!maxMtdByUser[sub.user_id] || revMtd > maxMtdByUser[sub.user_id]) {
+                maxMtdByUser[sub.user_id] = revMtd;
               }
             });
 
-            const qtdRevenue = Object.values(maxRevenueByUser).reduce((sum, rev) => sum + rev.qtd, 0);
-            const mtdRevenue = Object.values(maxRevenueByUser).reduce((sum, rev) => sum + rev.mtd, 0);
+            const qtdRevenue = Object.values(maxQtdByUser).reduce((sum, v) => sum + v, 0);
+            const mtdRevenue = Object.values(maxMtdByUser).reduce((sum, v) => sum + v, 0);
 
-            const pipeline = parsedSubs.reduce((sum, sub) => {
-              const pipelineValue = parseFloat(sub.pipeline_coverage_ratio) || 0;
-              return sum + pipelineValue;
-            }, 0);
+            const latestPipelineByUser: { [userId: string]: { pipeline: number; weekEnd: string } } = {};
+            subsUpToThisWeek.forEach((sub: any) => {
+              const pv = parseFloat(sub.pipeline_coverage_ratio) || 0;
+              const existing = latestPipelineByUser[sub.user_id];
+              if (!existing || sub.week_end_date > existing.weekEnd) {
+                latestPipelineByUser[sub.user_id] = { pipeline: pv, weekEnd: sub.week_end_date };
+              }
+            });
+            const pipeline = Object.values(latestPipelineByUser).reduce((sum, v) => sum + v.pipeline, 0);
 
-            const dealsWon = parsedSubs.reduce((sum, sub) => sum + (parseInt(sub.deals_won_this_week) || 0), 0);
-            const dealsAdvancing = parsedSubs.reduce((sum, sub) => {
+            const dealsWon = thisWeekSubs.reduce((sum: number, sub: any) => sum + (parseInt(sub.deals_won_this_week) || 0), 0);
+            const dealsAdvancing = thisWeekSubs.reduce((sum: number, sub: any) => {
               const advancing = sub.deals_advancing?.length || 0;
-              return sum + Math.max(0, advancing);
+              return sum + advancing;
             }, 0);
 
             const weekStart = new Date(week.start_date);
