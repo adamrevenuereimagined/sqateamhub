@@ -64,6 +64,8 @@ export function AdminDashboard() {
   const [activityTargets, setActivityTargets] = useState<{ [userId: string]: any }>({});
   const [mtdMetrics, setMtdMetrics] = useState<AggregatedMetrics | null>(null);
   const [qtdMetrics, setQtdMetrics] = useState<AggregatedMetrics | null>(null);
+  const [prevMtdMetrics, setPrevMtdMetrics] = useState<AggregatedMetrics | null>(null);
+  const [prevQtdMetrics, setPrevQtdMetrics] = useState<AggregatedMetrics | null>(null);
   const [mtdMaxRevenue, setMtdMaxRevenue] = useState<{ [userId: string]: number }>({});
   const [qtdMaxRevenue, setQtdMaxRevenue] = useState<{ [userId: string]: number }>({});
   const [prevMtdMaxRevenue, setPrevMtdMaxRevenue] = useState<{ [userId: string]: number }>({});
@@ -330,6 +332,30 @@ export function AdminDashboard() {
             );
             const qtdAgg = aggregateSubmissions(parsedQtdSubmissions);
             setQtdMetrics(qtdAgg);
+          }
+
+          if (prevMtdSubmissions && prevMtdSubmissions.length > 0) {
+            const parsedPrevMtd = prevMtdSubmissions.map(sub =>
+              parseNumericFields(sub, [
+                'revenue_mtd', 'revenue_qtd', 'cold_calls', 'emails', 'li_messages',
+                'decision_maker_connects', 'meetings_booked', 'discovery_calls',
+                'opportunities_advanced', 'pipeline_coverage_ratio', 'average_deal_size',
+                'prospecting_activities', 'videos', 'deals_won_this_week'
+              ])
+            );
+            setPrevMtdMetrics(aggregateSubmissions(parsedPrevMtd));
+          }
+
+          if (prevQtdSubmissions && prevQtdSubmissions.length > 0) {
+            const parsedPrevQtd = prevQtdSubmissions.map(sub =>
+              parseNumericFields(sub, [
+                'revenue_mtd', 'revenue_qtd', 'cold_calls', 'emails', 'li_messages',
+                'decision_maker_connects', 'meetings_booked', 'discovery_calls',
+                'opportunities_advanced', 'pipeline_coverage_ratio', 'average_deal_size',
+                'prospecting_activities', 'videos', 'deals_won_this_week'
+              ])
+            );
+            setPrevQtdMetrics(aggregateSubmissions(parsedPrevQtd));
           }
 
           const mtdMaxByUser: { [userId: string]: number } = {};
@@ -1806,74 +1832,82 @@ export function AdminDashboard() {
           <div className="space-y-6">
             {mtdMetrics && (
               <div>
-                <h4 className="text-md font-semibold text-slate-900 mb-3">Month-to-Date (MTD)</h4>
+                <div className="flex items-center gap-3 mb-3">
+                  <h4 className="text-md font-semibold text-slate-900">Month-to-Date (MTD)</h4>
+                  {prevMtdMetrics && (
+                    <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded">vs prior week</span>
+                  )}
+                </div>
                 <p className="text-xs text-slate-500 mb-3">Cumulative team totals across {mtdMetrics.weeksCount} week(s) this month</p>
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div className="bg-blue-50 rounded-lg p-4">
-                    <p className="text-sm text-slate-600 mb-2">Cold Calls</p>
-                    <p className="text-2xl font-bold text-slate-900">{mtdMetrics.cold_calls}</p>
-                  </div>
-                  <div className="bg-blue-50 rounded-lg p-4">
-                    <p className="text-sm text-slate-600 mb-2">Emails</p>
-                    <p className="text-2xl font-bold text-slate-900">{mtdMetrics.emails}</p>
-                  </div>
-                  <div className="bg-blue-50 rounded-lg p-4">
-                    <p className="text-sm text-slate-600 mb-2">LinkedIn Messages</p>
-                    <p className="text-2xl font-bold text-slate-900">{mtdMetrics.li_messages}</p>
-                  </div>
-                  <div className="bg-blue-50 rounded-lg p-4">
-                    <p className="text-sm text-slate-600 mb-2">Decision Maker Connects</p>
-                    <p className="text-2xl font-bold text-slate-900">{mtdMetrics.decision_maker_connects}</p>
-                  </div>
-                  <div className="bg-blue-50 rounded-lg p-4">
-                    <p className="text-sm text-slate-600 mb-2">Meetings Booked</p>
-                    <p className="text-2xl font-bold text-slate-900">{mtdMetrics.meetings_booked}</p>
-                  </div>
-                  <div className="bg-blue-50 rounded-lg p-4">
-                    <p className="text-sm text-slate-600 mb-2">Discovery Calls</p>
-                    <p className="text-2xl font-bold text-slate-900">{mtdMetrics.discovery_calls}</p>
-                  </div>
-                  <div className="bg-blue-50 rounded-lg p-4">
-                    <p className="text-sm text-slate-600 mb-2">Opps Advanced</p>
-                    <p className="text-2xl font-bold text-slate-900">{mtdMetrics.opportunities_advanced}</p>
-                  </div>
+                  {([
+                    { label: 'Cold Calls', curr: mtdMetrics.cold_calls, prev: prevMtdMetrics?.cold_calls },
+                    { label: 'Emails', curr: mtdMetrics.emails, prev: prevMtdMetrics?.emails },
+                    { label: 'LinkedIn Messages', curr: mtdMetrics.li_messages, prev: prevMtdMetrics?.li_messages },
+                    { label: 'DM Connects', curr: mtdMetrics.decision_maker_connects, prev: prevMtdMetrics?.decision_maker_connects },
+                    { label: 'Meetings Booked', curr: mtdMetrics.meetings_booked, prev: prevMtdMetrics?.meetings_booked },
+                    { label: 'Discovery Calls', curr: mtdMetrics.discovery_calls, prev: prevMtdMetrics?.discovery_calls },
+                    { label: 'Opps Advanced', curr: mtdMetrics.opportunities_advanced, prev: prevMtdMetrics?.opportunities_advanced },
+                  ] as { label: string; curr: number; prev: number | undefined }[]).map(({ label, curr, prev }) => (
+                    <div key={label} className="bg-blue-50 rounded-lg p-4">
+                      <p className="text-sm text-slate-600 mb-2">{label}</p>
+                      <div className="flex items-baseline gap-2">
+                        <p className="text-2xl font-bold text-slate-900">{curr}</p>
+                        {prev !== undefined && (
+                          <div className="flex items-center gap-1">
+                            {getTrendIcon(curr, prev)}
+                            <span className={`text-xs font-medium ${getTrendColor(curr, prev)}`}>
+                              {calculateChange(curr, prev) > 0 ? '+' : ''}{calculateChange(curr, prev).toFixed(0)}%
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      {prev !== undefined && (
+                        <p className="text-xs text-slate-500 mt-1">Prior week: {prev}</p>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
 
             {qtdMetrics && (
               <div>
-                <h4 className="text-md font-semibold text-slate-900 mb-3">Quarter-to-Date (QTD)</h4>
+                <div className="flex items-center gap-3 mb-3">
+                  <h4 className="text-md font-semibold text-slate-900">Quarter-to-Date (QTD)</h4>
+                  {prevQtdMetrics && (
+                    <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded">vs prior week</span>
+                  )}
+                </div>
                 <p className="text-xs text-slate-500 mb-3">Cumulative team totals across {qtdMetrics.weeksCount} week(s) this quarter</p>
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div className="bg-emerald-50 rounded-lg p-4">
-                    <p className="text-sm text-slate-600 mb-2">Cold Calls</p>
-                    <p className="text-2xl font-bold text-slate-900">{qtdMetrics.cold_calls}</p>
-                  </div>
-                  <div className="bg-emerald-50 rounded-lg p-4">
-                    <p className="text-sm text-slate-600 mb-2">Emails</p>
-                    <p className="text-2xl font-bold text-slate-900">{qtdMetrics.emails}</p>
-                  </div>
-                  <div className="bg-emerald-50 rounded-lg p-4">
-                    <p className="text-sm text-slate-600 mb-2">LinkedIn Messages</p>
-                    <p className="text-2xl font-bold text-slate-900">{qtdMetrics.li_messages}</p>
-                  </div>
-                  <div className="bg-emerald-50 rounded-lg p-4">
-                    <p className="text-sm text-slate-600 mb-2">Decision Maker Connects</p>
-                    <p className="text-2xl font-bold text-slate-900">{qtdMetrics.decision_maker_connects}</p>
-                  </div>
-                  <div className="bg-emerald-50 rounded-lg p-4">
-                    <p className="text-sm text-slate-600 mb-2">Meetings Booked</p>
-                    <p className="text-2xl font-bold text-slate-900">{qtdMetrics.meetings_booked}</p>
-                  </div>
-                  <div className="bg-emerald-50 rounded-lg p-4">
-                    <p className="text-sm text-slate-600 mb-2">Discovery Calls</p>
-                    <p className="text-2xl font-bold text-slate-900">{qtdMetrics.discovery_calls}</p>
-                  </div>
-                  <div className="bg-emerald-50 rounded-lg p-4">
-                    <p className="text-sm text-slate-600 mb-2">Opps Advanced</p>
-                    <p className="text-2xl font-bold text-slate-900">{qtdMetrics.opportunities_advanced}</p>
-                  </div>
+                  {([
+                    { label: 'Cold Calls', curr: qtdMetrics.cold_calls, prev: prevQtdMetrics?.cold_calls },
+                    { label: 'Emails', curr: qtdMetrics.emails, prev: prevQtdMetrics?.emails },
+                    { label: 'LinkedIn Messages', curr: qtdMetrics.li_messages, prev: prevQtdMetrics?.li_messages },
+                    { label: 'DM Connects', curr: qtdMetrics.decision_maker_connects, prev: prevQtdMetrics?.decision_maker_connects },
+                    { label: 'Meetings Booked', curr: qtdMetrics.meetings_booked, prev: prevQtdMetrics?.meetings_booked },
+                    { label: 'Discovery Calls', curr: qtdMetrics.discovery_calls, prev: prevQtdMetrics?.discovery_calls },
+                    { label: 'Opps Advanced', curr: qtdMetrics.opportunities_advanced, prev: prevQtdMetrics?.opportunities_advanced },
+                  ] as { label: string; curr: number; prev: number | undefined }[]).map(({ label, curr, prev }) => (
+                    <div key={label} className="bg-emerald-50 rounded-lg p-4">
+                      <p className="text-sm text-slate-600 mb-2">{label}</p>
+                      <div className="flex items-baseline gap-2">
+                        <p className="text-2xl font-bold text-slate-900">{curr}</p>
+                        {prev !== undefined && (
+                          <div className="flex items-center gap-1">
+                            {getTrendIcon(curr, prev)}
+                            <span className={`text-xs font-medium ${getTrendColor(curr, prev)}`}>
+                              {calculateChange(curr, prev) > 0 ? '+' : ''}{calculateChange(curr, prev).toFixed(0)}%
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      {prev !== undefined && (
+                        <p className="text-xs text-slate-500 mt-1">Prior week: {prev}</p>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
