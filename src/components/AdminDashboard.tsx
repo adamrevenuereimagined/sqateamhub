@@ -1068,41 +1068,44 @@ export function AdminDashboard() {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {reps.map((rep) => {
             const submission = submissions[rep.id];
-            const meetingsCount = submission?.f2f_meetings?.filter((m: any) => m.clientProspect).length || 0;
-
-            if (meetingsCount === 0) return null;
+            const meetings = submission?.f2f_meetings?.filter((m: any) => m.clientProspect) || [];
+            const meetingsCount = meetings.length;
+            const hasNone = meetingsCount === 0;
 
             return (
-              <div key={rep.id} className="border border-slate-200 rounded-lg p-4 bg-gradient-to-br from-blue-50 to-white">
+              <div key={rep.id} className={`border rounded-lg p-4 ${hasNone ? 'border-red-200 bg-red-50' : 'border-slate-200 bg-gradient-to-br from-blue-50 to-white'}`}>
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <p className="font-semibold text-slate-900">{rep.name}</p>
                     <p className="text-sm text-slate-600">{rep.email}</p>
                   </div>
-                  <div className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded-full text-sm font-bold">
-                    <Calendar className="w-4 h-4" />
-                    {meetingsCount}
-                  </div>
-                </div>
-                <div className="mt-3 space-y-2">
-                  {submission?.f2f_meetings?.filter((m: any) => m.clientProspect).map((meeting: any, idx: number) => (
-                    <div key={idx} className="text-xs text-slate-700 bg-white rounded p-2 border border-slate-100">
-                      <p className="font-medium truncate">{meeting.clientProspect}</p>
-                      <p className="text-slate-600">{meeting.dates}</p>
+                  {hasNone ? (
+                    <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-bold border border-red-200">
+                      NONE
+                    </span>
+                  ) : (
+                    <div className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded-full text-sm font-bold">
+                      <Calendar className="w-4 h-4" />
+                      {meetingsCount}
                     </div>
-                  ))}
+                  )}
                 </div>
+                {hasNone ? (
+                  <p className="text-sm text-red-600 font-medium mt-2">No meetings scheduled</p>
+                ) : (
+                  <div className="mt-3 space-y-2">
+                    {meetings.map((meeting: any, idx: number) => (
+                      <div key={idx} className="text-xs text-slate-700 bg-white rounded p-2 border border-slate-100">
+                        <p className="font-medium truncate">{meeting.clientProspect}</p>
+                        <p className="text-slate-600">{meeting.dates}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
-        {reps.every(rep => {
-          const submission = submissions[rep.id];
-          const meetingsCount = submission?.f2f_meetings?.filter((m: any) => m.clientProspect).length || 0;
-          return meetingsCount === 0;
-        }) && (
-          <p className="text-slate-500 text-center py-8">No F2F meetings scheduled for next week</p>
-        )}
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
