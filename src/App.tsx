@@ -5,6 +5,7 @@ import { Layout } from './components/Layout';
 import { RepDashboard } from './components/RepDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
 import { WeeklySubmissionForm } from './components/WeeklySubmissionForm';
+import { BdrSubmissionForm } from './components/BdrSubmissionForm';
 
 function AppContent() {
   const { session, user, loading } = useAuth();
@@ -34,22 +35,28 @@ function AppContent() {
   };
 
   const renderContent = () => {
-    if (user.role === 'rep') {
-      if (currentView === 'weekly' && selectedWeekId) {
+    if (user.role === 'admin') {
+      return <AdminDashboard key={currentView} />;
+    }
+
+    if (currentView === 'weekly' && selectedWeekId) {
+      if (user.role === 'bdr') {
         return (
-          <WeeklySubmissionForm
+          <BdrSubmissionForm
             weekId={selectedWeekId}
-            onBack={() => {
-              setCurrentView('dashboard');
-              setSelectedWeekId(null);
-            }}
+            onBack={() => { setCurrentView('dashboard'); setSelectedWeekId(null); }}
           />
         );
       }
-      return <RepDashboard key={currentView} onEnterWeek={handleEnterWeek} />;
-    } else {
-      return <AdminDashboard key={currentView} />;
+      return (
+        <WeeklySubmissionForm
+          weekId={selectedWeekId}
+          onBack={() => { setCurrentView('dashboard'); setSelectedWeekId(null); }}
+        />
+      );
     }
+
+    return <RepDashboard key={currentView} onEnterWeek={handleEnterWeek} />;
   };
 
   return (

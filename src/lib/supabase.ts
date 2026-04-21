@@ -18,7 +18,7 @@ export type User = {
   id: string;
   email: string;
   name: string;
-  role: 'admin' | 'rep';
+  role: 'admin' | 'rep' | 'bdr';
   quarterly_quota: number;
   is_active: boolean;
 };

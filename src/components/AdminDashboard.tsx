@@ -38,6 +38,11 @@ type WeeklySubmission = {
   self_care: string;
   energy_level: string;
   manager_support: string;
+  // BDR-specific fields
+  sales_accepted_opps_mtd?: number;
+  sales_accepted_opps_qtd?: number;
+  opps_created_this_week?: number;
+  pipeline_created_this_week?: number;
 };
 
 type AggregatedMetrics = {
@@ -57,6 +62,7 @@ export function AdminDashboard() {
   const [availableWeeks, setAvailableWeeks] = useState<Week[]>([]);
   const [currentWeek, setCurrentWeek] = useState<Week | null>(null);
   const [reps, setReps] = useState<User[]>([]);
+  const [bdrReps, setBdrReps] = useState<User[]>([]);
   const [submissions, setSubmissions] = useState<{ [userId: string]: WeeklySubmission }>({});
   const [previousWeekSubmissions, setPreviousWeekSubmissions] = useState<{ [userId: string]: WeeklySubmission }>({});
   const [weeklyGoals, setWeeklyGoals] = useState<{ [userId: string]: Array<{ goal_text: string; status: string; review_notes: string }> }>({});
@@ -129,12 +135,12 @@ export function AdminDashboard() {
     if (!currentWeek) return;
 
     try {
-      const { data: repsData } = await supabase
-        .from('users')
-        .select('*')
-        .eq('role', 'rep')
-        .eq('is_active', true)
-        .order('name');
+      const [{ data: repsData }, { data: bdrData }] = await Promise.all([
+        supabase.from('users').select('*').eq('role', 'rep').eq('is_active', true).order('name'),
+        supabase.from('users').select('*').eq('role', 'bdr').eq('is_active', true).order('name'),
+      ]);
+
+      if (bdrData) setBdrReps(bdrData);
 
       if (repsData) {
         setReps(repsData);
@@ -151,7 +157,8 @@ export function AdminDashboard() {
               'revenue_mtd', 'revenue_qtd', 'cold_calls', 'emails', 'li_messages',
               'decision_maker_connects', 'meetings_booked', 'discovery_calls',
               'opportunities_advanced', 'pipeline_coverage_ratio', 'average_deal_size',
-              'prospecting_activities', 'videos', 'deals_won_this_week'
+              'prospecting_activities', 'videos', 'deals_won_this_week',
+              'sales_accepted_opps_mtd', 'sales_accepted_opps_qtd', 'opps_created_this_week', 'pipeline_created_this_week'
             ]);
           });
         }
@@ -221,7 +228,8 @@ export function AdminDashboard() {
                 'revenue_mtd', 'revenue_qtd', 'cold_calls', 'emails', 'li_messages',
                 'decision_maker_connects', 'meetings_booked', 'discovery_calls',
                 'opportunities_advanced', 'pipeline_coverage_ratio', 'average_deal_size',
-                'prospecting_activities', 'videos', 'deals_won_this_week'
+                'prospecting_activities', 'videos', 'deals_won_this_week',
+              'sales_accepted_opps_mtd', 'sales_accepted_opps_qtd', 'opps_created_this_week', 'pipeline_created_this_week'
               ]);
             });
           }
@@ -314,7 +322,8 @@ export function AdminDashboard() {
                 'revenue_mtd', 'revenue_qtd', 'cold_calls', 'emails', 'li_messages',
                 'decision_maker_connects', 'meetings_booked', 'discovery_calls',
                 'opportunities_advanced', 'pipeline_coverage_ratio', 'average_deal_size',
-                'prospecting_activities', 'videos', 'deals_won_this_week'
+                'prospecting_activities', 'videos', 'deals_won_this_week',
+              'sales_accepted_opps_mtd', 'sales_accepted_opps_qtd', 'opps_created_this_week', 'pipeline_created_this_week'
               ])
             );
             const mtdAgg = aggregateSubmissions(parsedMtdSubmissions);
@@ -327,7 +336,8 @@ export function AdminDashboard() {
                 'revenue_mtd', 'revenue_qtd', 'cold_calls', 'emails', 'li_messages',
                 'decision_maker_connects', 'meetings_booked', 'discovery_calls',
                 'opportunities_advanced', 'pipeline_coverage_ratio', 'average_deal_size',
-                'prospecting_activities', 'videos', 'deals_won_this_week'
+                'prospecting_activities', 'videos', 'deals_won_this_week',
+              'sales_accepted_opps_mtd', 'sales_accepted_opps_qtd', 'opps_created_this_week', 'pipeline_created_this_week'
               ])
             );
             const qtdAgg = aggregateSubmissions(parsedQtdSubmissions);
@@ -340,7 +350,8 @@ export function AdminDashboard() {
                 'revenue_mtd', 'revenue_qtd', 'cold_calls', 'emails', 'li_messages',
                 'decision_maker_connects', 'meetings_booked', 'discovery_calls',
                 'opportunities_advanced', 'pipeline_coverage_ratio', 'average_deal_size',
-                'prospecting_activities', 'videos', 'deals_won_this_week'
+                'prospecting_activities', 'videos', 'deals_won_this_week',
+              'sales_accepted_opps_mtd', 'sales_accepted_opps_qtd', 'opps_created_this_week', 'pipeline_created_this_week'
               ])
             );
             setPrevMtdMetrics(aggregateSubmissions(parsedPrevMtd));
@@ -352,7 +363,8 @@ export function AdminDashboard() {
                 'revenue_mtd', 'revenue_qtd', 'cold_calls', 'emails', 'li_messages',
                 'decision_maker_connects', 'meetings_booked', 'discovery_calls',
                 'opportunities_advanced', 'pipeline_coverage_ratio', 'average_deal_size',
-                'prospecting_activities', 'videos', 'deals_won_this_week'
+                'prospecting_activities', 'videos', 'deals_won_this_week',
+              'sales_accepted_opps_mtd', 'sales_accepted_opps_qtd', 'opps_created_this_week', 'pipeline_created_this_week'
               ])
             );
             setPrevQtdMetrics(aggregateSubmissions(parsedPrevQtd));
@@ -409,7 +421,8 @@ export function AdminDashboard() {
               'revenue_mtd', 'revenue_qtd', 'cold_calls', 'emails', 'li_messages',
               'decision_maker_connects', 'meetings_booked', 'discovery_calls',
               'opportunities_advanced', 'pipeline_coverage_ratio', 'average_deal_size',
-              'prospecting_activities', 'videos', 'deals_won_this_week'
+              'prospecting_activities', 'videos', 'deals_won_this_week',
+              'sales_accepted_opps_mtd', 'sales_accepted_opps_qtd', 'opps_created_this_week', 'pipeline_created_this_week'
             ]),
             week_end_date: allWeeks.find(w => w.id === sub.week_id)?.end_date || '',
           }));
@@ -1107,6 +1120,232 @@ export function AdminDashboard() {
           })}
         </div>
       </div>
+
+      {bdrReps.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
+          <h3 className="text-xl font-semibold text-slate-900 mb-1">BDR Performance</h3>
+          <p className="text-sm text-slate-600 mb-6">Business Development Representative metrics</p>
+          <div className="space-y-4">
+            {bdrReps.map((bdr) => {
+              const submission = submissions[bdr.id];
+              const status = submission?.status || 'not_started';
+              const isExpanded = expandedReps[bdr.id];
+
+              return (
+                <div key={bdr.id} className={`border rounded-lg overflow-hidden ${status === 'not_started' ? 'border-red-400 bg-red-50' : 'border-slate-200'}`}>
+                  <div
+                    onClick={() => toggleRepExpansion(bdr.id)}
+                    className={`flex items-center justify-between p-4 cursor-pointer ${status === 'not_started' ? 'hover:bg-red-100' : 'hover:bg-slate-50'}`}
+                  >
+                    <div className="flex items-center gap-4 flex-1">
+                      {isExpanded ? <ChevronDown className="w-5 h-5 text-slate-400" /> : <ChevronRight className="w-5 h-5 text-slate-400" />}
+                      <div className="flex-1">
+                        <p className="font-semibold text-slate-900">
+                          {bdr.name}
+                          <span className="ml-2 text-xs font-medium text-blue-600 bg-blue-100 px-2 py-0.5 rounded">BDR</span>
+                          {status === 'not_started' && (
+                            <span className="ml-2 text-xs font-bold text-red-600 bg-red-200 px-2 py-1 rounded">NOT STARTED</span>
+                          )}
+                        </p>
+                      </div>
+                      <div className="text-center min-w-[120px]">
+                        <p className="text-sm text-slate-600">SAOs MTD</p>
+                        <p className="font-semibold text-slate-900">{submission?.sales_accepted_opps_mtd ?? '--'}</p>
+                      </div>
+                      <div className="text-center min-w-[120px]">
+                        <p className="text-sm text-slate-600">SAOs QTD</p>
+                        <p className="font-semibold text-slate-900">{submission?.sales_accepted_opps_qtd ?? '--'}</p>
+                      </div>
+                      <div className="text-center min-w-[140px]">
+                        <p className="text-sm text-slate-600">Opps Created (Wk)</p>
+                        <p className="font-semibold text-slate-900">{submission?.opps_created_this_week ?? '--'}</p>
+                      </div>
+                      <div className="text-center min-w-[160px]">
+                        <p className="text-sm text-slate-600">Pipeline Created (Wk)</p>
+                        <p className="font-semibold text-slate-900">{submission ? formatCurrency(submission.pipeline_created_this_week || 0) : '--'}</p>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <div className={`flex items-center gap-2 px-3 py-1 rounded-lg border ${getStatusColor(status)}`}>
+                          {getStatusIcon(status)}
+                          <span className="text-sm font-medium capitalize">{status.replace('_', ' ')}</span>
+                        </div>
+                        {status === 'submitted' && submission?.submitted_at && (
+                          <span className="text-xs text-slate-500">
+                            {new Date(submission.submitted_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {isExpanded && submission && (
+                    <div className="border-t border-slate-200 bg-slate-50 p-6">
+                      <div className="grid md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                          <h4 className="font-semibold text-slate-900 mb-3">Performance Metrics</h4>
+                          <div className="space-y-2">
+                            <div className="flex justify-between">
+                              <span className="text-slate-600">Sales Accepted Opps MTD:</span>
+                              <span className="font-medium">{submission.sales_accepted_opps_mtd ?? 0}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-600">Sales Accepted Opps QTD:</span>
+                              <span className="font-medium">{submission.sales_accepted_opps_qtd ?? 0}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-600">Opps Created This Week:</span>
+                              <span className="font-medium">{submission.opps_created_this_week ?? 0}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-600">Pipeline Created This Week:</span>
+                              <span className="font-medium">{formatCurrency(submission.pipeline_created_this_week || 0)}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-slate-900 mb-3">Activities This Week</h4>
+                          <div className="space-y-2">
+                            {(() => {
+                              const target = activityTargets[bdr.id];
+                              return (
+                                <>
+                                  {[
+                                    { label: 'Cold Calls', val: submission.cold_calls, tgt: target?.target_cold_calls },
+                                    { label: 'Emails', val: submission.emails, tgt: target?.target_emails },
+                                    { label: 'LI Messages', val: submission.li_messages, tgt: target?.target_li_messages },
+                                    { label: 'Decision Maker Connects', val: submission.decision_maker_connects, tgt: target?.target_dm_connects },
+                                    { label: 'Meetings Booked', val: submission.meetings_booked, tgt: target?.target_meetings_booked },
+                                    { label: 'Discovery Calls', val: submission.discovery_calls, tgt: target?.target_discovery_calls },
+                                    { label: 'Videos', val: submission.videos, tgt: target?.target_videos },
+                                  ].map(({ label, val, tgt }) => (
+                                    <div key={label} className="flex justify-between items-center">
+                                      <span className="text-slate-600">{label}:</span>
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-medium">{val || 0}</span>
+                                        {tgt && (
+                                          <span className={`text-xs px-2 py-0.5 rounded ${(val || 0) >= tgt ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                                            / {tgt}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      </div>
+
+                      {submission.wins && submission.wins.length > 0 && submission.wins[0] && (
+                        <div className="mb-6">
+                          <h4 className="font-semibold text-slate-900 mb-3">Wins This Week</h4>
+                          <ul className="space-y-2">
+                            {submission.wins.map((win, idx) => (
+                              <li key={idx} className="flex items-start gap-2">
+                                <CheckCircle className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                                <span className="text-slate-700">{win}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {(submission.whats_working_well || submission.positive_feedback) && (
+                        <div className="mb-6">
+                          <h4 className="font-semibold text-slate-900 mb-3">What's Working Well & Positive Feedback</h4>
+                          <div className="space-y-3">
+                            {submission.whats_working_well && (
+                              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                                <p className="text-sm font-medium text-slate-700 mb-1">What's Working Well:</p>
+                                <p className="text-slate-700">{submission.whats_working_well}</p>
+                              </div>
+                            )}
+                            {submission.positive_feedback && (
+                              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <p className="text-sm font-medium text-slate-700 mb-1">Positive Feedback:</p>
+                                <p className="text-slate-700">{submission.positive_feedback}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {(submission.call_review_link || submission.call_review_focus) && (
+                        <div className="mb-6">
+                          <h4 className="font-semibold text-slate-900 mb-3">Call Review & Skill Development</h4>
+                          <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3">
+                            {submission.call_review_link && (
+                              <div>
+                                <p className="text-sm font-medium text-slate-700 mb-1">Call to Review:</p>
+                                <a href={submission.call_review_link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm break-all">{submission.call_review_link}</a>
+                              </div>
+                            )}
+                            {submission.call_review_focus && (
+                              <div>
+                                <p className="text-sm font-medium text-slate-700 mb-1">What to Evaluate:</p>
+                                <p className="text-slate-700 text-sm">{submission.call_review_focus}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {submission.blockers_help && (
+                        <div className="mb-6">
+                          <h4 className="font-semibold text-slate-900 mb-3">Blockers & Support Needed</h4>
+                          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <p className="text-slate-700">{submission.blockers_help}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {weeklyGoals[bdr.id] && weeklyGoals[bdr.id].length > 0 && (
+                        <div className="mb-6">
+                          <h4 className="font-semibold text-slate-900 mb-3">Next Week's Goals</h4>
+                          <div className="space-y-2">
+                            {weeklyGoals[bdr.id].map((goal: any, idx: number) => (
+                              <div key={idx} className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <p className="text-slate-700"><span className="font-medium text-slate-900">#{idx + 1}</span> {goal.goal_text}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {(submission.self_care || submission.energy_level || submission.manager_support) && (
+                        <div>
+                          <h4 className="font-semibold text-slate-900 mb-3">Personal Check-In</h4>
+                          <div className="space-y-3">
+                            {submission.self_care && (
+                              <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                                <p className="text-sm font-medium text-slate-700 mb-1">How They're Taking Care of Themselves:</p>
+                                <p className="text-slate-700">{submission.self_care}</p>
+                              </div>
+                            )}
+                            {submission.energy_level && (
+                              <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                                <p className="text-sm font-medium text-slate-700 mb-1">Energy Level:</p>
+                                <p className={`font-medium capitalize ${submission.energy_level === 'high' ? 'text-emerald-600' : submission.energy_level === 'medium' ? 'text-amber-600' : 'text-red-600'}`}>{submission.energy_level}</p>
+                              </div>
+                            )}
+                            {submission.manager_support && (
+                              <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                                <p className="text-sm font-medium text-slate-700 mb-1">What They Need from You:</p>
+                                <p className="text-slate-700">{submission.manager_support}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
         <h3 className="text-xl font-semibold text-slate-900 mb-4">

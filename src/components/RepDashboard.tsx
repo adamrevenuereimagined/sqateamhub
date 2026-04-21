@@ -14,6 +14,11 @@ type SubmissionBrief = {
   pipeline_coverage_ratio: number;
   deals_won_this_week?: number;
   deals_advancing_this_week?: number;
+  // BDR fields
+  sales_accepted_opps_mtd?: number;
+  sales_accepted_opps_qtd?: number;
+  opps_created_this_week?: number;
+  pipeline_created_this_week?: number;
 };
 
 type TrendDataPoint = {
@@ -30,7 +35,7 @@ type Props = {
 };
 
 export function RepDashboard({ onEnterWeek }: Props) {
-  const { user } = useAuth();
+  const { user, isBdr } = useAuth();
   const [allWeeks, setAllWeeks] = useState<Week[]>([]);
   const [submittedWeeks, setSubmittedWeeks] = useState<Week[]>([]);
   const [submittedWeekIds, setSubmittedWeekIds] = useState<Set<string>>(new Set());
@@ -43,6 +48,11 @@ export function RepDashboard({ onEnterWeek }: Props) {
   const [loading, setLoading] = useState(true);
   const [trendData, setTrendData] = useState<TrendDataPoint[]>([]);
   const [selectedMetric, setSelectedMetric] = useState<'qtd' | 'mtd' | 'pipeline' | 'dealsWon' | 'dealsAdvancing'>('qtd');
+  // BDR-specific state
+  const [latestSaoMtd, setLatestSaoMtd] = useState(0);
+  const [latestSaoQtd, setLatestSaoQtd] = useState(0);
+  const [latestOppsCreated, setLatestOppsCreated] = useState(0);
+  const [latestPipelineCreated, setLatestPipelineCreated] = useState(0);
 
   useEffect(() => {
     loadData();
@@ -62,7 +72,10 @@ export function RepDashboard({ onEnterWeek }: Props) {
       const weeks = weeksResult.data || [];
       const rawSubmissions = submissionsResult.data || [];
       const submissions = rawSubmissions.map(sub =>
-        parseNumericFields(sub, ['revenue_mtd', 'revenue_qtd', 'pipeline_coverage_ratio', 'deals_won_this_week'])
+        parseNumericFields(sub, [
+          'revenue_mtd', 'revenue_qtd', 'pipeline_coverage_ratio', 'deals_won_this_week',
+          'sales_accepted_opps_mtd', 'sales_accepted_opps_qtd', 'opps_created_this_week', 'pipeline_created_this_week'
+        ])
       );
 
       setAllWeeks(weeks);
@@ -141,6 +154,22 @@ export function RepDashboard({ onEnterWeek }: Props) {
           : null;
         setCumulativeQTD(latestQtdSubmission?.revenue_qtd || 0);
 
+        // BDR-specific: use latest submission for MTD/QTD opps
+        const latestBdrSub = submissions.length > 0
+          ? submissions.reduce((latest, s) => {
+              const latestWeek = weekMap.get(latest.week_id);
+              const currentWeekData = weekMap.get(s.week_id);
+              if (!latestWeek || !currentWeekData) return latest;
+              return new Date(currentWeekData.end_date) > new Date(latestWeek.end_date) ? s : latest;
+            })
+          : null;
+        if (latestBdrSub) {
+          setLatestSaoMtd((latestBdrSub as any).sales_accepted_opps_mtd || 0);
+          setLatestSaoQtd((latestBdrSub as any).sales_accepted_opps_qtd || 0);
+          setLatestOppsCreated((latestBdrSub as any).opps_created_this_week || 0);
+          setLatestPipelineCreated((latestBdrSub as any).pipeline_created_this_week || 0);
+        }
+
         for (const week of weeks) {
           const sub = submissionMap.get(week.id);
           if (sub && sub.pipeline_coverage_ratio > 0) {
@@ -197,6 +226,50 @@ export function RepDashboard({ onEnterWeek }: Props) {
         </p>
       </div>
 
+      {isBdr ? (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
+                <Target className="w-4 h-4 text-emerald-600" />
+              </div>
+              <span className="text-sm font-medium text-slate-500">SAOs MTD</span>
+            </div>
+            <p className="text-2xl font-bold text-slate-900">{hasSubmissions ? latestSaoMtd : '--'}</p>
+            {!hasSubmissions && <p className="text-xs text-slate-400 mt-1">Submit a report to track</p>}
+          </div>
+          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                <TrendingUp className="w-4 h-4 text-blue-600" />
+              </div>
+              <span className="text-sm font-medium text-slate-500">SAOs QTD</span>
+            </div>
+            <p className="text-2xl font-bold text-slate-900">{hasSubmissions ? latestSaoQtd : '--'}</p>
+            {!hasSubmissions && <p className="text-xs text-slate-400 mt-1">Submit a report to track</p>}
+          </div>
+          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center">
+                <Briefcase className="w-4 h-4 text-teal-600" />
+              </div>
+              <span className="text-sm font-medium text-slate-500">Opps Created (This Week)</span>
+            </div>
+            <p className="text-2xl font-bold text-slate-900">{hasSubmissions ? latestOppsCreated : '--'}</p>
+            {!hasSubmissions && <p className="text-xs text-slate-400 mt-1">Submit a report to track</p>}
+          </div>
+          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+                <DollarSign className="w-4 h-4 text-amber-600" />
+              </div>
+              <span className="text-sm font-medium text-slate-500">Pipeline Created (This Week)</span>
+            </div>
+            <p className="text-2xl font-bold text-slate-900">{hasSubmissions ? formatCurrency(latestPipelineCreated) : '--'}</p>
+            {!hasSubmissions && <p className="text-xs text-slate-400 mt-1">Submit a report to track</p>}
+          </div>
+        </div>
+      ) : (
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
@@ -283,6 +356,7 @@ export function RepDashboard({ onEnterWeek }: Props) {
           )}
         </div>
       </div>
+      )}
 
       {trendData.length > 0 && (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-8">
