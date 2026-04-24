@@ -1951,111 +1951,57 @@ export function AdminDashboard() {
               oppsAdvanced: Object.values(previousWeekSubmissions).reduce((sum, s) => sum + (s.opportunities_advanced || 0), 0)
             } : null;
 
+            const metrics = [
+              { label: 'Cold Calls', curr: totals.totalColdCalls, prev: previousTotals?.coldCalls },
+              { label: 'Emails', curr: totals.totalEmails, prev: previousTotals?.emails },
+              { label: 'LI Messages', curr: totals.totalLiMessages, prev: previousTotals?.liMessages },
+              { label: 'DM Connects', curr: totals.totalDMConnects, prev: previousTotals?.dmConnects },
+              { label: 'Meetings Booked', curr: totals.totalMeetings, prev: previousTotals?.meetings },
+              { label: 'Discovery Calls', curr: totals.totalDiscovery, prev: previousTotals?.discovery },
+              { label: 'Opps Advanced', curr: totals.totalOppsAdvanced, prev: previousTotals?.oppsAdvanced },
+            ];
+            const totalActs = totals.totalColdCalls + totals.totalEmails + totals.totalLiMessages;
+            const prevTotalActs = previousTotals
+              ? previousTotals.coldCalls + previousTotals.emails + previousTotals.liMessages
+              : undefined;
+
             return (
               <>
-                <div>
-                  <p className="text-sm text-slate-600 mb-1">Cold Calls</p>
-                  <div className="flex items-baseline gap-2">
-                    <p className="text-2xl font-bold text-slate-900">{totals.totalColdCalls}</p>
-                    {previousTotals && (
-                      <div className="flex items-center gap-1">
-                        {getTrendIcon(totals.totalColdCalls, previousTotals.coldCalls)}
-                        <span className={`text-xs font-medium ${getTrendColor(totals.totalColdCalls, previousTotals.coldCalls)}`}>
-                          {calculateChange(totals.totalColdCalls, previousTotals.coldCalls) > 0 ? '+' : ''}{calculateChange(totals.totalColdCalls, previousTotals.coldCalls).toFixed(0)}%
-                        </span>
-                      </div>
+                {metrics.map(({ label, curr, prev }) => (
+                  <div key={label}>
+                    <p className="text-sm text-slate-600 mb-1">{label}</p>
+                    <div className="flex items-baseline gap-2">
+                      <p className="text-2xl font-bold text-slate-900">{curr}</p>
+                      {prev !== undefined && (
+                        <div className="flex items-center gap-1">
+                          {getTrendIcon(curr, prev)}
+                          <span className={`text-xs font-medium ${getTrendColor(curr, prev)}`}>
+                            {calculateChange(curr, prev) > 0 ? '+' : ''}{calculateChange(curr, prev).toFixed(0)}%
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    {prev !== undefined && (
+                      <p className="text-xs text-slate-400 mt-0.5">Prior week: {prev}</p>
                     )}
                   </div>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-600 mb-1">Emails</p>
-                  <div className="flex items-baseline gap-2">
-                    <p className="text-2xl font-bold text-slate-900">{totals.totalEmails}</p>
-                    {previousTotals && (
-                      <div className="flex items-center gap-1">
-                        {getTrendIcon(totals.totalEmails, previousTotals.emails)}
-                        <span className={`text-xs font-medium ${getTrendColor(totals.totalEmails, previousTotals.emails)}`}>
-                          {calculateChange(totals.totalEmails, previousTotals.emails) > 0 ? '+' : ''}{calculateChange(totals.totalEmails, previousTotals.emails).toFixed(0)}%
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-600 mb-1">LI Messages</p>
-                  <div className="flex items-baseline gap-2">
-                    <p className="text-2xl font-bold text-slate-900">{totals.totalLiMessages}</p>
-                    {previousTotals && (
-                      <div className="flex items-center gap-1">
-                        {getTrendIcon(totals.totalLiMessages, previousTotals.liMessages)}
-                        <span className={`text-xs font-medium ${getTrendColor(totals.totalLiMessages, previousTotals.liMessages)}`}>
-                          {calculateChange(totals.totalLiMessages, previousTotals.liMessages) > 0 ? '+' : ''}{calculateChange(totals.totalLiMessages, previousTotals.liMessages).toFixed(0)}%
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-600 mb-1">Decision Maker Connects</p>
-                  <div className="flex items-baseline gap-2">
-                    <p className="text-2xl font-bold text-slate-900">{totals.totalDMConnects}</p>
-                    {previousTotals && (
-                      <div className="flex items-center gap-1">
-                        {getTrendIcon(totals.totalDMConnects, previousTotals.dmConnects)}
-                        <span className={`text-xs font-medium ${getTrendColor(totals.totalDMConnects, previousTotals.dmConnects)}`}>
-                          {calculateChange(totals.totalDMConnects, previousTotals.dmConnects) > 0 ? '+' : ''}{calculateChange(totals.totalDMConnects, previousTotals.dmConnects).toFixed(0)}%
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-600 mb-1">Meetings Booked</p>
-                  <div className="flex items-baseline gap-2">
-                    <p className="text-2xl font-bold text-slate-900">{totals.totalMeetings}</p>
-                    {previousTotals && (
-                      <div className="flex items-center gap-1">
-                        {getTrendIcon(totals.totalMeetings, previousTotals.meetings)}
-                        <span className={`text-xs font-medium ${getTrendColor(totals.totalMeetings, previousTotals.meetings)}`}>
-                          {calculateChange(totals.totalMeetings, previousTotals.meetings) > 0 ? '+' : ''}{calculateChange(totals.totalMeetings, previousTotals.meetings).toFixed(0)}%
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-600 mb-1">Discovery Calls</p>
-                  <div className="flex items-baseline gap-2">
-                    <p className="text-2xl font-bold text-slate-900">{totals.totalDiscovery}</p>
-                    {previousTotals && (
-                      <div className="flex items-center gap-1">
-                        {getTrendIcon(totals.totalDiscovery, previousTotals.discovery)}
-                        <span className={`text-xs font-medium ${getTrendColor(totals.totalDiscovery, previousTotals.discovery)}`}>
-                          {calculateChange(totals.totalDiscovery, previousTotals.discovery) > 0 ? '+' : ''}{calculateChange(totals.totalDiscovery, previousTotals.discovery).toFixed(0)}%
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-600 mb-1">Opps Advanced</p>
-                  <div className="flex items-baseline gap-2">
-                    <p className="text-2xl font-bold text-slate-900">{totals.totalOppsAdvanced}</p>
-                    {previousTotals && (
-                      <div className="flex items-center gap-1">
-                        {getTrendIcon(totals.totalOppsAdvanced, previousTotals.oppsAdvanced)}
-                        <span className={`text-xs font-medium ${getTrendColor(totals.totalOppsAdvanced, previousTotals.oppsAdvanced)}`}>
-                          {calculateChange(totals.totalOppsAdvanced, previousTotals.oppsAdvanced) > 0 ? '+' : ''}{calculateChange(totals.totalOppsAdvanced, previousTotals.oppsAdvanced).toFixed(0)}%
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                ))}
                 <div>
                   <p className="text-sm text-slate-600 mb-1">Total Activities</p>
-                  <p className="text-2xl font-bold text-slate-900">
-                    {totals.totalColdCalls + totals.totalEmails + totals.totalLiMessages}
-                  </p>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-2xl font-bold text-slate-900">{totalActs}</p>
+                    {prevTotalActs !== undefined && (
+                      <div className="flex items-center gap-1">
+                        {getTrendIcon(totalActs, prevTotalActs)}
+                        <span className={`text-xs font-medium ${getTrendColor(totalActs, prevTotalActs)}`}>
+                          {calculateChange(totalActs, prevTotalActs) > 0 ? '+' : ''}{calculateChange(totalActs, prevTotalActs).toFixed(0)}%
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  {prevTotalActs !== undefined && (
+                    <p className="text-xs text-slate-400 mt-0.5">Prior week: {prevTotalActs}</p>
+                  )}
                 </div>
               </>
             );
