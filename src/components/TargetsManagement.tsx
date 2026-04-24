@@ -312,7 +312,7 @@ export function TargetsManagement({ onClose }: Props) {
           ) : (
             <div className="space-y-6">
               <p className="text-slate-600">
-                Set weekly activity targets for each rep individually. Pipeline Value defaults to 3x their quarterly quota.
+                Set weekly activity targets for each team member individually. Pipeline Value defaults to 3x their quarterly quota.
               </p>
 
               {reps.map((rep) => {
