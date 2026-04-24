@@ -57,7 +57,7 @@ export function TargetsManagement({ onClose }: Props) {
       const { data: repsData } = await supabase
         .from('users')
         .select('*')
-        .eq('role', 'rep')
+        .in('role', ['rep', 'bdr'])
         .eq('is_active', true)
         .order('name');
 
