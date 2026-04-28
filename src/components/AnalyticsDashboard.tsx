@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase, Week, User, parseNumericFields } from '../lib/supabase';
-import { TrendingUp, TrendingDown, Target, Calendar, BarChart3, ArrowRight } from 'lucide-react';
+import { TrendingUp, TrendingDown, Target, Calendar, BarChart3, Minus } from 'lucide-react';
+import { Card } from './ui';
 
 type WeeklySubmission = {
   id: string;
@@ -131,31 +132,29 @@ export function AnalyticsDashboard() {
     return (actual / target) * 100;
   };
 
-  const calculateTrend = (current: number, previous: number): { value: number; direction: 'up' | 'down' | 'flat' } => {
-    if (previous === 0) return { value: 0, direction: 'flat' };
+  const calculateTrend = (current: number, previous: number) => {
+    if (previous === 0) return { value: 0, direction: 'flat' as const };
     const change = ((current - previous) / previous) * 100;
     return {
       value: Math.abs(change),
-      direction: change > 0 ? 'up' : change < 0 ? 'down' : 'flat'
+      direction: change > 0 ? ('up' as const) : change < 0 ? ('down' as const) : ('flat' as const),
     };
   };
 
-  const getAchievementColor = (percentage: number): string => {
-    if (percentage >= 100) return 'text-emerald-600 bg-emerald-50 border-emerald-200';
-    if (percentage >= 80) return 'text-blue-600 bg-blue-50 border-blue-200';
-    if (percentage >= 60) return 'text-amber-600 bg-amber-50 border-amber-200';
-    return 'text-red-600 bg-red-50 border-red-200';
-  };
-
-  const getBarHeight = (actual: number, target: number): number => {
-    if (target === 0) return 0;
-    return Math.min((actual / target) * 100, 100);
+  const getAchievementStyle = (percentage: number): { pill: string; bar: string } => {
+    if (percentage >= 100)
+      return { pill: 'text-accent-700 bg-accent-50 border-accent-200', bar: 'bg-accent-500' };
+    if (percentage >= 80)
+      return { pill: 'text-brand-700 bg-brand-50 border-brand-200', bar: 'bg-brand-500' };
+    if (percentage >= 60)
+      return { pill: 'text-amber-700 bg-amber-50 border-amber-200', bar: 'bg-amber-500' };
+    return { pill: 'text-red-700 bg-red-50 border-red-200', bar: 'bg-red-500' };
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+        <div className="h-10 w-10 rounded-full border-2 border-brand-200 border-t-brand-600 animate-spin" />
       </div>
     );
   }
@@ -173,113 +172,97 @@ export function AnalyticsDashboard() {
   const previousWeekData = weeklyData[1];
 
   return (
-    <div>
-      <div className="mb-8 flex items-start justify-between">
+    <div className="animate-fade-in">
+      <header className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-slate-900 mb-2">
+          <h2 className="text-3xl font-bold text-slate-900 tracking-tight mb-1">
             Week-over-Week Analytics
           </h2>
-          <p className="text-slate-600">
+          <p className="text-slate-500">
             Performance trends and target achievement tracking
           </p>
         </div>
 
-        <div className="flex items-end gap-4">
-          <div className="text-right">
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Select Rep
-            </label>
-            <select
-              value={selectedRep.id}
-              onChange={(e) => {
-                const rep = reps.find(r => r.id === e.target.value);
-                if (rep) setSelectedRep(rep);
-              }}
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 min-w-[200px]"
-            >
-              {reps.map((rep) => (
-                <option key={rep.id} value={rep.id}>
-                  {rep.name}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="flex flex-wrap gap-3">
+          <FilterSelect
+            label="Rep"
+            value={selectedRep.id}
+            onChange={(v) => {
+              const rep = reps.find(r => r.id === v);
+              if (rep) setSelectedRep(rep);
+            }}
+            minWidth="200px"
+          >
+            {reps.map((rep) => (
+              <option key={rep.id} value={rep.id}>{rep.name}</option>
+            ))}
+          </FilterSelect>
 
-          <div className="text-right">
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Weeks to Display
-            </label>
-            <select
-              value={weeksToShow}
-              onChange={(e) => setWeeksToShow(Number(e.target.value))}
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-            >
-              <option value={4}>4 weeks</option>
-              <option value={8}>8 weeks</option>
-              <option value={12}>12 weeks</option>
-            </select>
-          </div>
+          <FilterSelect
+            label="Range"
+            value={String(weeksToShow)}
+            onChange={(v) => setWeeksToShow(Number(v))}
+          >
+            <option value={4}>4 weeks</option>
+            <option value={8}>8 weeks</option>
+            <option value={12}>12 weeks</option>
+          </FilterSelect>
         </div>
-      </div>
+      </header>
 
       {currentWeekData?.submission && previousWeekData?.submission && (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
-          <h3 className="text-xl font-semibold text-slate-900 mb-4 flex items-center gap-2">
-            <TrendingUp className="w-6 h-6 text-emerald-600" />
-            Week-over-Week Change
-          </h3>
-          <p className="text-sm text-slate-600 mb-6">
-            Comparing latest week vs previous week
-          </p>
+        <Card padding="md" className="mb-6">
+          <div className="flex items-start gap-3 mb-5">
+            <div className="h-9 w-9 rounded-lg bg-brand-50 text-brand-700 flex items-center justify-center flex-shrink-0">
+              <TrendingUp className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-slate-900">Week-over-Week Change</h3>
+              <p className="text-sm text-slate-500 mt-0.5">Latest week vs previous week</p>
+            </div>
+          </div>
 
-          <div className="grid md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
               { label: 'Cold Calls', current: currentWeekData.submission.cold_calls, previous: previousWeekData.submission.cold_calls },
               { label: 'LI Messages', current: currentWeekData.submission.li_messages, previous: previousWeekData.submission.li_messages },
-              { label: 'Decision Maker Connects', current: currentWeekData.submission.decision_maker_connects, previous: previousWeekData.submission.decision_maker_connects },
+              { label: 'DM Connects', current: currentWeekData.submission.decision_maker_connects, previous: previousWeekData.submission.decision_maker_connects },
               { label: 'Meetings', current: currentWeekData.submission.meetings_booked, previous: previousWeekData.submission.meetings_booked },
               { label: 'Discovery Calls', current: currentWeekData.submission.discovery_calls, previous: previousWeekData.submission.discovery_calls },
               { label: 'Opps Advanced', current: currentWeekData.submission.opportunities_advanced, previous: previousWeekData.submission.opportunities_advanced },
-              { label: 'Pipeline Value', current: currentWeekData.submission.pipeline_coverage_ratio, previous: previousWeekData.submission.pipeline_coverage_ratio }
+              { label: 'Pipeline Value', current: currentWeekData.submission.pipeline_coverage_ratio, previous: previousWeekData.submission.pipeline_coverage_ratio },
             ].map((metric) => {
               const trend = calculateTrend(metric.current, metric.previous);
               return (
-                <div key={metric.label} className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                  <p className="text-sm text-slate-600 mb-2">{metric.label}</p>
+                <div key={metric.label} className="bg-slate-50 rounded-lg p-3.5 border border-slate-200">
+                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">{metric.label}</p>
                   <div className="flex items-end justify-between">
                     <div>
-                      <p className="text-2xl font-bold text-slate-900">{metric.current}</p>
-                      <p className="text-xs text-slate-500">was {metric.previous}</p>
+                      <p className="text-2xl font-bold text-slate-900 leading-none">{metric.current}</p>
+                      <p className="text-[11px] text-slate-400 mt-1">was {metric.previous}</p>
                     </div>
-                    {trend.direction !== 'flat' && (
-                      <div className={`flex items-center gap-1 ${trend.direction === 'up' ? 'text-emerald-600' : 'text-red-600'}`}>
-                        {trend.direction === 'up' ? (
-                          <TrendingUp className="w-4 h-4" />
-                        ) : (
-                          <TrendingDown className="w-4 h-4" />
-                        )}
-                        <span className="text-sm font-medium">{trend.value.toFixed(0)}%</span>
-                      </div>
-                    )}
+                    <TrendBadge trend={trend} />
                   </div>
                 </div>
               );
             })}
           </div>
-        </div>
+        </Card>
       )}
 
       {repTargets && currentWeekData?.submission && (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
-          <h3 className="text-xl font-semibold text-slate-900 mb-4 flex items-center gap-2">
-            <Target className="w-6 h-6 text-blue-600" />
-            Target Achievement - Current Week
-          </h3>
-          <p className="text-sm text-slate-600 mb-6">
-            How is this rep tracking against their weekly targets?
-          </p>
+        <Card padding="md" className="mb-6">
+          <div className="flex items-start gap-3 mb-5">
+            <div className="h-9 w-9 rounded-lg bg-brand-50 text-brand-700 flex items-center justify-center flex-shrink-0">
+              <Target className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-slate-900">Target Achievement — Current Week</h3>
+              <p className="text-sm text-slate-500 mt-0.5">Tracking against weekly activity targets</p>
+            </div>
+          </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 gap-4">
             {[
               { label: 'Cold Calls', actual: currentWeekData.submission.cold_calls, target: repTargets.target_cold_calls },
               { label: 'LI Messages', actual: currentWeekData.submission.li_messages, target: repTargets.target_li_messages },
@@ -287,64 +270,63 @@ export function AnalyticsDashboard() {
               { label: 'Decision Maker Connects', actual: currentWeekData.submission.decision_maker_connects, target: repTargets.target_dm_connects },
               { label: 'Meetings Booked', actual: currentWeekData.submission.meetings_booked, target: repTargets.target_meetings_booked },
               { label: 'Discovery Calls', actual: currentWeekData.submission.discovery_calls, target: repTargets.target_discovery_calls },
-              { label: 'Opps Advanced', actual: currentWeekData.submission.opportunities_advanced, target: repTargets.target_opportunities_advanced }
+              { label: 'Opps Advanced', actual: currentWeekData.submission.opportunities_advanced, target: repTargets.target_opportunities_advanced },
             ].map((metric) => {
               const achievement = calculateAchievement(metric.actual, metric.target);
+              const style = getAchievementStyle(achievement);
+              const barWidth = Math.min(achievement, 100);
               return (
                 <div key={metric.label} className="border border-slate-200 rounded-lg p-4">
                   <div className="flex justify-between items-start mb-3">
                     <div>
-                      <p className="font-semibold text-slate-900">{metric.label}</p>
-                      <p className="text-sm text-slate-600">Target: {metric.target}</p>
+                      <p className="font-medium text-slate-900 text-sm">{metric.label}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Target: {metric.target}</p>
                     </div>
-                    <div className={`px-3 py-1 rounded-lg border font-semibold text-sm ${getAchievementColor(achievement)}`}>
+                    <div className={`px-2 py-0.5 rounded border font-semibold text-xs ${style.pill}`}>
                       {achievement.toFixed(0)}%
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="flex-1 bg-slate-200 rounded-full h-3 overflow-hidden">
+                    <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
                       <div
-                        className={`h-full rounded-full transition-all ${
-                          achievement >= 100 ? 'bg-emerald-500' :
-                          achievement >= 80 ? 'bg-blue-500' :
-                          achievement >= 60 ? 'bg-amber-500' :
-                          'bg-red-500'
-                        }`}
-                        style={{ width: `${getBarHeight(metric.actual, metric.target)}%` }}
+                        className={`h-full rounded-full transition-all duration-500 ${style.bar}`}
+                        style={{ width: `${barWidth}%` }}
                       />
                     </div>
-                    <div className="text-right min-w-[60px]">
-                      <p className="text-lg font-bold text-slate-900">{metric.actual}</p>
-                    </div>
+                    <p className="text-base font-semibold text-slate-900 min-w-[3ch] text-right">
+                      {metric.actual}
+                    </p>
                   </div>
                 </div>
               );
             })}
           </div>
-        </div>
+        </Card>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-        <h3 className="text-xl font-semibold text-slate-900 mb-4 flex items-center gap-2">
-          <BarChart3 className="w-6 h-6 text-orange-600" />
-          Historical Trends
-        </h3>
-        <p className="text-sm text-slate-600 mb-6">
-          Performance over the last {weeksToShow} weeks
-        </p>
+      <Card padding="md">
+        <div className="flex items-start gap-3 mb-5">
+          <div className="h-9 w-9 rounded-lg bg-brand-50 text-brand-700 flex items-center justify-center flex-shrink-0">
+            <BarChart3 className="h-5 w-5" />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-slate-900">Historical Trends</h3>
+            <p className="text-sm text-slate-500 mt-0.5">Performance over the last {weeksToShow} weeks</p>
+          </div>
+        </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        <div className="overflow-x-auto -mx-6 scrollbar-thin">
+          <table className="w-full text-sm">
             <thead>
-              <tr className="border-b-2 border-slate-200">
-                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Week Ending</th>
-                <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Cold Calls</th>
-                <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">LI Msgs</th>
-                <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Decision Maker Connects</th>
-                <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Meetings</th>
-                <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Discovery</th>
-                <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Opps</th>
-                <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Revenue QTD</th>
+              <tr className="border-b border-slate-200 text-left bg-slate-50/60">
+                <th className="py-2.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wide">Week Ending</th>
+                <th className="py-2.5 px-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Calls</th>
+                <th className="py-2.5 px-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">LI Msgs</th>
+                <th className="py-2.5 px-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">DM Connects</th>
+                <th className="py-2.5 px-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Meetings</th>
+                <th className="py-2.5 px-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Discovery</th>
+                <th className="py-2.5 px-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Opps</th>
+                <th className="py-2.5 px-6 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Revenue QTD</th>
               </tr>
             </thead>
             <tbody>
@@ -352,42 +334,30 @@ export function AnalyticsDashboard() {
                 const submission = weekData.submission;
                 const isCurrentWeek = idx === 0;
                 return (
-                  <tr key={weekData.week.id} className={`border-b border-slate-100 hover:bg-slate-50 ${isCurrentWeek ? 'bg-blue-50' : ''}`}>
-                    <td className="py-3 px-4">
+                  <tr key={weekData.week.id} className={`border-b border-slate-100 hover:bg-slate-50/60 transition-colors ${isCurrentWeek ? 'bg-brand-50/30' : ''}`}>
+                    <td className="py-3 px-6">
                       <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-slate-400" />
-                        <span className="font-medium text-slate-900">
+                        <Calendar className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                        <span className="font-medium text-slate-900 whitespace-nowrap">
                           {new Date(weekData.week.end_date).toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',
-                            year: 'numeric'
+                            year: 'numeric',
                           })}
                         </span>
                         {isCurrentWeek && (
-                          <span className="text-xs px-2 py-0.5 bg-blue-600 text-white rounded-full">Current</span>
+                          <span className="text-[10px] font-medium px-1.5 py-0.5 bg-brand-700 text-white rounded">Current</span>
                         )}
                       </div>
                     </td>
-                    <td className="text-right py-3 px-4 font-medium text-slate-900">
-                      {submission?.cold_calls || '-'}
-                    </td>
-                    <td className="text-right py-3 px-4 font-medium text-slate-900">
-                      {submission?.li_messages || '-'}
-                    </td>
-                    <td className="text-right py-3 px-4 font-medium text-slate-900">
-                      {submission?.decision_maker_connects || '-'}
-                    </td>
-                    <td className="text-right py-3 px-4 font-medium text-slate-900">
-                      {submission?.meetings_booked || '-'}
-                    </td>
-                    <td className="text-right py-3 px-4 font-medium text-slate-900">
-                      {submission?.discovery_calls || '-'}
-                    </td>
-                    <td className="text-right py-3 px-4 font-medium text-slate-900">
-                      {submission?.opportunities_advanced || '-'}
-                    </td>
-                    <td className="text-right py-3 px-4 font-medium text-slate-900">
-                      {submission?.revenue_qtd ? `$${(submission.revenue_qtd / 1000).toFixed(0)}K` : '-'}
+                    <DataCell value={submission?.cold_calls} />
+                    <DataCell value={submission?.li_messages} />
+                    <DataCell value={submission?.decision_maker_connects} />
+                    <DataCell value={submission?.meetings_booked} />
+                    <DataCell value={submission?.discovery_calls} />
+                    <DataCell value={submission?.opportunities_advanced} />
+                    <td className="py-3 px-6 text-right font-medium text-slate-900 whitespace-nowrap">
+                      {submission?.revenue_qtd ? `$${(submission.revenue_qtd / 1000).toFixed(0)}K` : <span className="text-slate-300">—</span>}
                     </td>
                   </tr>
                 );
@@ -395,7 +365,57 @@ export function AnalyticsDashboard() {
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
+    </div>
+  );
+}
+
+function DataCell({ value }: { value: number | undefined }) {
+  return (
+    <td className="py-3 px-3 text-right font-medium text-slate-900 tabular-nums">
+      {value || value === 0 ? value : <span className="text-slate-300">—</span>}
+    </td>
+  );
+}
+
+function TrendBadge({ trend }: { trend: { value: number; direction: 'up' | 'down' | 'flat' } }) {
+  if (trend.direction === 'flat') {
+    return (
+      <span className="inline-flex items-center gap-0.5 text-xs text-slate-400">
+        <Minus className="h-3 w-3" />
+      </span>
+    );
+  }
+  const isUp = trend.direction === 'up';
+  const Icon = isUp ? TrendingUp : TrendingDown;
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-xs font-semibold ${isUp ? 'text-accent-600' : 'text-red-600'}`}>
+      <Icon className="h-3 w-3" />
+      {trend.value.toFixed(0)}%
+    </span>
+  );
+}
+
+type FilterSelectProps = {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  children: React.ReactNode;
+  minWidth?: string;
+};
+
+function FilterSelect({ label, value, onChange, children, minWidth }: FilterSelectProps) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">{label}</label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={minWidth ? { minWidth } : undefined}
+        className="h-10 px-3 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 transition-colors hover:border-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+      >
+        {children}
+      </select>
     </div>
   );
 }

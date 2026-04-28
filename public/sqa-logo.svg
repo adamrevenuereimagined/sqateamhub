@@ -1,28 +1,19 @@
-<svg viewBox="0 0 446 432" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Top green bar -->
-  <rect width="446" height="76" fill="#3A7556"/>
+<svg viewBox="0 0 446 470" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SQA">
+  <rect width="446" height="60" fill="#2F6B4F"/>
+  <rect x="195" y="60" width="56" height="22" fill="#2F6B4F"/>
 
-  <!-- Blue center rectangle -->
-  <rect y="76" width="446" height="280" fill="#3D5BA3"/>
+  <path d="M 60 110 L 145 110 L 145 140 L 90 140 L 90 175 L 130 175 L 145 175 L 145 290 L 50 290 L 50 260 L 115 260 L 115 205 L 75 205 L 60 205 Z" fill="#1E3A5F"/>
 
-  <!-- Letter S -->
-  <path d="M 30 140 L 130 140 L 130 110 L 60 110 L 60 180 L 120 180 L 120 260 L 30 260 L 30 290 L 135 290 L 135 170 L 75 170 L 75 120 L 145 120 L 145 100 L 30 100 Z" fill="white"/>
+  <rect x="180" y="110" width="35" height="180" fill="#1E3A5F"/>
+  <rect x="180" y="110" width="125" height="35" fill="#1E3A5F"/>
+  <rect x="270" y="110" width="35" height="115" fill="#1E3A5F"/>
+  <rect x="180" y="255" width="125" height="35" fill="#1E3A5F"/>
+  <rect x="265" y="245" width="50" height="55" fill="#1E3A5F"/>
 
-  <!-- Letter I (vertical bar) -->
-  <rect x="165" y="100" width="40" height="190" fill="white"/>
+  <rect x="340" y="110" width="35" height="180" fill="#1E3A5F"/>
+  <rect x="340" y="110" width="56" height="35" fill="#1E3A5F"/>
+  <rect x="361" y="145" width="35" height="35" fill="#1E3A5F"/>
 
-  <!-- Letter Q -->
-  <rect x="225" y="100" width="40" height="190" fill="white"/>
-  <rect x="225" y="100" width="115" height="40" fill="white"/>
-  <rect x="300" y="100" width="40" height="115" fill="white"/>
-  <rect x="225" y="250" width="115" height="40" fill="white"/>
-
-  <!-- Letter A -->
-  <rect x="360" y="100" width="40" height="190" fill="white"/>
-  <rect x="360" y="100" width="56" height="40" fill="white"/>
-  <rect x="376" y="140" width="40" height="40" fill="white"/>
-
-  <!-- Bottom green bar with arrow -->
-  <rect y="356" width="446" height="76" fill="#3A7556"/>
-  <path d="M 400 394 L 446 394 L 423 418 Z" fill="white"/>
+  <rect y="358" width="446" height="60" fill="#2F6B4F"/>
+  <polygon points="200,418 246,418 223,452" fill="#2F6B4F"/>
 </svg>

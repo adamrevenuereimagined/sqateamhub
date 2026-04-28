@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { supabase, User } from '../lib/supabase';
-import { Target, Save, X, DollarSign, Users, UserCog } from 'lucide-react';
+import { Save, DollarSign, Users, UserCog } from 'lucide-react';
 import { CurrencyInput } from './CurrencyInput';
+import { Button, Modal, useToast } from './ui';
 
 type Props = {
   onClose: () => void;
@@ -39,7 +40,14 @@ const ACTIVITY_FIELDS: { key: keyof TargetFields; label: string }[] = [
   { key: 'target_opportunities_advanced', label: 'Opportunities Advanced' },
 ];
 
+const numberInputClass =
+  'w-full h-10 px-3 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 transition-colors hover:border-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 tabular-nums';
+
+const currencyInputClass =
+  'w-full h-10 px-3 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 transition-colors hover:border-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 tabular-nums font-medium';
+
 export function TargetsManagement({ onClose }: Props) {
+  const toast = useToast();
   const [mode, setMode] = useState<'all' | 'individual'>('all');
   const [reps, setReps] = useState<User[]>([]);
   const [targets, setTargets] = useState<{ [userId: string]: TargetFields }>({});
@@ -142,10 +150,7 @@ export function TargetsManagement({ onClose }: Props) {
     try {
       for (const rep of reps) {
         const targetValues = mode === 'all'
-          ? {
-              ...allTargets,
-              target_pipeline_value: quotas[rep.id] * 3,
-            }
+          ? { ...allTargets, target_pipeline_value: quotas[rep.id] * 3 }
           : targets[rep.id];
 
         const { error } = await supabase
@@ -171,114 +176,80 @@ export function TargetsManagement({ onClose }: Props) {
           .from('users')
           .update({ quarterly_quota: quota })
           .eq('id', userId);
-
         if (error) throw error;
       }
 
+      toast.success('Targets saved');
       onClose();
     } catch (error) {
       console.error('Error saving targets:', error);
-      alert('Failed to save targets and quotas. Please try again.');
+      toast.error('Failed to save targets', 'Please try again.');
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-xl p-8">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="p-6 border-b border-slate-200 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Target className="w-6 h-6 text-emerald-600" />
-            <h2 className="text-2xl font-bold text-slate-900">Manage Weekly Activity Targets</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+    <Modal
+      open
+      onClose={onClose}
+      title="Weekly Activity Targets"
+      description="Set targets for the team or for individual reps"
+      size="xl"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button
+            loading={saving}
+            onClick={saveTargets}
+            leadingIcon={<Save className="w-4 h-4" />}
           >
-            <X className="w-5 h-5 text-slate-600" />
-          </button>
+            Save targets
+          </Button>
+        </>
+      }
+    >
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <div className="h-10 w-10 rounded-full border-2 border-brand-200 border-t-brand-600 animate-spin" />
         </div>
-
-        <div className="px-6 pt-4">
+      ) : (
+        <div className="space-y-6">
           <div className="flex gap-1 bg-slate-100 rounded-lg p-1 w-fit">
-            <button
-              onClick={() => setMode('all')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                mode === 'all'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Users className="w-4 h-4" />
-              Set All Team Members
-            </button>
-            <button
-              onClick={() => setMode('individual')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                mode === 'individual'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <UserCog className="w-4 h-4" />
+            <ModeTab active={mode === 'all'} onClick={() => setMode('all')} icon={<Users className="w-4 h-4" />}>
+              Set for All
+            </ModeTab>
+            <ModeTab active={mode === 'individual'} onClick={() => setMode('individual')} icon={<UserCog className="w-4 h-4" />}>
               Set Individually
-            </button>
+            </ModeTab>
           </div>
-        </div>
 
-        <div className="flex-1 overflow-y-auto p-6">
           {mode === 'all' ? (
             <div className="space-y-6">
-              <div className="bg-slate-50 rounded-lg p-6 border border-slate-200">
-                <h3 className="text-lg font-semibold text-slate-900 mb-1">
-                  Activity Targets
-                </h3>
-                <p className="text-sm text-slate-500 mb-4">
-                  These values will apply to all team members
-                </p>
-                <div className="grid md:grid-cols-3 gap-4">
+              <Section title="Activity targets" description="These values will apply to every team member">
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {ACTIVITY_FIELDS.map(({ key, label }) => (
-                    <div key={key}>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        {label}
-                      </label>
-                      <input
-                        type="number"
-                        value={allTargets[key]}
-                        onChange={(e) => updateAllTarget(key, parseInt(e.target.value) || 0)}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                      />
-                    </div>
+                    <FieldInput
+                      key={key}
+                      label={label}
+                      value={allTargets[key]}
+                      onChange={(v) => updateAllTarget(key, v)}
+                    />
                   ))}
                 </div>
-              </div>
+              </Section>
 
-              <div className="bg-slate-50 rounded-lg p-6 border border-slate-200">
-                <h3 className="text-lg font-semibold text-slate-900 mb-1">
-                  Quarterly Quotas & Pipeline Targets
-                </h3>
-                <p className="text-sm text-slate-500 mb-4">
-                  Pipeline Value auto-calculates as 3x each rep's quarterly quota
-                </p>
-
+              <Section
+                title="Quarterly quotas & pipeline targets"
+                description="Pipeline value auto-calculates as 3× each rep's quarterly quota"
+              >
                 <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-                  <table className="w-full">
+                  <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-slate-200 bg-slate-50">
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Rep</th>
-                        <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Quarterly Quota</th>
-                        <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Pipeline Value Target</th>
+                        <th className="text-left py-2.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wide">Rep</th>
+                        <th className="text-right py-2.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wide">Quarterly Quota</th>
+                        <th className="text-right py-2.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wide">Pipeline Target</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -292,27 +263,27 @@ export function TargetsManagement({ onClose }: Props) {
                               <CurrencyInput
                                 value={quotas[rep.id] || 0}
                                 onChange={(val) => updateQuota(rep.id, val)}
-                                className="w-40 px-3 py-2 border border-emerald-300 bg-emerald-50 rounded-lg focus:ring-2 focus:ring-emerald-500 font-semibold text-slate-900 text-right"
+                                className={`${currencyInputClass} w-44 text-right`}
                               />
                             </div>
                           </td>
-                          <td className="py-3 px-4 text-right">
-                            <span className="font-semibold text-slate-700">
+                          <td className="py-3 px-4 text-right tabular-nums">
+                            <span className="font-medium text-slate-700">
                               ${((quotas[rep.id] || 0) * 3).toLocaleString()}
                             </span>
-                            <span className="text-xs text-slate-400 ml-1">(3x quota)</span>
+                            <span className="text-xs text-slate-400 ml-1">(3× quota)</span>
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-              </div>
+              </Section>
             </div>
           ) : (
-            <div className="space-y-6">
-              <p className="text-slate-600">
-                Set weekly activity targets for each team member individually. Pipeline Value defaults to 3x their quarterly quota.
+            <div className="space-y-4">
+              <p className="text-sm text-slate-500">
+                Set weekly activity targets for each team member individually. Pipeline Value defaults to 3× their quarterly quota.
               </p>
 
               {reps.map((rep) => {
@@ -322,51 +293,46 @@ export function TargetsManagement({ onClose }: Props) {
                 };
 
                 return (
-                  <div key={rep.id} className="bg-slate-50 rounded-lg p-6 border border-slate-200">
-                    <div className="mb-4 flex items-start justify-between">
+                  <div key={rep.id} className="border border-slate-200 rounded-xl p-5">
+                    <div className="flex items-start justify-between gap-4 mb-4 pb-4 border-b border-slate-100">
                       <div>
-                        <h3 className="text-lg font-semibold text-slate-900">{rep.name}</h3>
+                        <h3 className="text-base font-semibold text-slate-900">{rep.name}</h3>
+                        <p className="text-xs text-slate-500 mt-0.5">{rep.email}</p>
                       </div>
-                      <div className="text-right">
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
-                          <DollarSign className="w-4 h-4 inline" />
+                      <div className="w-44">
+                        <label className="block text-xs font-medium text-slate-600 mb-1 flex items-center gap-1">
+                          <DollarSign className="w-3 h-3" />
                           Quarterly Quota
                         </label>
                         <CurrencyInput
                           value={quotas[rep.id] || rep.quarterly_quota}
                           onChange={(val) => updateQuota(rep.id, val)}
-                          className="w-40 px-3 py-2 border border-emerald-300 bg-emerald-50 rounded-lg focus:ring-2 focus:ring-emerald-500 font-semibold text-slate-900"
+                          className={currencyInputClass}
                         />
                       </div>
                     </div>
 
-                    <h4 className="text-sm font-semibold text-slate-700 mb-3">Weekly Activity Targets</h4>
-                    <div className="grid md:grid-cols-3 gap-4">
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {ACTIVITY_FIELDS.map(({ key, label }) => (
-                        <div key={key}>
-                          <label className="block text-sm font-medium text-slate-700 mb-2">
-                            {label}
-                          </label>
-                          <input
-                            type="number"
-                            value={repTargets[key]}
-                            onChange={(e) => updateIndividualTarget(rep.id, key, parseInt(e.target.value) || 0)}
-                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                          />
-                        </div>
+                        <FieldInput
+                          key={key}
+                          label={label}
+                          value={repTargets[key]}
+                          onChange={(v) => updateIndividualTarget(rep.id, key, v)}
+                        />
                       ))}
 
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                        <label className="block text-xs font-medium text-slate-600 mb-1">
                           Pipeline Value
-                          <span className="text-xs text-slate-400 ml-1 font-normal">
-                            (default: 3x quota = ${((quotas[rep.id] || 0) * 3).toLocaleString()})
+                          <span className="text-slate-400 ml-1 font-normal">
+                            (default: 3× quota = ${((quotas[rep.id] || 0) * 3).toLocaleString()})
                           </span>
                         </label>
                         <CurrencyInput
                           value={repTargets.target_pipeline_value}
                           onChange={(val) => updateIndividualTarget(rep.id, 'target_pipeline_value', val)}
-                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                          className={currencyInputClass}
                         />
                       </div>
                     </div>
@@ -376,24 +342,46 @@ export function TargetsManagement({ onClose }: Props) {
             </div>
           )}
         </div>
+      )}
+    </Modal>
+  );
+}
 
-        <div className="p-6 border-t border-slate-200 flex justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="px-6 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={saveTargets}
-            disabled={saving}
-            className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-          >
-            <Save className="w-4 h-4" />
-            {saving ? 'Saving...' : 'Save Targets'}
-          </button>
-        </div>
-      </div>
+function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
+  return (
+    <section>
+      <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+      {description && <p className="text-xs text-slate-500 mt-0.5 mb-3">{description}</p>}
+      {!description && <div className="mb-3" />}
+      {children}
+    </section>
+  );
+}
+
+function FieldInput({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-slate-600 mb-1">{label}</label>
+      <input
+        type="number"
+        value={value}
+        onChange={(e) => onChange(parseInt(e.target.value) || 0)}
+        className={numberInputClass}
+      />
     </div>
+  );
+}
+
+function ModeTab({ active, onClick, icon, children }: { active: boolean; onClick: () => void; icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-2 px-3.5 h-9 rounded-md text-sm font-medium transition-all ${
+        active ? 'bg-white text-brand-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+      }`}
+    >
+      {icon}
+      {children}
+    </button>
   );
 }

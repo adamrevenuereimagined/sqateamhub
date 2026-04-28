@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, User } from '../lib/supabase';
-import { Users, LogIn } from 'lucide-react';
+import { AlertCircle, LogIn } from 'lucide-react';
+import { Button } from './ui';
 
 export function Login() {
   const [users, setUsers] = useState<User[]>([]);
@@ -9,6 +10,8 @@ export function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const { signIn } = useAuth();
 
   useEffect(() => {
@@ -29,39 +32,43 @@ export function Login() {
       setError(null);
     } catch (err: any) {
       console.error('Error loading users:', err);
-      setError('Unable to connect to database. The database may be paused or unavailable. Please try again in a few moments.');
+      setError('Unable to connect to the database. It may be paused or unavailable. Please try again in a few moments.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleLogin = async () => {
+    setFormError(null);
     if (!selectedUserId) {
-      alert('Please select a user');
+      setFormError('Please select a user.');
       return;
     }
-
     const selectedUser = users.find(u => u.id === selectedUserId);
     if (selectedUser?.role === 'admin') {
       if (!password) {
-        alert('Password required for Executive login');
+        setFormError('Password required for Executive login.');
         return;
       }
       if (password !== 'SQAExec2!') {
-        alert('Incorrect password');
+        setFormError('Incorrect password.');
         return;
       }
     }
-
-    await signIn(selectedUserId);
+    setSubmitting(true);
+    try {
+      await signIn(selectedUserId);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-brand-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
-          <p className="text-slate-600">Connecting to database...</p>
+          <div className="mx-auto h-10 w-10 rounded-full border-2 border-brand-200 border-t-brand-600 animate-spin mb-4" />
+          <p className="text-sm text-slate-600">Connecting to database…</p>
         </div>
       </div>
     );
@@ -69,30 +76,28 @@ export function Login() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-50 via-white to-brand-50">
         <div className="w-full max-w-md">
-          <div className="bg-white rounded-2xl shadow-xl p-8">
-            <div className="flex items-center justify-center mb-6">
-              <div className="bg-red-100 p-3 rounded-xl">
-                <Users className="w-8 h-8 text-red-600" />
-              </div>
+          <div className="bg-white rounded-2xl shadow-card-hover border border-slate-200 p-8">
+            <div className="mx-auto mb-5 h-12 w-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center">
+              <AlertCircle className="h-6 w-6" />
             </div>
-            <h2 className="text-xl font-bold text-center text-slate-900 mb-3">
+            <h2 className="text-xl font-semibold text-center text-slate-900 mb-2">
               Database Connection Error
             </h2>
-            <p className="text-center text-slate-600 mb-6">
+            <p className="text-center text-sm text-slate-600 mb-6 text-balance">
               {error}
             </p>
-            <button
+            <Button
+              fullWidth
               onClick={() => {
                 setLoading(true);
                 setError(null);
                 loadUsers();
               }}
-              className="w-full px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
             >
               Try Again
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -102,27 +107,30 @@ export function Login() {
   const selectedUser = users.find(u => u.id === selectedUserId);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-50 via-white to-brand-50">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <h1 className="text-2xl font-bold text-center text-slate-900 mb-2">
-            SQA BD Team Hub
+        <div className="text-center mb-6">
+          <img src="/sqa-logo.svg" alt="SQA" className="h-20 w-auto mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+            BD Team Hub
           </h1>
-          <p className="text-center text-slate-600 mb-8">
-            Select your name to continue
+          <p className="text-sm text-slate-500 mt-1">
+            Weekly tracking & reporting
           </p>
+        </div>
 
-          <div className="space-y-4">
+        <div className="bg-white rounded-2xl shadow-card-hover border border-slate-200 p-7">
+          <div className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Select User
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                Who's signing in?
               </label>
               <select
                 value={selectedUserId}
-                onChange={(e) => setSelectedUserId(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-900"
+                onChange={(e) => { setSelectedUserId(e.target.value); setFormError(null); }}
+                className="w-full h-11 px-3.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm transition-colors hover:border-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
               >
-                <option value="">Choose your name...</option>
+                <option value="">Select your name…</option>
                 {users.map((user) => (
                   <option key={user.id} value={user.id}>
                     {user.name}
@@ -132,42 +140,69 @@ export function Login() {
             </div>
 
             {selectedUser && (
-              <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                <p className="text-sm text-slate-600 mb-1">Logging in as:</p>
-                <p className="font-semibold text-slate-900">{selectedUser.name}</p>
+              <div className="bg-slate-50 rounded-lg p-3.5 border border-slate-200 animate-fade-in">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs uppercase tracking-wide text-slate-500 font-medium">Signing in as</p>
+                    <p className="text-sm font-semibold text-slate-900 truncate">{selectedUser.name}</p>
+                  </div>
+                  <span className={`text-xs font-medium px-2 py-1 rounded-md ${
+                    selectedUser.role === 'admin'
+                      ? 'bg-brand-100 text-brand-700'
+                      : selectedUser.role === 'bdr'
+                      ? 'bg-accent-100 text-accent-700'
+                      : 'bg-slate-200 text-slate-700'
+                  }`}>
+                    {selectedUser.role === 'admin' ? 'Executive' : selectedUser.role === 'bdr' ? 'BDR' : 'Sales Rep'}
+                  </span>
+                </div>
                 {selectedUser.role === 'rep' && (
-                  <p className="text-sm text-slate-600 mt-2">
-                    Quarterly Quota: ${selectedUser.quarterly_quota.toLocaleString()}
+                  <p className="text-xs text-slate-500 mt-2">
+                    Quarterly quota: <span className="font-medium text-slate-700">${selectedUser.quarterly_quota.toLocaleString()}</span>
                   </p>
                 )}
               </div>
             )}
 
             {selectedUser?.role === 'admin' && (
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+              <div className="animate-fade-in">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   Executive Password
                 </label>
                 <input
                   type="password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-900"
+                  onChange={(e) => { setPassword(e.target.value); setFormError(null); }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                  className="w-full h-11 px-3.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm transition-colors hover:border-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
                   placeholder="Enter password"
                 />
               </div>
             )}
 
-            <button
+            {formError && (
+              <div className="flex items-start gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5 animate-fade-in">
+                <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <span>{formError}</span>
+              </div>
+            )}
+
+            <Button
+              fullWidth
+              size="lg"
+              loading={submitting}
               onClick={handleLogin}
               disabled={!selectedUserId}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              leadingIcon={<LogIn className="h-4 w-4" />}
             >
-              <LogIn className="w-5 h-5" />
               Log In
-            </button>
+            </Button>
           </div>
         </div>
+
+        <p className="text-center text-xs text-slate-400 mt-6">
+          SQA BD Team Hub · Internal use only
+        </p>
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import { Save, Send, Plus, Trash2, ArrowLeft, CreditCard as Edit2, CheckCircle2,
 import { formatDateShort } from '../lib/dateUtils';
 import { CurrencyInput } from './CurrencyInput';
 import { formatCurrency } from '../lib/formatters';
+import { useToast } from './ui';
 
 type Week = {
   id: string;
@@ -22,6 +23,7 @@ type Props = {
 
 export function BdrSubmissionForm({ weekId, onBack }: Props) {
   const { user } = useAuth();
+  const toast = useToast();
   const [currentWeek, setCurrentWeek] = useState<Week | null>(null);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -212,13 +214,13 @@ export function BdrSubmissionForm({ weekId, onBack }: Props) {
     if (submitNow) {
       const validGoals = nextWeekGoals.filter(g => g.trim());
       if (validGoals.length === 0) {
-        alert('Please add at least one goal for next week before submitting.');
+        toast.warning('Add at least one goal', 'Next week needs at least one goal before submitting.');
         return;
       }
       if (previousGoals.length > 0) {
         const allReviewed = previousGoals.every(g => g.status !== 'pending');
         if (!allReviewed) {
-          alert('Please review all previous week goals before submitting.');
+          toast.warning('Review previous goals', 'Mark each prior-week goal before submitting.');
           return;
         }
       }
@@ -287,43 +289,53 @@ export function BdrSubmissionForm({ weekId, onBack }: Props) {
       }
 
       setStatus(submitNow ? 'submitted' : 'in_progress');
-      alert(submitNow ? 'Submitted successfully!' : 'Saved as draft');
+      if (submitNow) {
+        toast.success('Submitted', 'Your weekly report is in.');
+      } else {
+        toast.success('Draft saved');
+      }
       onBack();
     } catch (error: any) {
       console.error('Error saving:', error);
-      alert(`Failed to save: ${error?.message || 'Unknown error'}`);
+      toast.error('Failed to save', error?.message || 'Unknown error');
     } finally {
       setSaving(false);
     }
   };
 
-  if (!currentWeek) return <div>Loading...</div>;
+  if (!currentWeek) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="h-10 w-10 rounded-full border-2 border-brand-200 border-t-brand-600 animate-spin" />
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto animate-fade-in">
       <div className="mb-6">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-4 transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900 mb-4 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Dashboard
         </button>
 
-        <div className="mb-4">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Weekly Submission</h1>
-          <p className="text-sm text-slate-500">
-            {user?.name} | BDR | Due: Thursday 5:00 PM PT
-          </p>
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-4">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-1">Weekly Submission</h1>
+            <p className="text-sm text-slate-500">
+              {user?.name} · BDR · Due Thursday 5:00 PM PT
+            </p>
+          </div>
         </div>
 
-        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-          <p className="text-slate-700">
-            <span className="font-semibold">Week of:</span>{' '}
-            {formatDateShort(currentWeek.start_date)}{' '}
-            -{' '}
-            {formatDateShort(currentWeek.end_date)}, {currentWeek.year}
-          </p>
+        <div className="bg-brand-50 border border-brand-100 rounded-lg px-4 py-3 flex items-center gap-2 text-sm">
+          <span className="text-xs uppercase tracking-wide font-semibold text-brand-700 bg-white border border-brand-200 rounded px-1.5 py-0.5">Week of</span>
+          <span className="font-medium text-slate-900">
+            {formatDateShort(currentWeek.start_date)} – {formatDateShort(currentWeek.end_date)}, {currentWeek.year}
+          </span>
         </div>
       </div>
 
@@ -393,7 +405,7 @@ export function BdrSubmissionForm({ weekId, onBack }: Props) {
                             updated[index] = { ...updated[index], review_notes: e.target.value };
                             setPreviousGoals(updated);
                           }}
-                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 bg-white"
+                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white"
                           placeholder="What happened? Any lessons learned?"
                         />
                       </div>
@@ -417,7 +429,7 @@ export function BdrSubmissionForm({ weekId, onBack }: Props) {
                     type="text"
                     value={win}
                     onChange={(e) => { const n = [...wins]; n[index] = e.target.value; setWins(n); }}
-                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                     placeholder={`Win #${index + 1}`}
                   />
                   {wins.length > 1 && (
@@ -428,7 +440,7 @@ export function BdrSubmissionForm({ weekId, onBack }: Props) {
                 </div>
               ))}
               {wins.length < 5 && (
-                <button onClick={() => setWins([...wins, ''])} className="flex items-center text-emerald-600 hover:text-emerald-700 text-sm font-medium mt-2">
+                <button onClick={() => setWins([...wins, ''])} className="flex items-center text-brand-700 hover:text-brand-800 text-sm font-medium mt-2">
                   <Plus className="w-4 h-4 mr-1" /> Add Win
                 </button>
               )}
@@ -436,13 +448,13 @@ export function BdrSubmissionForm({ weekId, onBack }: Props) {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">What's Working Well</label>
               <textarea value={whatsWorking} onChange={(e) => setWhatsWorking(e.target.value)} rows={3}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                 placeholder="Share what strategies or approaches are working..." />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Positive Feedback from Prospects/Clients</label>
               <textarea value={positiveFeedback} onChange={(e) => setPositiveFeedback(e.target.value)} rows={3}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                 placeholder="Any positive feedback you've received..." />
             </div>
           </div>
@@ -463,22 +475,22 @@ export function BdrSubmissionForm({ weekId, onBack }: Props) {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Sales Accepted Opps MTD</label>
               <input type="number" value={salesAcceptedOppsMtd} onChange={(e) => setSalesAcceptedOppsMtd(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500" min="0" />
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" min="0" />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Sales Accepted Opps QTD</label>
               <input type="number" value={salesAcceptedOppsQtd} onChange={(e) => setSalesAcceptedOppsQtd(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500" min="0" />
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" min="0" />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Opportunities Created This Week</label>
               <input type="number" value={oppsCreatedThisWeek} onChange={(e) => setOppsCreatedThisWeek(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500" min="0" />
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" min="0" />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Pipeline Created This Week ($)</label>
               <CurrencyInput value={pipelineCreatedThisWeek} onChange={setPipelineCreatedThisWeek}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500" />
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" />
             </div>
           </div>
         </div>
@@ -512,7 +524,7 @@ export function BdrSubmissionForm({ weekId, onBack }: Props) {
                   )}
                 </label>
                 <input type="number" value={value} onChange={(e) => setter(Number(e.target.value))}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500" min="0" />
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" min="0" />
               </div>
             ))}
           </div>
@@ -525,12 +537,12 @@ export function BdrSubmissionForm({ weekId, onBack }: Props) {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Call to Review (Attention.tech Link)</label>
               <input type="url" value={callReviewLink} onChange={(e) => setCallReviewLink(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500" placeholder="https://..." />
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" placeholder="https://..." />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">What You Want Me to Evaluate</label>
               <textarea value={callReviewFocus} onChange={(e) => setCallReviewFocus(e.target.value)} rows={3}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                 placeholder="What specific aspects should I focus on?" />
             </div>
           </div>
@@ -546,7 +558,7 @@ export function BdrSubmissionForm({ weekId, onBack }: Props) {
                 <div key={index} className="flex gap-2 mb-2">
                   <input type="text" value={blocker}
                     onChange={(e) => { const n = [...dealBlockers]; n[index] = e.target.value; setDealBlockers(n); }}
-                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                     placeholder={`Blocker #${index + 1}`} />
                   {dealBlockers.length > 1 && (
                     <button onClick={() => setDealBlockers(dealBlockers.filter((_, i) => i !== index))} className="p-2 text-red-600 hover:bg-red-50 rounded-lg">
@@ -556,7 +568,7 @@ export function BdrSubmissionForm({ weekId, onBack }: Props) {
                 </div>
               ))}
               {dealBlockers.length < 5 && (
-                <button onClick={() => setDealBlockers([...dealBlockers, ''])} className="flex items-center text-emerald-600 hover:text-emerald-700 text-sm font-medium mt-2">
+                <button onClick={() => setDealBlockers([...dealBlockers, ''])} className="flex items-center text-brand-700 hover:text-brand-800 text-sm font-medium mt-2">
                   <Plus className="w-4 h-4 mr-1" /> Add Blocker
                 </button>
               )}
@@ -567,7 +579,7 @@ export function BdrSubmissionForm({ weekId, onBack }: Props) {
                 <div key={index} className="flex gap-2 mb-2">
                   <input type="text" value={support}
                     onChange={(e) => { const n = [...supportNeeded]; n[index] = e.target.value; setSupportNeeded(n); }}
-                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                     placeholder={`Support need #${index + 1}`} />
                   {supportNeeded.length > 1 && (
                     <button onClick={() => setSupportNeeded(supportNeeded.filter((_, i) => i !== index))} className="p-2 text-red-600 hover:bg-red-50 rounded-lg">
@@ -577,7 +589,7 @@ export function BdrSubmissionForm({ weekId, onBack }: Props) {
                 </div>
               ))}
               {supportNeeded.length < 5 && (
-                <button onClick={() => setSupportNeeded([...supportNeeded, ''])} className="flex items-center text-emerald-600 hover:text-emerald-700 text-sm font-medium mt-2">
+                <button onClick={() => setSupportNeeded([...supportNeeded, ''])} className="flex items-center text-brand-700 hover:text-brand-800 text-sm font-medium mt-2">
                   <Plus className="w-4 h-4 mr-1" /> Add Support Need
                 </button>
               )}
@@ -598,7 +610,7 @@ export function BdrSubmissionForm({ weekId, onBack }: Props) {
                 <div className="flex items-center justify-center w-8 h-10 text-sm font-semibold text-slate-400">{index + 1}.</div>
                 <input type="text" value={goal}
                   onChange={(e) => { const updated = [...nextWeekGoals]; updated[index] = e.target.value; setNextWeekGoals(updated); }}
-                  className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                  className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                   placeholder={`Goal #${index + 1} - be specific and measurable...`} />
                 {nextWeekGoals.length > 1 && (
                   <button onClick={() => setNextWeekGoals(nextWeekGoals.filter((_, i) => i !== index))} className="p-2 text-red-600 hover:bg-red-50 rounded-lg">
@@ -608,7 +620,7 @@ export function BdrSubmissionForm({ weekId, onBack }: Props) {
               </div>
             ))}
             {nextWeekGoals.length < 5 && (
-              <button onClick={() => setNextWeekGoals([...nextWeekGoals, ''])} className="flex items-center text-emerald-600 hover:text-emerald-700 text-sm font-medium ml-10">
+              <button onClick={() => setNextWeekGoals([...nextWeekGoals, ''])} className="flex items-center text-brand-700 hover:text-brand-800 text-sm font-medium ml-10">
                 <Plus className="w-4 h-4 mr-1" /> Add Goal
               </button>
             )}
@@ -622,7 +634,7 @@ export function BdrSubmissionForm({ weekId, onBack }: Props) {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">How I'm Taking Care of Myself This Week</label>
               <textarea value={selfCare} onChange={(e) => setSelfCare(e.target.value)} rows={3}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                 placeholder="Share how you're maintaining work-life balance..." />
             </div>
             <div>
@@ -641,7 +653,7 @@ export function BdrSubmissionForm({ weekId, onBack }: Props) {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">What I Need from You as My Executive</label>
               <textarea value={managerSupport} onChange={(e) => setManagerSupport(e.target.value)} rows={3}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                 placeholder="Any support or resources you need..." />
             </div>
           </div>
@@ -674,7 +686,7 @@ export function BdrSubmissionForm({ weekId, onBack }: Props) {
                 {saving ? 'Saving...' : 'Save Draft'}
               </button>
               <button onClick={() => handleSave(true)} disabled={saving}
-                className="flex items-center px-6 py-2.5 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50">
+                className="flex items-center px-6 py-2.5 bg-brand-700 text-white rounded-lg font-medium hover:bg-brand-800 active:bg-brand-900 shadow-sm transition-colors disabled:opacity-50">
                 <Send className="w-4 h-4 mr-2" />
                 {saving ? 'Submitting...' : 'Submit'}
               </button>

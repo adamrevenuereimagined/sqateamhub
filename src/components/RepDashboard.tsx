@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, ReactNode } from 'react';
 import { supabase, Week, parseNumericFields } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { ClipboardList, CreditCard as Edit3, DollarSign, Target, TrendingUp, Briefcase, ChevronRight } from 'lucide-react';
+import { ClipboardList, CreditCard as Edit3, DollarSign, Target, TrendingUp, Briefcase, ChevronRight, LineChart } from 'lucide-react';
 import { formatDate, parseLocalDate } from '../lib/dateUtils';
-import { formatCurrency, formatNumber } from '../lib/formatters';
+import { formatCurrency } from '../lib/formatters';
 import { MetricsTrendGraph } from './MetricsTrendGraph';
+import { Button, Card } from './ui';
 
 type SubmissionBrief = {
   week_id: string;
@@ -14,7 +15,6 @@ type SubmissionBrief = {
   pipeline_coverage_ratio: number;
   deals_won_this_week?: number;
   deals_advancing_this_week?: number;
-  // BDR fields
   sales_accepted_opps_mtd?: number;
   sales_accepted_opps_qtd?: number;
   opps_created_this_week?: number;
@@ -34,6 +34,15 @@ type Props = {
   onEnterWeek: (weekId: string) => void;
 };
 
+type MetricKey = 'qtd' | 'mtd' | 'pipeline' | 'dealsWon' | 'dealsAdvancing';
+const METRIC_OPTIONS: { key: MetricKey; label: string }[] = [
+  { key: 'qtd', label: 'QTD Revenue' },
+  { key: 'mtd', label: 'MTD Revenue' },
+  { key: 'pipeline', label: 'Pipeline' },
+  { key: 'dealsWon', label: 'Deals Won' },
+  { key: 'dealsAdvancing', label: 'Deals Advancing' },
+];
+
 export function RepDashboard({ onEnterWeek }: Props) {
   const { user, isBdr } = useAuth();
   const [allWeeks, setAllWeeks] = useState<Week[]>([]);
@@ -47,8 +56,7 @@ export function RepDashboard({ onEnterWeek }: Props) {
   const [hasSubmissions, setHasSubmissions] = useState(false);
   const [loading, setLoading] = useState(true);
   const [trendData, setTrendData] = useState<TrendDataPoint[]>([]);
-  const [selectedMetric, setSelectedMetric] = useState<'qtd' | 'mtd' | 'pipeline' | 'dealsWon' | 'dealsAdvancing'>('qtd');
-  // BDR-specific state
+  const [selectedMetric, setSelectedMetric] = useState<MetricKey>('qtd');
   const [latestSaoMtd, setLatestSaoMtd] = useState(0);
   const [latestSaoQtd, setLatestSaoQtd] = useState(0);
   const [latestOppsCreated, setLatestOppsCreated] = useState(0);
@@ -154,7 +162,6 @@ export function RepDashboard({ onEnterWeek }: Props) {
           : null;
         setCumulativeQTD(latestQtdSubmission?.revenue_qtd || 0);
 
-        // BDR-specific: use latest submission for MTD/QTD opps
         const latestBdrSub = submissions.length > 0
           ? submissions.reduce((latest, s) => {
               const latestWeek = weekMap.get(latest.week_id);
@@ -178,7 +185,6 @@ export function RepDashboard({ onEnterWeek }: Props) {
           }
         }
 
-        // Build trend data for the current quarter
         const quarterWeeks = weeks.filter(w => quarterWeekIds.has(w.id));
         const trend: TrendDataPoint[] = quarterWeeks
           .filter(w => submissionMap.has(w.id))
@@ -207,7 +213,7 @@ export function RepDashboard({ onEnterWeek }: Props) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+        <div className="h-10 w-10 rounded-full border-2 border-brand-200 border-t-brand-600 animate-spin" />
       </div>
     );
   }
@@ -216,309 +222,296 @@ export function RepDashboard({ onEnterWeek }: Props) {
   const qtdProgress = quota > 0 ? Math.min((cumulativeQTD / quota) * 100, 100) : 0;
 
   return (
-    <div>
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-slate-900 mb-1">
-          Welcome back, {user?.name}
+    <div className="animate-fade-in">
+      <header className="mb-8">
+        <h2 className="text-3xl font-bold text-slate-900 tracking-tight mb-1">
+          Welcome back, {user?.name?.split(' ')[0]}
         </h2>
         <p className="text-slate-500">
-          Track your progress and submit your weekly reports
+          Track your progress and submit your weekly reports.
         </p>
-      </div>
+      </header>
 
       {isBdr ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
-                <Target className="w-4 h-4 text-emerald-600" />
-              </div>
-              <span className="text-sm font-medium text-slate-500">SAOs MTD</span>
-            </div>
-            <p className="text-2xl font-bold text-slate-900">{hasSubmissions ? latestSaoMtd : '--'}</p>
-            {!hasSubmissions && <p className="text-xs text-slate-400 mt-1">Submit a report to track</p>}
-          </div>
-          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-                <TrendingUp className="w-4 h-4 text-blue-600" />
-              </div>
-              <span className="text-sm font-medium text-slate-500">SAOs QTD</span>
-            </div>
-            <p className="text-2xl font-bold text-slate-900">{hasSubmissions ? latestSaoQtd : '--'}</p>
-            {!hasSubmissions && <p className="text-xs text-slate-400 mt-1">Submit a report to track</p>}
-          </div>
-          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center">
-                <Briefcase className="w-4 h-4 text-teal-600" />
-              </div>
-              <span className="text-sm font-medium text-slate-500">Opps Created (This Week)</span>
-            </div>
-            <p className="text-2xl font-bold text-slate-900">{hasSubmissions ? latestOppsCreated : '--'}</p>
-            {!hasSubmissions && <p className="text-xs text-slate-400 mt-1">Submit a report to track</p>}
-          </div>
-          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
-                <DollarSign className="w-4 h-4 text-amber-600" />
-              </div>
-              <span className="text-sm font-medium text-slate-500">Pipeline Created (This Week)</span>
-            </div>
-            <p className="text-2xl font-bold text-slate-900">{hasSubmissions ? formatCurrency(latestPipelineCreated) : '--'}</p>
-            {!hasSubmissions && <p className="text-xs text-slate-400 mt-1">Submit a report to track</p>}
-          </div>
+          <KpiCard
+            label="SAOs MTD"
+            icon={<Target className="h-4 w-4" />}
+            value={hasSubmissions ? latestSaoMtd : '—'}
+            empty={!hasSubmissions}
+          />
+          <KpiCard
+            label="SAOs QTD"
+            icon={<TrendingUp className="h-4 w-4" />}
+            value={hasSubmissions ? latestSaoQtd : '—'}
+            empty={!hasSubmissions}
+          />
+          <KpiCard
+            label="Opps Created"
+            sub="this week"
+            icon={<Briefcase className="h-4 w-4" />}
+            value={hasSubmissions ? latestOppsCreated : '—'}
+            empty={!hasSubmissions}
+          />
+          <KpiCard
+            label="Pipeline Created"
+            sub="this week"
+            icon={<DollarSign className="h-4 w-4" />}
+            value={hasSubmissions ? formatCurrency(latestPipelineCreated) : '—'}
+            empty={!hasSubmissions}
+          />
         </div>
       ) : (
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
-              <Target className="w-4 h-4 text-slate-600" />
-            </div>
-            <span className="text-sm font-medium text-slate-500">Quarterly Quota</span>
-          </div>
-          <p className="text-2xl font-bold text-slate-900">{formatCurrency(quota)}</p>
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+          <KpiCard
+            label="Quarterly Quota"
+            icon={<Target className="h-4 w-4" />}
+            value={formatCurrency(quota)}
+          />
+          <KpiCard
+            label="MTD Revenue"
+            icon={<DollarSign className="h-4 w-4" />}
+            value={hasSubmissions ? formatCurrency(cumulativeMTD) : '—'}
+            empty={!hasSubmissions}
+          />
+          <KpiCard
+            label="QTD Revenue"
+            icon={<TrendingUp className="h-4 w-4" />}
+            value={hasSubmissions ? formatCurrency(cumulativeQTD) : '—'}
+            empty={!hasSubmissions}
+          />
+          <KpiCard
+            label="QTD % to Quota"
+            icon={<TrendingUp className="h-4 w-4" />}
+            value={hasSubmissions ? `${qtdProgress.toFixed(1)}%` : '—'}
+            empty={!hasSubmissions}
+            footer={hasSubmissions ? <ProgressBar progress={qtdProgress} /> : undefined}
+          />
+          <KpiCard
+            label="Pipeline"
+            icon={<Briefcase className="h-4 w-4" />}
+            value={hasSubmissions && latestPipeline > 0 ? formatCurrency(latestPipeline) : '—'}
+            empty={!hasSubmissions || latestPipeline === 0}
+            footer={
+              hasSubmissions && latestPipeline > 0 && quota > 0 ? (
+                <p className="text-xs text-slate-500">
+                  {(latestPipeline / quota).toFixed(1)}× quota coverage
+                </p>
+              ) : undefined
+            }
+          />
         </div>
-
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
-              <DollarSign className="w-4 h-4 text-emerald-600" />
-            </div>
-            <span className="text-sm font-medium text-slate-500">MTD Revenue</span>
-          </div>
-          <p className="text-2xl font-bold text-slate-900">
-            {hasSubmissions ? formatCurrency(cumulativeMTD) : '--'}
-          </p>
-          {!hasSubmissions && (
-            <p className="text-xs text-slate-400 mt-1">Submit a report to track</p>
-          )}
-        </div>
-
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-              <TrendingUp className="w-4 h-4 text-blue-600" />
-            </div>
-            <span className="text-sm font-medium text-slate-500">QTD Revenue</span>
-          </div>
-          <p className="text-2xl font-bold text-slate-900">
-            {hasSubmissions ? formatCurrency(cumulativeQTD) : '--'}
-          </p>
-          {!hasSubmissions && (
-            <p className="text-xs text-slate-400 mt-1">Submit a report to track</p>
-          )}
-        </div>
-
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center">
-              <TrendingUp className="w-4 h-4 text-teal-600" />
-            </div>
-            <span className="text-sm font-medium text-slate-500">QTD % to Quota</span>
-          </div>
-          <p className="text-2xl font-bold text-slate-900">
-            {hasSubmissions ? `${qtdProgress.toFixed(1)}%` : '--'}
-          </p>
-          {hasSubmissions && (
-            <div className="mt-2 h-2 bg-slate-100 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${
-                  qtdProgress >= 100
-                    ? 'bg-emerald-500'
-                    : qtdProgress >= 75
-                    ? 'bg-blue-500'
-                    : qtdProgress >= 50
-                    ? 'bg-amber-500'
-                    : 'bg-red-400'
-                }`}
-                style={{ width: `${qtdProgress}%` }}
-              />
-            </div>
-          )}
-        </div>
-
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
-              <Briefcase className="w-4 h-4 text-amber-600" />
-            </div>
-            <span className="text-sm font-medium text-slate-500">Pipeline</span>
-          </div>
-          <p className="text-2xl font-bold text-slate-900">
-            {hasSubmissions && latestPipeline > 0 ? formatCurrency(latestPipeline) : '--'}
-          </p>
-          {hasSubmissions && latestPipeline > 0 && quota > 0 && (
-            <p className="text-xs text-slate-500 mt-1">
-              {(latestPipeline / quota).toFixed(1)}x quota coverage
-            </p>
-          )}
-        </div>
-      </div>
       )}
 
       {trendData.length > 0 && (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="text-xl font-semibold text-slate-900">Performance Trends</h3>
-              <p className="text-sm text-slate-600 mt-1">Track your metrics throughout the quarter</p>
+        <Card padding="md" className="mb-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+            <div className="flex items-start gap-3">
+              <div className="h-9 w-9 rounded-lg bg-brand-50 text-brand-700 flex items-center justify-center flex-shrink-0">
+                <LineChart className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-slate-900">Performance Trends</h3>
+                <p className="text-sm text-slate-500 mt-0.5">Track your metrics throughout the quarter</p>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setSelectedMetric('qtd')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  selectedMetric === 'qtd'
-                    ? 'bg-blue-100 text-blue-700 border-2 border-blue-300'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                QTD Revenue
-              </button>
-              <button
-                onClick={() => setSelectedMetric('mtd')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  selectedMetric === 'mtd'
-                    ? 'bg-blue-100 text-blue-700 border-2 border-blue-300'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                MTD Revenue
-              </button>
-              <button
-                onClick={() => setSelectedMetric('pipeline')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  selectedMetric === 'pipeline'
-                    ? 'bg-orange-100 text-orange-700 border-2 border-orange-300'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                Pipeline
-              </button>
-              <button
-                onClick={() => setSelectedMetric('dealsWon')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  selectedMetric === 'dealsWon'
-                    ? 'bg-emerald-100 text-emerald-700 border-2 border-emerald-300'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                Deals Won
-              </button>
-              <button
-                onClick={() => setSelectedMetric('dealsAdvancing')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  selectedMetric === 'dealsAdvancing'
-                    ? 'bg-blue-100 text-blue-700 border-2 border-blue-300'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                Deals Advancing
-              </button>
+            <div className="flex flex-wrap gap-1.5 bg-slate-100 p-1 rounded-lg w-fit">
+              {METRIC_OPTIONS.map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setSelectedMetric(key)}
+                  className={`px-3 h-8 rounded-md text-sm font-medium transition-colors ${
+                    selectedMetric === key
+                      ? 'bg-white text-brand-700 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
           <MetricsTrendGraph trendData={trendData} selectedMetric={selectedMetric} />
-        </div>
+        </Card>
       )}
 
       <div className="grid md:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="bg-emerald-600 px-6 py-4">
-            <div className="flex items-center gap-3">
-              <ClipboardList className="w-6 h-6 text-white" />
-              <h3 className="text-lg font-semibold text-white">Enter Weekly Report</h3>
-            </div>
-            <p className="text-emerald-100 text-sm mt-1">
-              Submit your weekly metrics and updates
-            </p>
-          </div>
-          <div className="p-6">
-            {allWeeks.length === 0 ? (
-              <div className="text-center py-6">
-                <p className="text-slate-500">No weeks available yet</p>
-                <p className="text-sm text-slate-400 mt-1">
-                  Contact your admin to set up weeks for this quarter
-                </p>
-              </div>
-            ) : (
-              <>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Select Week
-                </label>
-                <select
-                  value={selectedNewWeekId}
-                  onChange={(e) => setSelectedNewWeekId(e.target.value)}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 mb-4 text-slate-900"
-                >
-                  {allWeeks.map(week => (
-                    <option key={week.id} value={week.id}>
-                      Week ending {formatDate(week.end_date)}
-                      {week.status === 'active' ? ' (Current)' : ''}
-                      {submittedWeekIds.has(week.id) ? ' - Submitted' : ''}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={() => onEnterWeek(selectedNewWeekId)}
-                  disabled={!selectedNewWeekId}
-                  className="w-full bg-emerald-600 text-white py-3 rounded-lg font-semibold hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  Open Report
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </>
-            )}
-          </div>
-        </div>
+        <ActionCard
+          tone="primary"
+          icon={<ClipboardList className="h-5 w-5" />}
+          title="Enter Weekly Report"
+          description="Submit your weekly metrics and updates"
+          empty={allWeeks.length === 0}
+          emptyTitle="No weeks available yet"
+          emptyDescription="Contact your admin to set up weeks for this quarter."
+        >
+          <SelectField
+            label="Select Week"
+            value={selectedNewWeekId}
+            onChange={setSelectedNewWeekId}
+          >
+            {allWeeks.map(week => (
+              <option key={week.id} value={week.id}>
+                Week ending {formatDate(week.end_date)}
+                {week.status === 'active' ? ' · Current' : ''}
+                {submittedWeekIds.has(week.id) ? ' · Submitted' : ''}
+              </option>
+            ))}
+          </SelectField>
+          <Button
+            fullWidth
+            onClick={() => onEnterWeek(selectedNewWeekId)}
+            disabled={!selectedNewWeekId}
+            trailingIcon={<ChevronRight className="h-4 w-4" />}
+          >
+            Open Report
+          </Button>
+        </ActionCard>
 
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="bg-slate-700 px-6 py-4">
-            <div className="flex items-center gap-3">
-              <Edit3 className="w-6 h-6 text-white" />
-              <h3 className="text-lg font-semibold text-white">Edit Previous Submission</h3>
-            </div>
-            <p className="text-slate-300 text-sm mt-1">
-              Review and update previously submitted reports
-            </p>
-          </div>
-          <div className="p-6">
-            {submittedWeeks.length === 0 ? (
-              <div className="text-center py-6">
-                <p className="text-slate-500">No submitted reports yet</p>
-                <p className="text-sm text-slate-400 mt-1">
-                  Submit your first weekly report to see it here
-                </p>
-              </div>
-            ) : (
-              <>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Select Submitted Week
-                </label>
-                <select
-                  value={selectedEditWeekId}
-                  onChange={(e) => setSelectedEditWeekId(e.target.value)}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 mb-4 text-slate-900"
-                >
-                  {submittedWeeks.map(week => (
-                    <option key={week.id} value={week.id}>
-                      Week ending {formatDate(week.end_date)}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={() => onEnterWeek(selectedEditWeekId)}
-                  disabled={!selectedEditWeekId}
-                  className="w-full bg-slate-700 text-white py-3 rounded-lg font-semibold hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  Edit Submission
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </>
-            )}
-          </div>
+        <ActionCard
+          tone="secondary"
+          icon={<Edit3 className="h-5 w-5" />}
+          title="Edit Previous Submission"
+          description="Review and update previously submitted reports"
+          empty={submittedWeeks.length === 0}
+          emptyTitle="No submitted reports yet"
+          emptyDescription="Submit your first weekly report to see it here."
+        >
+          <SelectField
+            label="Select Submitted Week"
+            value={selectedEditWeekId}
+            onChange={setSelectedEditWeekId}
+          >
+            {submittedWeeks.map(week => (
+              <option key={week.id} value={week.id}>
+                Week ending {formatDate(week.end_date)}
+              </option>
+            ))}
+          </SelectField>
+          <Button
+            fullWidth
+            variant="secondary"
+            onClick={() => onEnterWeek(selectedEditWeekId)}
+            disabled={!selectedEditWeekId}
+            trailingIcon={<ChevronRight className="h-4 w-4" />}
+          >
+            Edit Submission
+          </Button>
+        </ActionCard>
+      </div>
+    </div>
+  );
+}
+
+type KpiCardProps = {
+  label: string;
+  sub?: string;
+  icon: ReactNode;
+  value: ReactNode;
+  empty?: boolean;
+  footer?: ReactNode;
+};
+
+function KpiCard({ label, sub, icon, value, empty, footer }: KpiCardProps) {
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 shadow-card p-5 transition-shadow hover:shadow-card-hover">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="h-7 w-7 rounded-md bg-brand-50 text-brand-700 flex items-center justify-center">
+          {icon}
+        </div>
+        <span className="text-xs font-medium text-slate-500 uppercase tracking-wide truncate">
+          {label}
+          {sub && <span className="ml-1 text-slate-400 normal-case tracking-normal">({sub})</span>}
+        </span>
+      </div>
+      <p className={`text-2xl font-bold tracking-tight ${empty ? 'text-slate-300' : 'text-slate-900'}`}>
+        {value}
+      </p>
+      {footer && <div className="mt-2">{footer}</div>}
+      {empty && !footer && (
+        <p className="text-xs text-slate-400 mt-1">Submit a report to track</p>
+      )}
+    </div>
+  );
+}
+
+function ProgressBar({ progress }: { progress: number }) {
+  const color =
+    progress >= 100
+      ? 'bg-accent-500'
+      : progress >= 75
+      ? 'bg-brand-500'
+      : progress >= 50
+      ? 'bg-amber-500'
+      : 'bg-red-400';
+  return (
+    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+      <div
+        className={`h-full rounded-full transition-all duration-500 ${color}`}
+        style={{ width: `${progress}%` }}
+      />
+    </div>
+  );
+}
+
+type ActionCardProps = {
+  tone: 'primary' | 'secondary';
+  icon: ReactNode;
+  title: string;
+  description: string;
+  empty: boolean;
+  emptyTitle: string;
+  emptyDescription: string;
+  children: ReactNode;
+};
+
+function ActionCard({ tone, icon, title, description, empty, emptyTitle, emptyDescription, children }: ActionCardProps) {
+  const accent = tone === 'primary'
+    ? 'bg-brand-50 text-brand-700'
+    : 'bg-slate-100 text-slate-700';
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 shadow-card overflow-hidden flex flex-col">
+      <div className="p-6 pb-5 flex items-start gap-3 border-b border-slate-100">
+        <div className={`h-10 w-10 rounded-lg flex items-center justify-center flex-shrink-0 ${accent}`}>
+          {icon}
+        </div>
+        <div className="min-w-0">
+          <h3 className="text-base font-semibold text-slate-900">{title}</h3>
+          <p className="text-sm text-slate-500 mt-0.5">{description}</p>
         </div>
       </div>
+      <div className="p-6 flex-1 flex flex-col">
+        {empty ? (
+          <div className="text-center py-8">
+            <p className="text-sm font-medium text-slate-700">{emptyTitle}</p>
+            <p className="text-xs text-slate-500 mt-1">{emptyDescription}</p>
+          </div>
+        ) : (
+          <div className="space-y-4">{children}</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+type SelectFieldProps = {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  children: ReactNode;
+};
+
+function SelectField({ label, value, onChange, children }: SelectFieldProps) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-slate-700 mb-1.5">{label}</label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full h-11 px-3.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 transition-colors hover:border-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+      >
+        {children}
+      </select>
     </div>
   );
 }

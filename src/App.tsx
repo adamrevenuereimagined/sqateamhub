@@ -6,6 +6,7 @@ import { RepDashboard } from './components/RepDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
 import { WeeklySubmissionForm } from './components/WeeklySubmissionForm';
 import { BdrSubmissionForm } from './components/BdrSubmissionForm';
+import { ToastProvider, ConfirmProvider } from './components/ui';
 
 function AppContent() {
   const { session, user, loading } = useAuth();
@@ -15,7 +16,7 @@ function AppContent() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand-200 border-t-brand-600"></div>
       </div>
     );
   }
@@ -68,8 +69,12 @@ function AppContent() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ToastProvider>
+      <ConfirmProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </ConfirmProvider>
+    </ToastProvider>
   );
 }

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { supabase, Week, User, parseNumericFields } from '../lib/supabase';
-import { TrendingUp, TrendingDown, Users, Target, Activity, CheckCircle, Clock, AlertCircle, ChevronDown, ChevronRight, Settings, Calendar, DollarSign, XCircle } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, Target, Activity, CheckCircle, Clock, AlertCircle, ChevronDown, ChevronRight, Settings, Calendar, DollarSign, XCircle, LineChart, FileText, Copy, Minus } from 'lucide-react';
 import { TargetsManagement } from './TargetsManagement';
 import { WeekManagement } from './WeekManagement';
 import { MetricsTrendGraph } from './MetricsTrendGraph';
 import { formatDate, parseLocalDate } from '../lib/dateUtils';
 import { formatCurrency, formatNumber } from '../lib/formatters';
+import { Button, Card, Modal, useToast } from './ui';
 
 type WeeklySubmission = {
   id: string;
@@ -58,7 +59,17 @@ type AggregatedMetrics = {
   weeksCount: number;
 };
 
+type AdminMetricKey = 'qtd' | 'mtd' | 'pipeline' | 'dealsWon' | 'dealsAdvancing';
+const ADMIN_METRIC_OPTIONS: { key: AdminMetricKey; label: string }[] = [
+  { key: 'qtd', label: 'QTD Revenue' },
+  { key: 'mtd', label: 'MTD Revenue' },
+  { key: 'pipeline', label: 'Pipeline' },
+  { key: 'dealsWon', label: 'Deals Won' },
+  { key: 'dealsAdvancing', label: 'Deals Advancing' },
+];
+
 export function AdminDashboard() {
+  const toast = useToast();
   const [availableWeeks, setAvailableWeeks] = useState<Week[]>([]);
   const [currentWeek, setCurrentWeek] = useState<Week | null>(null);
   const [reps, setReps] = useState<User[]>([]);
@@ -517,18 +528,18 @@ export function AdminDashboard() {
 
   const getTrendIcon = (current: number, previous: number) => {
     const change = calculateChange(current, previous);
-    if (Math.abs(change) < 0.5) return <TrendingUp className="w-4 h-4 text-slate-400" style={{ transform: 'rotate(90deg)' }} />;
+    if (Math.abs(change) < 0.5) return <Minus className="w-3 h-3 text-slate-400" />;
     return change > 0 ? (
-      <TrendingUp className="w-4 h-4 text-emerald-600" />
+      <TrendingUp className="w-3 h-3 text-accent-600" />
     ) : (
-      <TrendingDown className="w-4 h-4 text-red-600" />
+      <TrendingDown className="w-3 h-3 text-red-600" />
     );
   };
 
   const getTrendColor = (current: number, previous: number): string => {
     const change = calculateChange(current, previous);
-    if (Math.abs(change) < 0.5) return 'text-slate-600';
-    return change > 0 ? 'text-emerald-600' : 'text-red-600';
+    if (Math.abs(change) < 0.5) return 'text-slate-500';
+    return change > 0 ? 'text-accent-600' : 'text-red-600';
   };
 
   const calculateTotals = () => {
@@ -607,22 +618,22 @@ export function AdminDashboard() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'submitted':
-        return <CheckCircle className="w-5 h-5 text-emerald-600" />;
+        return <CheckCircle className="w-4 h-4" />;
       case 'in_progress':
-        return <Clock className="w-5 h-5 text-amber-600" />;
+        return <Clock className="w-4 h-4" />;
       default:
-        return <AlertCircle className="w-5 h-5 text-red-600" />;
+        return <AlertCircle className="w-4 h-4" />;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'submitted':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        return 'bg-accent-50 text-accent-700 border-accent-200';
       case 'in_progress':
         return 'bg-amber-50 text-amber-700 border-amber-200';
       default:
-        return 'bg-red-100 text-red-700 border-red-300 font-bold';
+        return 'bg-red-50 text-red-700 border-red-200';
     }
   };
 
@@ -803,34 +814,27 @@ export function AdminDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+        <div className="h-10 w-10 rounded-full border-2 border-brand-200 border-t-brand-600 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-3xl font-bold text-slate-900 mb-2">
-              Admin Dashboard
-            </h2>
-            <p className="text-slate-600">
-              BD Weekly Team Performance & Analytics
-            </p>
-          </div>
-        </div>
-      </div>
-
+    <div className="animate-fade-in">
+      <header className="mb-6 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
         <div>
-          <div className="mb-8 flex items-start justify-between">
-            <div></div>
+          <h2 className="text-3xl font-bold text-slate-900 tracking-tight mb-1">
+            Admin Dashboard
+          </h2>
+          <p className="text-slate-500">
+            BD weekly team performance & analytics
+          </p>
+        </div>
 
-        <div className="flex items-end gap-4">
-          <div className="text-right">
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Select Week (Friday End Date)
+        <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+          <div>
+            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">
+              Week (Friday end date)
             </label>
             <select
               value={currentWeek?.id || ''}
@@ -838,197 +842,103 @@ export function AdminDashboard() {
                 const week = availableWeeks.find(w => w.id === e.target.value);
                 if (week) setCurrentWeek(week);
               }}
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 min-w-[200px]"
+              className="h-10 min-w-[220px] px-3 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 transition-colors hover:border-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
             >
               {availableWeeks.map((week) => (
                 <option key={week.id} value={week.id}>
                   {formatDate(week.end_date)}
-                  {week.status === 'active' ? ' (Current)' : ''}
+                  {week.status === 'active' ? ' · Current' : ''}
                 </option>
               ))}
             </select>
           </div>
 
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShowWeekManagement(true)}
-              className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2"
-            >
-              <Calendar className="w-4 h-4" />
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="secondary" size="md" leadingIcon={<Calendar className="w-4 h-4" />} onClick={() => setShowWeekManagement(true)}>
               Manage Weeks
-            </button>
-            <button
-              onClick={() => setShowTargetsModal(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-            >
-              <Settings className="w-4 h-4" />
+            </Button>
+            <Button variant="secondary" size="md" leadingIcon={<Settings className="w-4 h-4" />} onClick={() => setShowTargetsModal(true)}>
               Manage Targets
-            </button>
-            <button
-              onClick={generateExecutiveSummary}
-              className="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors flex items-center gap-2"
-            >
-              <Activity className="w-4 h-4" />
-              Create Weekly Summary
-            </button>
+            </Button>
+            <Button size="md" leadingIcon={<FileText className="w-4 h-4" />} onClick={generateExecutiveSummary}>
+              Weekly Summary
+            </Button>
           </div>
         </div>
+      </header>
+
+      <div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        <SummaryCard
+          icon={<Users className="h-4 w-4" />}
+          label="Team Size"
+          value={reps.length}
+          footer={<span className="text-xs text-slate-500">{totals.submittedCount} submitted · {totals.inProgressCount} in progress · {totals.notStartedCount} not started</span>}
+        />
+        <SummaryCard
+          icon={<Target className="h-4 w-4" />}
+          label="QTD Revenue"
+          sub="bookings"
+          value={formatCurrency(totals.totalRevenueQTD)}
+          footer={<TrendDelta value={totals.totalRevenueQTD - totals.prevTotalRevenueQTD} formatted={`${formatCurrency(totals.totalRevenueQTD - totals.prevTotalRevenueQTD, true)} WoW`} icon={getTrendIcon(totals.totalRevenueQTD, totals.prevTotalRevenueQTD)} className={getTrendColor(totals.totalRevenueQTD, totals.prevTotalRevenueQTD)} />}
+        />
+        <SummaryCard
+          icon={<TrendingUp className="h-4 w-4" />}
+          label="MTD Revenue"
+          sub="bookings"
+          value={formatCurrency(totals.totalRevenueMTD)}
+          footer={<TrendDelta value={totals.totalRevenueMTD - totals.prevTotalRevenueMTD} formatted={`${formatCurrency(totals.totalRevenueMTD - totals.prevTotalRevenueMTD, true)} WoW`} icon={getTrendIcon(totals.totalRevenueMTD, totals.prevTotalRevenueMTD)} className={getTrendColor(totals.totalRevenueMTD, totals.prevTotalRevenueMTD)} />}
+        />
+        <SummaryCard
+          icon={<DollarSign className="h-4 w-4" />}
+          label="Team Pipeline"
+          value={formatCurrency(totals.totalPipeline)}
+          footer={<TrendDelta value={totals.totalPipeline - totals.prevTotalPipeline} formatted={`${formatCurrency(totals.totalPipeline - totals.prevTotalPipeline, true)} WoW`} icon={getTrendIcon(totals.totalPipeline, totals.prevTotalPipeline)} className={getTrendColor(totals.totalPipeline, totals.prevTotalPipeline)} />}
+        />
+        <SummaryCard
+          icon={<CheckCircle className="h-4 w-4" />}
+          label="Deals Won"
+          value={totals.totalDealsWon}
+          footer={<TrendDelta value={totals.totalDealsWon - totals.prevTotalDealsWon} formatted={`${totals.totalDealsWon - totals.prevTotalDealsWon > 0 ? '+' : ''}${totals.totalDealsWon - totals.prevTotalDealsWon} WoW`} icon={getTrendIcon(totals.totalDealsWon, totals.prevTotalDealsWon)} className={getTrendColor(totals.totalDealsWon, totals.prevTotalDealsWon)} />}
+        />
+        <SummaryCard
+          icon={<TrendingUp className="h-4 w-4" />}
+          label="Deals Advancing"
+          value={totals.totalDealsAdvancing}
+          footer={<TrendDelta value={totals.totalDealsAdvancing - totals.prevTotalDealsAdvancing} formatted={`${totals.totalDealsAdvancing - totals.prevTotalDealsAdvancing > 0 ? '+' : ''}${totals.totalDealsAdvancing - totals.prevTotalDealsAdvancing} WoW`} icon={getTrendIcon(totals.totalDealsAdvancing, totals.prevTotalDealsAdvancing)} className={getTrendColor(totals.totalDealsAdvancing, totals.prevTotalDealsAdvancing)} />}
+        />
       </div>
 
-      <div className="grid md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <div className="flex items-center justify-between mb-2">
-            <Users className="w-8 h-8 text-emerald-600" />
-            <span className="text-sm font-medium text-slate-600">Team Size</span>
+      <Card padding="md" className="mb-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+          <div className="flex items-start gap-3">
+            <div className="h-9 w-9 rounded-lg bg-brand-50 text-brand-700 flex items-center justify-center flex-shrink-0">
+              <LineChart className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-slate-900">Quarterly Trends</h3>
+              <p className="text-sm text-slate-500 mt-0.5">Weekly progression of key metrics</p>
+            </div>
           </div>
-          <p className="text-3xl font-bold text-slate-900">{reps.length}</p>
-          <p className="text-sm text-slate-600 mt-1">
-            {totals.submittedCount} submitted
-          </p>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <div className="flex items-center justify-between mb-2">
-            <Target className="w-8 h-8 text-blue-600" />
-            <span className="text-sm font-medium text-slate-600">QTD Revenue (Bookings)</span>
-          </div>
-          <p className="text-3xl font-bold text-slate-900">
-            {formatCurrency(totals.totalRevenueQTD)}
-          </p>
-          <div className="flex items-center gap-2 mt-1">
-            {getTrendIcon(totals.totalRevenueQTD, totals.prevTotalRevenueQTD)}
-            <p className={`text-sm font-medium ${getTrendColor(totals.totalRevenueQTD, totals.prevTotalRevenueQTD)}`}>
-              {formatCurrency(totals.totalRevenueQTD - totals.prevTotalRevenueQTD, true)} vs last week
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <div className="flex items-center justify-between mb-2">
-            <TrendingUp className="w-8 h-8 text-blue-600" />
-            <span className="text-sm font-medium text-slate-600">MTD Revenue (Bookings)</span>
-          </div>
-          <p className="text-3xl font-bold text-slate-900">
-            {formatCurrency(totals.totalRevenueMTD)}
-          </p>
-          <div className="flex items-center gap-2 mt-1">
-            {getTrendIcon(totals.totalRevenueMTD, totals.prevTotalRevenueMTD)}
-            <p className={`text-sm font-medium ${getTrendColor(totals.totalRevenueMTD, totals.prevTotalRevenueMTD)}`}>
-              {formatCurrency(totals.totalRevenueMTD - totals.prevTotalRevenueMTD, true)} vs last week
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <div className="flex items-center justify-between mb-2">
-            <DollarSign className="w-8 h-8 text-orange-600" />
-            <span className="text-sm font-medium text-slate-600">Team Pipeline</span>
-          </div>
-          <p className="text-3xl font-bold text-slate-900">
-            {formatCurrency(totals.totalPipeline)}
-          </p>
-          <div className="flex items-center gap-2 mt-1">
-            {getTrendIcon(totals.totalPipeline, totals.prevTotalPipeline)}
-            <p className={`text-sm font-medium ${getTrendColor(totals.totalPipeline, totals.prevTotalPipeline)}`}>
-              {formatCurrency(totals.totalPipeline - totals.prevTotalPipeline, true)} vs last week
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <div className="flex items-center justify-between mb-2">
-            <CheckCircle className="w-8 h-8 text-emerald-600" />
-            <span className="text-sm font-medium text-slate-600">Deals Won</span>
-          </div>
-          <p className="text-3xl font-bold text-slate-900">
-            {totals.totalDealsWon}
-          </p>
-          <div className="flex items-center gap-2 mt-1">
-            {getTrendIcon(totals.totalDealsWon, totals.prevTotalDealsWon)}
-            <p className={`text-sm font-medium ${getTrendColor(totals.totalDealsWon, totals.prevTotalDealsWon)}`}>
-              {totals.totalDealsWon - totals.prevTotalDealsWon > 0 ? '+' : ''}{totals.totalDealsWon - totals.prevTotalDealsWon} vs last week
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <div className="flex items-center justify-between mb-2">
-            <TrendingUp className="w-8 h-8 text-blue-600" />
-            <span className="text-sm font-medium text-slate-600">Deals Advancing</span>
-          </div>
-          <p className="text-3xl font-bold text-slate-900">
-            {totals.totalDealsAdvancing}
-          </p>
-          <div className="flex items-center gap-2 mt-1">
-            {getTrendIcon(totals.totalDealsAdvancing, totals.prevTotalDealsAdvancing)}
-            <p className={`text-sm font-medium ${getTrendColor(totals.totalDealsAdvancing, totals.prevTotalDealsAdvancing)}`}>
-              {totals.totalDealsAdvancing - totals.prevTotalDealsAdvancing > 0 ? '+' : ''}{totals.totalDealsAdvancing - totals.prevTotalDealsAdvancing} vs last week
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="text-xl font-semibold text-slate-900">Quarterly Trends</h3>
-            <p className="text-sm text-slate-600">Weekly progression of key metrics</p>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setSelectedMetric('qtd')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                selectedMetric === 'qtd'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-            >
-              QTD Revenue
-            </button>
-            <button
-              onClick={() => setSelectedMetric('mtd')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                selectedMetric === 'mtd'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-            >
-              MTD Revenue
-            </button>
-            <button
-              onClick={() => setSelectedMetric('pipeline')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                selectedMetric === 'pipeline'
-                  ? 'bg-orange-600 text-white'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-            >
-              Pipeline
-            </button>
-            <button
-              onClick={() => setSelectedMetric('dealsWon')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                selectedMetric === 'dealsWon'
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-            >
-              Deals Won
-            </button>
-            <button
-              onClick={() => setSelectedMetric('dealsAdvancing')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                selectedMetric === 'dealsAdvancing'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-            >
-              Deals Advancing
-            </button>
+          <div className="flex flex-wrap gap-1 bg-slate-100 p-1 rounded-lg w-fit">
+            {ADMIN_METRIC_OPTIONS.map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setSelectedMetric(key)}
+                className={`px-3 h-8 rounded-md text-sm font-medium transition-colors ${
+                  selectedMetric === key
+                    ? 'bg-white text-brand-700 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
         <MetricsTrendGraph trendData={weeklyTrendData} selectedMetric={selectedMetric} />
-      </div>
+      </Card>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
         <h3 className="text-xl font-semibold text-slate-900 mb-4">
@@ -2115,43 +2025,72 @@ export function AdminDashboard() {
         }} />
       )}
 
-      {showExecutiveSummary && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="p-6 border-b border-slate-200 flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-slate-900">Executive Summary</h2>
-              <button
-                onClick={() => setShowExecutiveSummary(false)}
-                className="text-slate-400 hover:text-slate-600"
-              >
-                <XCircle className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-6">
-              <pre className="whitespace-pre-wrap font-mono text-sm text-slate-800 leading-relaxed">
-                {executiveSummary}
-              </pre>
-            </div>
-            <div className="p-6 border-t border-slate-200 flex justify-end gap-3">
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(executiveSummary);
-                  alert('Summary copied to clipboard!');
-                }}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Copy to Clipboard
-              </button>
-              <button
-                onClick={() => setShowExecutiveSummary(false)}
-                className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors"
-              >
-                Close
-              </button>
-            </div>
-          </div>
+      <Modal
+        open={showExecutiveSummary}
+        onClose={() => setShowExecutiveSummary(false)}
+        title="Executive Summary"
+        description={currentWeek ? `Week ending ${formatDate(currentWeek.end_date)}` : undefined}
+        size="lg"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setShowExecutiveSummary(false)}>
+              Close
+            </Button>
+            <Button
+              leadingIcon={<Copy className="h-4 w-4" />}
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(executiveSummary);
+                  toast.success('Copied to clipboard');
+                } catch {
+                  toast.error('Could not copy', 'Please copy manually');
+                }
+              }}
+            >
+              Copy
+            </Button>
+          </>
+        }
+      >
+        <pre className="whitespace-pre-wrap font-mono text-sm text-slate-800 leading-relaxed bg-slate-50 rounded-lg border border-slate-200 p-4 -mx-1">
+          {executiveSummary}
+        </pre>
+      </Modal>
+    </div>
+  );
+}
+
+type SummaryCardProps = {
+  icon: React.ReactNode;
+  label: string;
+  sub?: string;
+  value: React.ReactNode;
+  footer?: React.ReactNode;
+};
+
+function SummaryCard({ icon, label, sub, value, footer }: SummaryCardProps) {
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 shadow-card p-5 transition-shadow hover:shadow-card-hover">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="h-7 w-7 rounded-md bg-brand-50 text-brand-700 flex items-center justify-center">
+          {icon}
         </div>
-      )}
+        <span className="text-xs font-medium text-slate-500 uppercase tracking-wide truncate">
+          {label}
+          {sub && <span className="ml-1 text-slate-400 normal-case tracking-normal">({sub})</span>}
+        </span>
+      </div>
+      <p className="text-2xl font-bold text-slate-900 tracking-tight">{value}</p>
+      {footer && <div className="mt-2">{footer}</div>}
+    </div>
+  );
+}
+
+function TrendDelta({ formatted, icon, className }: { value: number; formatted: string; icon: React.ReactNode; className: string }) {
+  return (
+    <div className={`flex items-center gap-1 text-xs font-medium ${className}`}>
+      {icon}
+      <span>{formatted}</span>
     </div>
   );
 }

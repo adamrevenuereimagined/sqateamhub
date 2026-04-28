@@ -5,6 +5,7 @@ import { Save, Send, Plus, Trash2, ArrowLeft, CreditCard as Edit2, CheckCircle2,
 import { formatDateShort } from '../lib/dateUtils';
 import { CurrencyInput } from './CurrencyInput';
 import { formatCurrency } from '../lib/formatters';
+import { useToast } from './ui';
 
 type Week = {
   id: string;
@@ -63,6 +64,7 @@ type Props = {
 
 export function WeeklySubmissionForm({ weekId, onBack }: Props) {
   const { user } = useAuth();
+  const toast = useToast();
   const [currentWeek, setCurrentWeek] = useState<Week | null>(null);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -399,14 +401,14 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
     if (submitNow) {
       const validGoals = nextWeekGoals.filter(g => g.trim());
       if (validGoals.length === 0) {
-        alert('Please add at least one goal for next week before submitting.');
+        toast.warning('Add at least one goal', 'Next week needs at least one goal before submitting.');
         return;
       }
 
       if (previousGoals.length > 0) {
         const allGoalsReviewed = previousGoals.every(g => g.status !== 'pending');
         if (!allGoalsReviewed) {
-          alert('Please review all previous week goals (mark as Hit, Partial, or Missed) before submitting.');
+          toast.warning('Review previous goals', 'Mark each prior-week goal as Hit, Partial, or Missed before submitting.');
           return;
         }
       }
@@ -528,46 +530,54 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
       }
 
       setStatus(submitNow ? 'submitted' : 'in_progress');
-      alert(submitNow ? 'Submitted successfully!' : 'Saved as draft');
+      if (submitNow) {
+        toast.success('Submitted', 'Your weekly report is in.');
+      } else {
+        toast.success('Draft saved');
+      }
       onBack();
     } catch (error: any) {
       console.error('Error saving:', error);
       const errorMessage = error?.message || 'Unknown error';
-      alert(`Failed to save: ${errorMessage}\n\nPlease check the console for details.`);
+      toast.error('Failed to save', errorMessage);
     } finally {
       setSaving(false);
     }
   };
 
   if (!currentWeek) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="h-10 w-10 rounded-full border-2 border-brand-200 border-t-brand-600 animate-spin" />
+      </div>
+    );
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto animate-fade-in">
       <div className="mb-6">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-4 transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900 mb-4 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Dashboard
         </button>
 
-        <div className="mb-4">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Weekly Submission</h1>
-          <p className="text-sm text-slate-500">
-            {user?.name} | Q Quota: {formatCurrency(user?.quarterly_quota || 0)} | Due: Thursday 5:00 PM PT
-          </p>
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-4">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-1">Weekly Submission</h1>
+            <p className="text-sm text-slate-500">
+              {user?.name} · Quarterly quota: {formatCurrency(user?.quarterly_quota || 0)} · Due Thursday 5:00 PM PT
+            </p>
+          </div>
         </div>
 
-        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-          <p className="text-slate-700">
-            <span className="font-semibold">Week of:</span>{' '}
-            {formatDateShort(currentWeek.start_date)}{' '}
-            -{' '}
-            {formatDateShort(currentWeek.end_date)}, {currentWeek.year}
-          </p>
+        <div className="bg-brand-50 border border-brand-100 rounded-lg px-4 py-3 flex items-center gap-2 text-sm">
+          <span className="text-xs uppercase tracking-wide font-semibold text-brand-700 bg-white border border-brand-200 rounded px-1.5 py-0.5">Week of</span>
+          <span className="font-medium text-slate-900">
+            {formatDateShort(currentWeek.start_date)} – {formatDateShort(currentWeek.end_date)}, {currentWeek.year}
+          </span>
         </div>
       </div>
 
@@ -645,7 +655,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                             updated[index] = { ...updated[index], review_notes: e.target.value };
                             setPreviousGoals(updated);
                           }}
-                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 bg-white"
+                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white"
                           placeholder="What happened? Any lessons learned?"
                         />
                       </div>
@@ -677,7 +687,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                       newWins[index] = e.target.value;
                       setWins(newWins);
                     }}
-                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                     placeholder={`Win #${index + 1}`}
                   />
                   {wins.length > 1 && (
@@ -693,7 +703,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
               {wins.length < 5 && (
                 <button
                   onClick={() => setWins([...wins, ''])}
-                  className="flex items-center text-emerald-600 hover:text-emerald-700 text-sm font-medium mt-2"
+                  className="flex items-center text-brand-700 hover:text-brand-800 text-sm font-medium mt-2"
                 >
                   <Plus className="w-4 h-4 mr-1" />
                   Add Win
@@ -709,7 +719,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 value={whatsWorking}
                 onChange={(e) => setWhatsWorking(e.target.value)}
                 rows={3}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                 placeholder="Share what strategies or approaches are working..."
               />
             </div>
@@ -722,7 +732,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 value={positiveFeedback}
                 onChange={(e) => setPositiveFeedback(e.target.value)}
                 rows={3}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                 placeholder="Any positive feedback you've received..."
               />
             </div>
@@ -750,7 +760,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
               <CurrencyInput
                 value={revenueMtd}
                 onChange={setRevenueMtd}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
               />
             </div>
 
@@ -761,7 +771,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
               <CurrencyInput
                 value={revenueQtd}
                 onChange={setRevenueQtd}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
               />
             </div>
 
@@ -772,7 +782,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
               <CurrencyInput
                 value={avgDealSize}
                 onChange={setAvgDealSize}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
               />
             </div>
 
@@ -783,7 +793,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
               <CurrencyInput
                 value={pipelineCoverage}
                 onChange={setPipelineCoverage}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
               />
             </div>
 
@@ -795,7 +805,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 type="number"
                 value={dealsWonThisWeek}
                 onChange={(e) => setDealsWonThisWeek(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                 min="0"
               />
             </div>
@@ -835,7 +845,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 type="number"
                 value={coldCalls}
                 onChange={(e) => setColdCalls(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
               />
             </div>
 
@@ -852,7 +862,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 type="number"
                 value={emails}
                 onChange={(e) => setEmails(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
               />
             </div>
 
@@ -869,7 +879,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 type="number"
                 value={liMessages}
                 onChange={(e) => setLiMessages(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
               />
             </div>
 
@@ -886,7 +896,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 type="number"
                 value={videos}
                 onChange={(e) => setVideos(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
               />
             </div>
 
@@ -903,7 +913,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 type="number"
                 value={dmConnects}
                 onChange={(e) => setDmConnects(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
               />
             </div>
 
@@ -920,7 +930,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 type="number"
                 value={meetingsBooked}
                 onChange={(e) => setMeetingsBooked(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
               />
             </div>
 
@@ -937,7 +947,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 type="number"
                 value={discoveryCalls}
                 onChange={(e) => setDiscoveryCalls(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
               />
             </div>
 
@@ -954,7 +964,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 type="number"
                 value={opportunitiesAdvanced}
                 onChange={(e) => setOpportunitiesAdvanced(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
               />
             </div>
           </div>
@@ -982,7 +992,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                         newDeals[index].dealName = e.target.value;
                         setDealsAdvancing(newDeals);
                       }}
-                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                     />
                     <CurrencyInput
                       value={deal.dealAmount}
@@ -992,7 +1002,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                         setDealsAdvancing(newDeals);
                       }}
                       placeholder="Deal Amount"
-                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                     />
                   </div>
                   <div className="grid md:grid-cols-2 gap-3">
@@ -1005,7 +1015,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                         newDeals[index].nextStage = e.target.value;
                         setDealsAdvancing(newDeals);
                       }}
-                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                     />
                     <input
                       type="text"
@@ -1016,14 +1026,14 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                         newDeals[index].nextStep = e.target.value;
                         setDealsAdvancing(newDeals);
                       }}
-                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                     />
                   </div>
                 </div>
               ))}
               <button
                 onClick={() => setDealsAdvancing([...dealsAdvancing, { dealName: '', dealAmount: 0, nextStage: '', nextStep: '' }])}
-                className="flex items-center text-emerald-600 hover:text-emerald-700 text-sm font-medium"
+                className="flex items-center text-brand-700 hover:text-brand-800 text-sm font-medium"
               >
                 <Plus className="w-4 h-4 mr-1" />
                 Add Deal
@@ -1045,7 +1055,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                       newDeals[index].dealName = e.target.value;
                       setDealsStalling(newDeals);
                     }}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 mb-3"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 mb-3"
                   />
                   <div className="grid md:grid-cols-3 gap-3">
                     <textarea
@@ -1057,7 +1067,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                         setDealsStalling(newDeals);
                       }}
                       rows={2}
-                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                     />
                     <textarea
                       placeholder="Your Plan"
@@ -1068,7 +1078,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                         setDealsStalling(newDeals);
                       }}
                       rows={2}
-                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                     />
                     <textarea
                       placeholder="Help Needed"
@@ -1079,14 +1089,14 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                         setDealsStalling(newDeals);
                       }}
                       rows={2}
-                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                     />
                   </div>
                 </div>
               ))}
               <button
                 onClick={() => setDealsStalling([...dealsStalling, { dealName: '', whyStuck: '', yourPlan: '', helpNeeded: '' }])}
-                className="flex items-center text-emerald-600 hover:text-emerald-700 text-sm font-medium"
+                className="flex items-center text-brand-700 hover:text-brand-800 text-sm font-medium"
               >
                 <Plus className="w-4 h-4 mr-1" />
                 Add Deal
@@ -1109,7 +1119,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                         newDealsList[index].companyName = e.target.value;
                         setNewDeals(newDealsList);
                       }}
-                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                     />
                     <input
                       type="text"
@@ -1120,7 +1130,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                         newDealsList[index].dealSource = e.target.value;
                         setNewDeals(newDealsList);
                       }}
-                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                     />
                     <CurrencyInput
                       value={deal.potentialRevenue}
@@ -1130,14 +1140,14 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                         setNewDeals(newDealsList);
                       }}
                       placeholder="Potential Revenue ($)"
-                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                     />
                   </div>
                 </div>
               ))}
               <button
                 onClick={() => setNewDeals([...newDeals, { companyName: '', dealSource: '', potentialRevenue: 0 }])}
-                className="flex items-center text-emerald-600 hover:text-emerald-700 text-sm font-medium"
+                className="flex items-center text-brand-700 hover:text-brand-800 text-sm font-medium"
               >
                 <Plus className="w-4 h-4 mr-1" />
                 Add Deal
@@ -1164,7 +1174,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                       newOpps[index].companyDeal = e.target.value;
                       setClosingOpps(newOpps);
                     }}
-                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                   />
                   <CurrencyInput
                     value={opp.value || 0}
@@ -1173,7 +1183,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                       newOpps[index].value = val;
                       setClosingOpps(newOpps);
                     }}
-                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                     placeholder="Value"
                   />
                   <input
@@ -1185,7 +1195,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                       newOpps[index].closeDate = e.target.value;
                       setClosingOpps(newOpps);
                     }}
-                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                   />
                   <input
                     type="text"
@@ -1196,14 +1206,14 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                       newOpps[index].confidenceBlockers = e.target.value;
                       setClosingOpps(newOpps);
                     }}
-                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                   />
                 </div>
               </div>
             ))}
             <button
               onClick={() => setClosingOpps([...closingOpps, { companyDeal: '', value: 0, closeDate: '', confidenceBlockers: '' }])}
-              className="flex items-center text-emerald-600 hover:text-emerald-700 text-sm font-medium"
+              className="flex items-center text-brand-700 hover:text-brand-800 text-sm font-medium"
             >
               <Plus className="w-4 h-4 mr-1" />
               Add Opportunity
@@ -1288,7 +1298,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                         }}
                         placeholder="Add any relevant notes about the meeting outcome..."
                         rows={2}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                       />
                     </div>
                   </div>
@@ -1316,7 +1326,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                       newMeetings[index].clientProspect = e.target.value;
                       setF2fMeetingsHeldLastWeek(newMeetings);
                     }}
-                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                   />
                   <input
                     type="text"
@@ -1327,7 +1337,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                       newMeetings[index].dates = e.target.value;
                       setF2fMeetingsHeldLastWeek(newMeetings);
                     }}
-                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                   />
                   <input
                     type="text"
@@ -1338,7 +1348,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                       newMeetings[index].where = e.target.value;
                       setF2fMeetingsHeldLastWeek(newMeetings);
                     }}
-                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                   />
                   <input
                     type="text"
@@ -1349,14 +1359,14 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                       newMeetings[index].purposePrep = e.target.value;
                       setF2fMeetingsHeldLastWeek(newMeetings);
                     }}
-                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                   />
                 </div>
               </div>
             ))}
             <button
               onClick={() => setF2fMeetingsHeldLastWeek([...f2fMeetingsHeldLastWeek, { clientProspect: '', dates: '', where: '', purposePrep: '' }])}
-              className="flex items-center text-emerald-600 hover:text-emerald-700 text-sm font-medium"
+              className="flex items-center text-brand-700 hover:text-brand-800 text-sm font-medium"
             >
               <Plus className="w-4 h-4 mr-1" />
               Add Meeting
@@ -1382,7 +1392,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                       newMeetings[index].clientProspect = e.target.value;
                       setF2fMeetings(newMeetings);
                     }}
-                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                   />
                   <input
                     type="text"
@@ -1393,7 +1403,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                       newMeetings[index].dates = e.target.value;
                       setF2fMeetings(newMeetings);
                     }}
-                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                   />
                   <input
                     type="text"
@@ -1404,7 +1414,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                       newMeetings[index].where = e.target.value;
                       setF2fMeetings(newMeetings);
                     }}
-                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                   />
                   <input
                     type="text"
@@ -1415,14 +1425,14 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                       newMeetings[index].purposePrep = e.target.value;
                       setF2fMeetings(newMeetings);
                     }}
-                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                   />
                 </div>
               </div>
             ))}
             <button
               onClick={() => setF2fMeetings([...f2fMeetings, { clientProspect: '', dates: '', where: '', purposePrep: '' }])}
-              className="flex items-center text-emerald-600 hover:text-emerald-700 text-sm font-medium"
+              className="flex items-center text-brand-700 hover:text-brand-800 text-sm font-medium"
             >
               <Plus className="w-4 h-4 mr-1" />
               Add Meeting
@@ -1444,7 +1454,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 type="url"
                 value={callReviewLink}
                 onChange={(e) => setCallReviewLink(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                 placeholder="https://..."
               />
             </div>
@@ -1457,7 +1467,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 value={callReviewFocus}
                 onChange={(e) => setCallReviewFocus(e.target.value)}
                 rows={3}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                 placeholder="What specific aspects should I focus on?"
               />
             </div>
@@ -1484,7 +1494,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                       newBlockers[index] = e.target.value;
                       setDealBlockers(newBlockers);
                     }}
-                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                     placeholder={`Blocker #${index + 1}`}
                   />
                   {dealBlockers.length > 1 && (
@@ -1500,7 +1510,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
               {dealBlockers.length < 5 && (
                 <button
                   onClick={() => setDealBlockers([...dealBlockers, ''])}
-                  className="flex items-center text-emerald-600 hover:text-emerald-700 text-sm font-medium mt-2"
+                  className="flex items-center text-brand-700 hover:text-brand-800 text-sm font-medium mt-2"
                 >
                   <Plus className="w-4 h-4 mr-1" />
                   Add Blocker
@@ -1522,7 +1532,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                       newSupport[index] = e.target.value;
                       setSupportNeeded(newSupport);
                     }}
-                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                     placeholder={`Support need #${index + 1}`}
                   />
                   {supportNeeded.length > 1 && (
@@ -1538,7 +1548,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
               {supportNeeded.length < 5 && (
                 <button
                   onClick={() => setSupportNeeded([...supportNeeded, ''])}
-                  className="flex items-center text-emerald-600 hover:text-emerald-700 text-sm font-medium mt-2"
+                  className="flex items-center text-brand-700 hover:text-brand-800 text-sm font-medium mt-2"
                 >
                   <Plus className="w-4 h-4 mr-1" />
                   Add Support Need
@@ -1571,7 +1581,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                     updated[index] = e.target.value;
                     setNextWeekGoals(updated);
                   }}
-                  className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                  className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                   placeholder={`Goal #${index + 1} - be specific and measurable...`}
                 />
                 {nextWeekGoals.length > 1 && (
@@ -1587,7 +1597,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
             {nextWeekGoals.length < 5 && (
               <button
                 onClick={() => setNextWeekGoals([...nextWeekGoals, ''])}
-                className="flex items-center text-emerald-600 hover:text-emerald-700 text-sm font-medium ml-10"
+                className="flex items-center text-brand-700 hover:text-brand-800 text-sm font-medium ml-10"
               >
                 <Plus className="w-4 h-4 mr-1" />
                 Add Goal
@@ -1610,7 +1620,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 value={selfCare}
                 onChange={(e) => setSelfCare(e.target.value)}
                 rows={3}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                 placeholder="Share how you're maintaining work-life balance..."
               />
             </div>
@@ -1644,7 +1654,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 value={managerSupport}
                 onChange={(e) => setManagerSupport(e.target.value)}
                 rows={3}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                 placeholder="Any support or resources you need..."
               />
             </div>
@@ -1682,7 +1692,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
               <button
                 onClick={() => handleSave(true)}
                 disabled={saving}
-                className="flex items-center px-6 py-2.5 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                className="flex items-center px-6 py-2.5 bg-brand-700 text-white rounded-lg font-medium hover:bg-brand-800 active:bg-brand-900 shadow-sm transition-colors disabled:opacity-50"
               >
                 <Send className="w-4 h-4 mr-2" />
                 {saving ? 'Submitting...' : 'Submit'}
