@@ -942,7 +942,6 @@ export function AdminDashboard() {
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <p className="font-semibold text-slate-900">{rep.name}</p>
-                    <p className="text-sm text-slate-600">{rep.email}</p>
                   </div>
                   <div className="flex items-center gap-1 px-3 py-1 bg-emerald-600 text-white rounded-full text-sm font-bold">
                     <Calendar className="w-4 h-4" />
@@ -986,7 +985,6 @@ export function AdminDashboard() {
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <p className="font-semibold text-slate-900">{rep.name}</p>
-                    <p className="text-sm text-slate-600">{rep.email}</p>
                   </div>
                   {hasNone ? (
                     <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-bold border border-red-200">
