@@ -292,7 +292,7 @@ export function AdminDashboard() {
 
         if (allWeeks) {
           const mtdWeekIds = allWeeks
-            .filter(w => w.end_date >= monthStartStr)
+            .filter(w => w.end_date >= monthStartStr && w.end_date < currentWeek.end_date)
             .map(w => w.id);
 
           const qtdWeekIds = allWeeks
