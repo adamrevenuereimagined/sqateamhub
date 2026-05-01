@@ -384,29 +384,30 @@ export function AdminDashboard() {
           const weekEndByWeekId: { [weekId: string]: string } = {};
           allWeeks.forEach(w => { weekEndByWeekId[w.id] = w.end_date; });
 
-          const latestSubByUser = (subs: any[], field: string) => {
+          const latestNonZeroSubByUser = (subs: any[], field: string) => {
             const result: { [userId: string]: number } = {};
             const latestWeekEnd: { [userId: string]: string } = {};
             subs.forEach((sub: any) => {
               const weekEnd = weekEndByWeekId[sub.week_id] || '';
-              if (!latestWeekEnd[sub.user_id] || weekEnd > latestWeekEnd[sub.user_id]) {
+              const val = parseFloat(sub[field]) || 0;
+              if (val > 0 && (!latestWeekEnd[sub.user_id] || weekEnd > latestWeekEnd[sub.user_id])) {
                 latestWeekEnd[sub.user_id] = weekEnd;
-                result[sub.user_id] = parseFloat(sub[field]) || 0;
+                result[sub.user_id] = val;
               }
             });
             return result;
           };
 
-          const mtdMaxByUser = mtdSubmissions ? latestSubByUser(mtdSubmissions, 'revenue_mtd') : {};
+          const mtdMaxByUser = mtdSubmissions ? latestNonZeroSubByUser(mtdSubmissions, 'revenue_mtd') : {};
           setMtdMaxRevenue(mtdMaxByUser);
 
-          const qtdMaxByUser = qtdSubmissions ? latestSubByUser(qtdSubmissions, 'revenue_qtd') : {};
+          const qtdMaxByUser = qtdSubmissions ? latestNonZeroSubByUser(qtdSubmissions, 'revenue_qtd') : {};
           setQtdMaxRevenue(qtdMaxByUser);
 
-          const prevMtdMaxByUser = prevMtdSubmissions ? latestSubByUser(prevMtdSubmissions, 'revenue_mtd') : {};
+          const prevMtdMaxByUser = prevMtdSubmissions ? latestNonZeroSubByUser(prevMtdSubmissions, 'revenue_mtd') : {};
           setPrevMtdMaxRevenue(prevMtdMaxByUser);
 
-          const prevQtdMaxByUser = prevQtdSubmissions ? latestSubByUser(prevQtdSubmissions, 'revenue_qtd') : {};
+          const prevQtdMaxByUser = prevQtdSubmissions ? latestNonZeroSubByUser(prevQtdSubmissions, 'revenue_qtd') : {};
           setPrevQtdMaxRevenue(prevQtdMaxByUser);
 
           const quarterWeeks = allWeeks.filter(w => new Date(w.start_date) >= quarterStart);
@@ -439,10 +440,10 @@ export function AdminDashboard() {
               const revQtd = parseFloat(sub.revenue_qtd) || 0;
               const revMtd = parseFloat(sub.revenue_mtd) || 0;
               const wEnd = sub.week_end_date || '';
-              if (!latestQtdByUser[sub.user_id] || wEnd > latestQtdByUser[sub.user_id].weekEnd) {
+              if (revQtd > 0 && (!latestQtdByUser[sub.user_id] || wEnd > latestQtdByUser[sub.user_id].weekEnd)) {
                 latestQtdByUser[sub.user_id] = { value: revQtd, weekEnd: wEnd };
               }
-              if (!latestMtdByUser[sub.user_id] || wEnd > latestMtdByUser[sub.user_id].weekEnd) {
+              if (revMtd > 0 && (!latestMtdByUser[sub.user_id] || wEnd > latestMtdByUser[sub.user_id].weekEnd)) {
                 latestMtdByUser[sub.user_id] = { value: revMtd, weekEnd: wEnd };
               }
             });
