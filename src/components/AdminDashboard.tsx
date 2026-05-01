@@ -434,6 +434,7 @@ export function AdminDashboard() {
               (s: any) => s.week_id === week.id
             );
 
+            const weekMonth = weekEndDate.substring(0, 7); // 'YYYY-MM'
             const latestQtdByUser: { [userId: string]: { value: number; weekEnd: string } } = {};
             const latestMtdByUser: { [userId: string]: { value: number; weekEnd: string } } = {};
             subsUpToThisWeek.forEach((sub: any) => {
@@ -443,7 +444,8 @@ export function AdminDashboard() {
               if (revQtd > 0 && (!latestQtdByUser[sub.user_id] || wEnd > latestQtdByUser[sub.user_id].weekEnd)) {
                 latestQtdByUser[sub.user_id] = { value: revQtd, weekEnd: wEnd };
               }
-              if (revMtd > 0 && (!latestMtdByUser[sub.user_id] || wEnd > latestMtdByUser[sub.user_id].weekEnd)) {
+              // Only use MTD revenue from submissions within the same calendar month
+              if (revMtd > 0 && wEnd.substring(0, 7) === weekMonth && (!latestMtdByUser[sub.user_id] || wEnd > latestMtdByUser[sub.user_id].weekEnd)) {
                 latestMtdByUser[sub.user_id] = { value: revMtd, weekEnd: wEnd };
               }
             });
