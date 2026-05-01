@@ -158,6 +158,8 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
   const [energyLevel, setEnergyLevel] = useState<'high' | 'medium' | 'low'>('medium');
   const [managerSupport, setManagerSupport] = useState('');
 
+  const [prevWeekSubmission, setPrevWeekSubmission] = useState<WeeklySubmission | null>(null);
+
   const [targets, setTargets] = useState<{
     target_cold_calls: number;
     target_li_messages: number;
@@ -334,20 +336,30 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
 
         const { data: prevSubmission } = await supabase
           .from('weekly_submissions')
-          .select('f2f_meetings')
+          .select('*')
           .eq('user_id', user.id)
           .eq('week_id', prevWeek.id)
           .maybeSingle();
 
-        if (prevSubmission && prevSubmission.f2f_meetings && Array.isArray(prevSubmission.f2f_meetings) && prevSubmission.f2f_meetings.length > 0) {
-          setPreviousWeekMeetings(prevSubmission.f2f_meetings.map((m: any) => ({
-            clientProspect: m.clientProspect || '',
-            dates: m.dates || '',
-            where: m.where || '',
-            goalOutcome: m.purposePrep || '',
-            goalMet: null,
-            notes: ''
-          })));
+        if (prevSubmission) {
+          const parsed = parseNumericFields(prevSubmission, [
+            'revenue_mtd', 'revenue_qtd', 'cold_calls', 'emails', 'li_messages',
+            'decision_maker_connects', 'meetings_booked', 'discovery_calls',
+            'opportunities_advanced', 'pipeline_coverage_ratio', 'average_deal_size',
+            'deals_won_this_week', 'prospecting_activities', 'videos'
+          ]);
+          setPrevWeekSubmission(parsed);
+
+          if (prevSubmission.f2f_meetings && Array.isArray(prevSubmission.f2f_meetings) && prevSubmission.f2f_meetings.length > 0) {
+            setPreviousWeekMeetings(prevSubmission.f2f_meetings.map((m: any) => ({
+              clientProspect: m.clientProspect || '',
+              dates: m.dates || '',
+              where: m.where || '',
+              goalOutcome: m.purposePrep || '',
+              goalMet: null,
+              notes: ''
+            })));
+          }
         }
       }
     } catch (error) {
@@ -762,6 +774,9 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 onChange={setRevenueMtd}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
               />
+              {prevWeekSubmission && (
+                <p className="text-xs text-slate-400 mt-1">Last week: {formatCurrency(prevWeekSubmission.revenue_mtd || 0)}</p>
+              )}
             </div>
 
             <div>
@@ -773,6 +788,9 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 onChange={setRevenueQtd}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
               />
+              {prevWeekSubmission && (
+                <p className="text-xs text-slate-400 mt-1">Last week: {formatCurrency(prevWeekSubmission.revenue_qtd || 0)}</p>
+              )}
             </div>
 
             <div>
@@ -784,6 +802,9 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 onChange={setAvgDealSize}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
               />
+              {prevWeekSubmission && (
+                <p className="text-xs text-slate-400 mt-1">Last week: {formatCurrency(prevWeekSubmission.average_deal_size || 0)}</p>
+              )}
             </div>
 
             <div>
@@ -795,6 +816,9 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 onChange={setPipelineCoverage}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
               />
+              {prevWeekSubmission && (
+                <p className="text-xs text-slate-400 mt-1">Last week: {formatCurrency(prevWeekSubmission.pipeline_coverage_ratio || 0)}</p>
+              )}
             </div>
 
             <div>
@@ -808,6 +832,9 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                 min="0"
               />
+              {prevWeekSubmission && (
+                <p className="text-xs text-slate-400 mt-1">Last week: {prevWeekSubmission.deals_won_this_week || 0}</p>
+              )}
             </div>
           </div>
         </div>
@@ -847,6 +874,9 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 onChange={(e) => setColdCalls(Number(e.target.value))}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
               />
+              {prevWeekSubmission && (
+                <p className="text-xs text-slate-400 mt-1">Last week: {prevWeekSubmission.cold_calls || 0}</p>
+              )}
             </div>
 
             <div>
@@ -864,6 +894,9 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 onChange={(e) => setEmails(Number(e.target.value))}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
               />
+              {prevWeekSubmission && (
+                <p className="text-xs text-slate-400 mt-1">Last week: {prevWeekSubmission.emails || 0}</p>
+              )}
             </div>
 
             <div>
@@ -881,6 +914,9 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 onChange={(e) => setLiMessages(Number(e.target.value))}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
               />
+              {prevWeekSubmission && (
+                <p className="text-xs text-slate-400 mt-1">Last week: {prevWeekSubmission.li_messages || 0}</p>
+              )}
             </div>
 
             <div>
@@ -898,6 +934,9 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 onChange={(e) => setVideos(Number(e.target.value))}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
               />
+              {prevWeekSubmission && (
+                <p className="text-xs text-slate-400 mt-1">Last week: {prevWeekSubmission.videos || 0}</p>
+              )}
             </div>
 
             <div>
@@ -915,6 +954,9 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 onChange={(e) => setDmConnects(Number(e.target.value))}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
               />
+              {prevWeekSubmission && (
+                <p className="text-xs text-slate-400 mt-1">Last week: {prevWeekSubmission.decision_maker_connects || 0}</p>
+              )}
             </div>
 
             <div>
@@ -932,6 +974,9 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 onChange={(e) => setMeetingsBooked(Number(e.target.value))}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
               />
+              {prevWeekSubmission && (
+                <p className="text-xs text-slate-400 mt-1">Last week: {prevWeekSubmission.meetings_booked || 0}</p>
+              )}
             </div>
 
             <div>
@@ -949,6 +994,9 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 onChange={(e) => setDiscoveryCalls(Number(e.target.value))}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
               />
+              {prevWeekSubmission && (
+                <p className="text-xs text-slate-400 mt-1">Last week: {prevWeekSubmission.discovery_calls || 0}</p>
+              )}
             </div>
 
             <div>
@@ -966,6 +1014,9 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
                 onChange={(e) => setOpportunitiesAdvanced(Number(e.target.value))}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
               />
+              {prevWeekSubmission && (
+                <p className="text-xs text-slate-400 mt-1">Last week: {prevWeekSubmission.opportunities_advanced || 0}</p>
+              )}
             </div>
           </div>
         </div>
