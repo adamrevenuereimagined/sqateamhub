@@ -381,48 +381,32 @@ export function AdminDashboard() {
             setPrevQtdMetrics(aggregateSubmissions(parsedPrevQtd));
           }
 
-          const mtdMaxByUser: { [userId: string]: number } = {};
-          if (mtdSubmissions) {
-            mtdSubmissions.forEach((sub: any) => {
-              const revMtd = parseFloat(sub.revenue_mtd) || 0;
-              if (!mtdMaxByUser[sub.user_id] || revMtd > mtdMaxByUser[sub.user_id]) {
-                mtdMaxByUser[sub.user_id] = revMtd;
+          const weekEndByWeekId: { [weekId: string]: string } = {};
+          allWeeks.forEach(w => { weekEndByWeekId[w.id] = w.end_date; });
+
+          const latestSubByUser = (subs: any[], field: string) => {
+            const result: { [userId: string]: number } = {};
+            const latestWeekEnd: { [userId: string]: string } = {};
+            subs.forEach((sub: any) => {
+              const weekEnd = weekEndByWeekId[sub.week_id] || '';
+              if (!latestWeekEnd[sub.user_id] || weekEnd > latestWeekEnd[sub.user_id]) {
+                latestWeekEnd[sub.user_id] = weekEnd;
+                result[sub.user_id] = parseFloat(sub[field]) || 0;
               }
             });
-          }
+            return result;
+          };
+
+          const mtdMaxByUser = mtdSubmissions ? latestSubByUser(mtdSubmissions, 'revenue_mtd') : {};
           setMtdMaxRevenue(mtdMaxByUser);
 
-          const qtdMaxByUser: { [userId: string]: number } = {};
-          if (qtdSubmissions) {
-            qtdSubmissions.forEach((sub: any) => {
-              const revQtd = parseFloat(sub.revenue_qtd) || 0;
-              if (!qtdMaxByUser[sub.user_id] || revQtd > qtdMaxByUser[sub.user_id]) {
-                qtdMaxByUser[sub.user_id] = revQtd;
-              }
-            });
-          }
+          const qtdMaxByUser = qtdSubmissions ? latestSubByUser(qtdSubmissions, 'revenue_qtd') : {};
           setQtdMaxRevenue(qtdMaxByUser);
 
-          const prevMtdMaxByUser: { [userId: string]: number } = {};
-          if (prevMtdSubmissions) {
-            prevMtdSubmissions.forEach((sub: any) => {
-              const revMtd = parseFloat(sub.revenue_mtd) || 0;
-              if (!prevMtdMaxByUser[sub.user_id] || revMtd > prevMtdMaxByUser[sub.user_id]) {
-                prevMtdMaxByUser[sub.user_id] = revMtd;
-              }
-            });
-          }
+          const prevMtdMaxByUser = prevMtdSubmissions ? latestSubByUser(prevMtdSubmissions, 'revenue_mtd') : {};
           setPrevMtdMaxRevenue(prevMtdMaxByUser);
 
-          const prevQtdMaxByUser: { [userId: string]: number } = {};
-          if (prevQtdSubmissions) {
-            prevQtdSubmissions.forEach((sub: any) => {
-              const revQtd = parseFloat(sub.revenue_qtd) || 0;
-              if (!prevQtdMaxByUser[sub.user_id] || revQtd > prevQtdMaxByUser[sub.user_id]) {
-                prevQtdMaxByUser[sub.user_id] = revQtd;
-              }
-            });
-          }
+          const prevQtdMaxByUser = prevQtdSubmissions ? latestSubByUser(prevQtdSubmissions, 'revenue_qtd') : {};
           setPrevQtdMaxRevenue(prevQtdMaxByUser);
 
           const quarterWeeks = allWeeks.filter(w => new Date(w.start_date) >= quarterStart);
@@ -449,21 +433,22 @@ export function AdminDashboard() {
               (s: any) => s.week_id === week.id
             );
 
-            const maxQtdByUser: { [userId: string]: number } = {};
-            const maxMtdByUser: { [userId: string]: number } = {};
+            const latestQtdByUser: { [userId: string]: { value: number; weekEnd: string } } = {};
+            const latestMtdByUser: { [userId: string]: { value: number; weekEnd: string } } = {};
             subsUpToThisWeek.forEach((sub: any) => {
               const revQtd = parseFloat(sub.revenue_qtd) || 0;
               const revMtd = parseFloat(sub.revenue_mtd) || 0;
-              if (!maxQtdByUser[sub.user_id] || revQtd > maxQtdByUser[sub.user_id]) {
-                maxQtdByUser[sub.user_id] = revQtd;
+              const wEnd = sub.week_end_date || '';
+              if (!latestQtdByUser[sub.user_id] || wEnd > latestQtdByUser[sub.user_id].weekEnd) {
+                latestQtdByUser[sub.user_id] = { value: revQtd, weekEnd: wEnd };
               }
-              if (!maxMtdByUser[sub.user_id] || revMtd > maxMtdByUser[sub.user_id]) {
-                maxMtdByUser[sub.user_id] = revMtd;
+              if (!latestMtdByUser[sub.user_id] || wEnd > latestMtdByUser[sub.user_id].weekEnd) {
+                latestMtdByUser[sub.user_id] = { value: revMtd, weekEnd: wEnd };
               }
             });
 
-            const qtdRevenue = Object.values(maxQtdByUser).reduce((sum, v) => sum + v, 0);
-            const mtdRevenue = Object.values(maxMtdByUser).reduce((sum, v) => sum + v, 0);
+            const qtdRevenue = Object.values(latestQtdByUser).reduce((sum, v) => sum + v.value, 0);
+            const mtdRevenue = Object.values(latestMtdByUser).reduce((sum, v) => sum + v.value, 0);
 
             const latestPipelineByUser: { [userId: string]: { pipeline: number; weekEnd: string } } = {};
             subsUpToThisWeek.forEach((sub: any) => {
