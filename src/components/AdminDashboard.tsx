@@ -268,15 +268,21 @@ export function AdminDashboard() {
           setPreviousWeekGoals(previousGoalsMap);
         }
 
-        const currentDate = new Date(currentWeek.end_date);
-        const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-        const quarter = Math.floor(currentDate.getMonth() / 3);
-        const quarterStart = new Date(currentDate.getFullYear(), quarter * 3, 1);
+        // Parse end_date as UTC to avoid timezone shifts (dates stored as YYYY-MM-DD)
+        const [cy, cm, cd] = currentWeek.end_date.split('-').map(Number);
+        const monthStartStr = `${cy}-${String(cm).toString().padStart(2, '0')}-01`;
+        const quarterMonth = Math.floor((cm - 1) / 3) * 3 + 1;
+        const quarterStartStr = `${cy}-${String(quarterMonth).padStart(2, '0')}-01`;
 
-        const previousWeekDate = previousWeekData ? new Date(previousWeekData.end_date) : null;
-        const prevMonthStart = previousWeekDate ? new Date(previousWeekDate.getFullYear(), previousWeekDate.getMonth(), 1) : null;
-        const prevQuarter = previousWeekDate ? Math.floor(previousWeekDate.getMonth() / 3) : null;
-        const prevQuarterStart = previousWeekDate && prevQuarter !== null ? new Date(previousWeekDate.getFullYear(), prevQuarter * 3, 1) : null;
+        const prevEndDate = previousWeekData?.end_date || null;
+        let prevMonthStartStr: string | null = null;
+        let prevQuarterStartStr: string | null = null;
+        if (prevEndDate) {
+          const [py, pm] = prevEndDate.split('-').map(Number);
+          prevMonthStartStr = `${py}-${String(pm).padStart(2, '0')}-01`;
+          const prevQtrMonth = Math.floor((pm - 1) / 3) * 3 + 1;
+          prevQuarterStartStr = `${py}-${String(prevQtrMonth).padStart(2, '0')}-01`;
+        }
 
         const { data: allWeeks } = await supabase
           .from('weeks')
@@ -286,25 +292,19 @@ export function AdminDashboard() {
 
         if (allWeeks) {
           const mtdWeekIds = allWeeks
-            .filter(w => new Date(w.end_date) >= monthStart)
+            .filter(w => w.end_date >= monthStartStr)
             .map(w => w.id);
 
           const qtdWeekIds = allWeeks
-            .filter(w => new Date(w.end_date) >= quarterStart)
+            .filter(w => w.end_date >= quarterStartStr)
             .map(w => w.id);
 
-          const prevMtdWeekIds = prevMonthStart ? allWeeks
-            .filter(w => {
-              const wEnd = new Date(w.end_date);
-              return wEnd >= prevMonthStart && wEnd <= (previousWeekDate || new Date());
-            })
+          const prevMtdWeekIds = prevMonthStartStr && prevEndDate ? allWeeks
+            .filter(w => w.end_date >= prevMonthStartStr! && w.end_date <= prevEndDate)
             .map(w => w.id) : [];
 
-          const prevQtdWeekIds = prevQuarterStart ? allWeeks
-            .filter(w => {
-              const wEnd = new Date(w.end_date);
-              return wEnd >= prevQuarterStart && wEnd <= (previousWeekDate || new Date());
-            })
+          const prevQtdWeekIds = prevQuarterStartStr && prevEndDate ? allWeeks
+            .filter(w => w.end_date >= prevQuarterStartStr! && w.end_date <= prevEndDate)
             .map(w => w.id) : [];
 
           const { data: mtdSubmissions } = await supabase
@@ -410,7 +410,7 @@ export function AdminDashboard() {
           const prevQtdMaxByUser = prevQtdSubmissions ? latestNonZeroSubByUser(prevQtdSubmissions, 'revenue_qtd') : {};
           setPrevQtdMaxRevenue(prevQtdMaxByUser);
 
-          const quarterWeeks = allWeeks.filter(w => new Date(w.start_date) >= quarterStart);
+          const quarterWeeks = allWeeks.filter(w => w.end_date >= quarterStartStr);
 
           const allParsedQtdSubs = (qtdSubmissions || []).map((sub: any) => ({
             ...parseNumericFields(sub, [
