@@ -291,8 +291,14 @@ export function AdminDashboard() {
           .order('start_date', { ascending: true });
 
         if (allWeeks) {
+          // Activity metrics: exclude current week (in-progress counts would inflate MTD)
           const mtdWeekIds = allWeeks
             .filter(w => w.end_date >= monthStartStr && w.end_date < currentWeek.end_date)
+            .map(w => w.id);
+
+          // Revenue: include current week since revenue_mtd/qtd are cumulative totals reps enter
+          const mtdRevenueWeekIds = allWeeks
+            .filter(w => w.end_date >= monthStartStr && w.end_date <= currentWeek.end_date)
             .map(w => w.id);
 
           const qtdWeekIds = allWeeks
@@ -311,6 +317,11 @@ export function AdminDashboard() {
             .from('weekly_submissions')
             .select('*')
             .in('week_id', mtdWeekIds);
+
+          const { data: mtdRevenueSubmissions } = mtdRevenueWeekIds.length > 0 ? await supabase
+            .from('weekly_submissions')
+            .select('*')
+            .in('week_id', mtdRevenueWeekIds) : { data: null };
 
           const { data: qtdSubmissions } = await supabase
             .from('weekly_submissions')
@@ -398,7 +409,7 @@ export function AdminDashboard() {
             return result;
           };
 
-          const mtdMaxByUser = mtdSubmissions ? latestNonZeroSubByUser(mtdSubmissions, 'revenue_mtd') : {};
+          const mtdMaxByUser = mtdRevenueSubmissions ? latestNonZeroSubByUser(mtdRevenueSubmissions, 'revenue_mtd') : {};
           setMtdMaxRevenue(mtdMaxByUser);
 
           const qtdMaxByUser = qtdSubmissions ? latestNonZeroSubByUser(qtdSubmissions, 'revenue_qtd') : {};
