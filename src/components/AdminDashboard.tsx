@@ -1028,6 +1028,46 @@ export function AdminDashboard() {
         </div>
       </div>
 
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
+        <h3 className="text-xl font-semibold text-slate-900 mb-1">
+          Pipeline Meetings — Tentative / Not Yet Confirmed
+        </h3>
+        <p className="text-sm text-slate-500 mb-4">In-person meetings being worked on with pipeline prospects that don't yet have a confirmed date.</p>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {reps.map((rep) => {
+            const submission = submissions[rep.id];
+            const meetings = submission?.f2f_meetings_pipeline_tentative?.filter((m: any) => m.clientProspect) || [];
+            if (meetings.length === 0) return null;
+            return (
+              <div key={rep.id} className="border border-amber-200 rounded-lg p-4 bg-gradient-to-br from-amber-50 to-white">
+                <div className="flex items-start justify-between mb-3">
+                  <p className="font-semibold text-slate-900">{rep.name}</p>
+                  <div className="flex items-center gap-1 px-3 py-1 bg-amber-500 text-white rounded-full text-sm font-bold">
+                    <Calendar className="w-4 h-4" />
+                    {meetings.length}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {meetings.map((meeting: any, idx: number) => (
+                    <div key={idx} className="text-xs text-slate-700 bg-white rounded p-2 border border-amber-100">
+                      <p className="font-medium truncate">{meeting.clientProspect}</p>
+                      {meeting.dealOpportunity && <p className="text-slate-600 truncate">{meeting.dealOpportunity}</p>}
+                      {meeting.tentativeTimeframe && <p className="text-amber-700 font-medium">{meeting.tentativeTimeframe}</p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {reps.every(rep => {
+          const submission = submissions[rep.id];
+          return !submission?.f2f_meetings_pipeline_tentative?.some((m: any) => m.clientProspect);
+        }) && (
+          <p className="text-slate-500 text-center py-8">No tentative pipeline meetings reported</p>
+        )}
+      </div>
+
       {bdrReps.length > 0 && (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
           <h3 className="text-xl font-semibold text-slate-900 mb-1">BDR Performance</h3>
@@ -1704,6 +1744,39 @@ export function AdminDashboard() {
                         </div>
                       )}
                     </div>
+
+                    {submission.f2f_meetings_pipeline_tentative && submission.f2f_meetings_pipeline_tentative.filter((m: any) => m.clientProspect).length > 0 && (
+                      <div className="mb-6">
+                        <h4 className="font-semibold text-slate-900 mb-3">Pipeline Meetings — Tentative / Not Yet Confirmed</h4>
+                        <div className="space-y-2">
+                          {submission.f2f_meetings_pipeline_tentative.filter((m: any) => m.clientProspect).map((meeting: any, idx: number) => (
+                            <div key={idx} className="bg-amber-50 p-3 rounded-lg border border-amber-200">
+                              <p className="font-medium text-slate-900">{meeting.clientProspect}</p>
+                              <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
+                                {meeting.dealOpportunity && (
+                                  <div>
+                                    <span className="text-slate-600">Deal/Opportunity: </span>
+                                    <span className="text-slate-900">{meeting.dealOpportunity}</span>
+                                  </div>
+                                )}
+                                {meeting.tentativeTimeframe && (
+                                  <div>
+                                    <span className="text-slate-600">Timeframe: </span>
+                                    <span className="text-amber-700 font-medium">{meeting.tentativeTimeframe}</span>
+                                  </div>
+                                )}
+                              </div>
+                              {meeting.confirmationPlan && (
+                                <p className="text-sm text-slate-700 mt-2">
+                                  <span className="text-slate-600">Confirmation plan: </span>
+                                  {meeting.confirmationPlan}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {submission.previous_week_f2f_meetings_outcome && submission.previous_week_f2f_meetings_outcome.length > 0 && (
                       <div className="mb-6">
