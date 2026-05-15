@@ -42,6 +42,7 @@ type WeeklySubmission = {
   closing_opportunities?: any[];
   f2f_meetings?: any[];
   f2f_meetings_held_last_week?: any[];
+  f2f_meetings_pipeline_tentative?: any[];
   previous_week_f2f_meetings_outcome?: any[];
   call_review_link?: string;
   call_review_focus?: string;
@@ -129,6 +130,13 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
     where: string;
     purposePrep: string;
   }>>([{ clientProspect: '', dates: '', where: '', purposePrep: '' }]);
+
+  const [f2fPipelineTentative, setF2fPipelineTentative] = useState<Array<{
+    clientProspect: string;
+    dealOpportunity: string;
+    tentativeTimeframe: string;
+    confirmationPlan: string;
+  }>>([{ clientProspect: '', dealOpportunity: '', tentativeTimeframe: '', confirmationPlan: '' }]);
 
   const [previousWeekMeetings, setPreviousWeekMeetings] = useState<Array<{
     clientProspect: string;
@@ -274,6 +282,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
     setClosingOpps([{ companyDeal: '', value: 0, closeDate: '', confidenceBlockers: '' }]);
     setF2fMeetings([{ clientProspect: '', dates: '', where: '', purposePrep: '' }]);
     setF2fMeetingsHeldLastWeek([{ clientProspect: '', dates: '', where: '', purposePrep: '' }]);
+    setF2fPipelineTentative([{ clientProspect: '', dealOpportunity: '', tentativeTimeframe: '', confirmationPlan: '' }]);
     setCallReviewLink('');
     setCallReviewFocus('');
     setBlockersHelp('');
@@ -390,6 +399,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
     setClosingOpps(submission.closing_opportunities || [{ companyDeal: '', value: 0, closeDate: '', confidenceBlockers: '' }]);
     setF2fMeetings(submission.f2f_meetings || [{ clientProspect: '', dates: '', where: '', purposePrep: '' }]);
     setF2fMeetingsHeldLastWeek(submission.f2f_meetings_held_last_week || [{ clientProspect: '', dates: '', where: '', purposePrep: '' }]);
+    setF2fPipelineTentative(submission.f2f_meetings_pipeline_tentative || [{ clientProspect: '', dealOpportunity: '', tentativeTimeframe: '', confirmationPlan: '' }]);
     if (submission.previous_week_f2f_meetings_outcome && Array.isArray(submission.previous_week_f2f_meetings_outcome) && submission.previous_week_f2f_meetings_outcome.length > 0) {
       setPreviousWeekMeetings(submission.previous_week_f2f_meetings_outcome);
     }
@@ -455,6 +465,7 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
         closing_opportunities: closingOpps.filter(o => o.companyDeal),
         f2f_meetings: f2fMeetings.filter(m => m.clientProspect),
         f2f_meetings_held_last_week: f2fMeetingsHeldLastWeek.filter(m => m.clientProspect),
+        f2f_meetings_pipeline_tentative: f2fPipelineTentative.filter(m => m.clientProspect),
         previous_week_f2f_meetings_outcome: previousWeekMeetings.length > 0 ? previousWeekMeetings : null,
         call_review_link: callReviewLink,
         call_review_focus: callReviewFocus,
@@ -1483,6 +1494,84 @@ export function WeeklySubmissionForm({ weekId, onBack }: Props) {
             ))}
             <button
               onClick={() => setF2fMeetings([...f2fMeetings, { clientProspect: '', dates: '', where: '', purposePrep: '' }])}
+              className="flex items-center text-brand-700 hover:text-brand-800 text-sm font-medium"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Add Meeting
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <h2 className="text-xl font-semibold text-slate-900 mb-1">
+            Pipeline Meetings — Tentative / Not Yet Confirmed
+          </h2>
+          <p className="text-sm text-slate-500 mb-4">
+            List in-person meetings you're actively working to schedule with pipeline prospects or clients that don't yet have a confirmed date.
+          </p>
+
+          <div className="space-y-3">
+            {f2fPipelineTentative.map((meeting, index) => (
+              <div key={index} className="border border-slate-200 rounded-lg p-4 bg-amber-50/40">
+                <div className="grid md:grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    placeholder="Client / Prospect"
+                    value={meeting.clientProspect}
+                    onChange={(e) => {
+                      const updated = [...f2fPipelineTentative];
+                      updated[index].clientProspect = e.target.value;
+                      setF2fPipelineTentative(updated);
+                    }}
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Deal / Opportunity Name"
+                    value={meeting.dealOpportunity}
+                    onChange={(e) => {
+                      const updated = [...f2fPipelineTentative];
+                      updated[index].dealOpportunity = e.target.value;
+                      setF2fPipelineTentative(updated);
+                    }}
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Tentative timeframe (e.g. late May, Q3)"
+                    value={meeting.tentativeTimeframe}
+                    onChange={(e) => {
+                      const updated = [...f2fPipelineTentative];
+                      updated[index].tentativeTimeframe = e.target.value;
+                      setF2fPipelineTentative(updated);
+                    }}
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white"
+                  />
+                  <input
+                    type="text"
+                    placeholder="How / when will you confirm the date?"
+                    value={meeting.confirmationPlan}
+                    onChange={(e) => {
+                      const updated = [...f2fPipelineTentative];
+                      updated[index].confirmationPlan = e.target.value;
+                      setF2fPipelineTentative(updated);
+                    }}
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white"
+                  />
+                </div>
+                {f2fPipelineTentative.length > 1 && (
+                  <button
+                    onClick={() => setF2fPipelineTentative(f2fPipelineTentative.filter((_, i) => i !== index))}
+                    className="mt-2 text-xs text-red-500 hover:text-red-700 flex items-center gap-1"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Remove
+                  </button>
+                )}
+              </div>
+            ))}
+            <button
+              onClick={() => setF2fPipelineTentative([...f2fPipelineTentative, { clientProspect: '', dealOpportunity: '', tentativeTimeframe: '', confirmationPlan: '' }])}
               className="flex items-center text-brand-700 hover:text-brand-800 text-sm font-medium"
             >
               <Plus className="w-4 h-4 mr-1" />
