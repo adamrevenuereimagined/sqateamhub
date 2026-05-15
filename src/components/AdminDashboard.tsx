@@ -291,9 +291,9 @@ export function AdminDashboard() {
           .order('start_date', { ascending: true });
 
         if (allWeeks) {
-          // Activity metrics: exclude current week (in-progress counts would inflate MTD)
+          // Include current week; filter to submitted status only to exclude in-progress drafts
           const mtdWeekIds = allWeeks
-            .filter(w => w.end_date >= monthStartStr && w.end_date < currentWeek.end_date)
+            .filter(w => w.end_date >= monthStartStr && w.end_date <= currentWeek.end_date)
             .map(w => w.id);
 
           // Revenue: include current week since revenue_mtd/qtd are cumulative totals reps enter
@@ -313,30 +313,34 @@ export function AdminDashboard() {
             .filter(w => w.end_date >= prevQuarterStartStr! && w.end_date <= prevEndDate)
             .map(w => w.id) : [];
 
-          const { data: mtdSubmissions } = await supabase
+          const { data: mtdSubmissions } = mtdWeekIds.length > 0 ? await supabase
             .from('weekly_submissions')
             .select('*')
-            .in('week_id', mtdWeekIds);
+            .in('week_id', mtdWeekIds)
+            .eq('status', 'submitted') : { data: null };
 
           const { data: mtdRevenueSubmissions } = mtdRevenueWeekIds.length > 0 ? await supabase
             .from('weekly_submissions')
             .select('*')
             .in('week_id', mtdRevenueWeekIds) : { data: null };
 
-          const { data: qtdSubmissions } = await supabase
+          const { data: qtdSubmissions } = qtdWeekIds.length > 0 ? await supabase
             .from('weekly_submissions')
             .select('*')
-            .in('week_id', qtdWeekIds);
+            .in('week_id', qtdWeekIds)
+            .eq('status', 'submitted') : { data: null };
 
           const { data: prevMtdSubmissions } = prevMtdWeekIds.length > 0 ? await supabase
             .from('weekly_submissions')
             .select('*')
-            .in('week_id', prevMtdWeekIds) : { data: null };
+            .in('week_id', prevMtdWeekIds)
+            .eq('status', 'submitted') : { data: null };
 
           const { data: prevQtdSubmissions } = prevQtdWeekIds.length > 0 ? await supabase
             .from('weekly_submissions')
             .select('*')
-            .in('week_id', prevQtdWeekIds) : { data: null };
+            .in('week_id', prevQtdWeekIds)
+            .eq('status', 'submitted') : { data: null };
 
           if (mtdSubmissions && mtdSubmissions.length > 0) {
             const parsedMtdSubmissions = mtdSubmissions.map(sub =>
