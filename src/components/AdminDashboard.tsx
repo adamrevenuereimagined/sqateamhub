@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase, Week, User, parseNumericFields } from '../lib/supabase';
-import { TrendingUp, TrendingDown, Users, Target, Activity, CheckCircle, Clock, AlertCircle, ChevronDown, ChevronRight, Settings, Calendar, DollarSign, XCircle, LineChart, FileText, Copy, Minus } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, Target, Activity, CheckCircle, Clock, AlertCircle, ChevronDown, ChevronRight, Settings, Calendar, DollarSign, XCircle, LineChart, FileText, Copy, Minus, RefreshCw } from 'lucide-react';
 import { TargetsManagement } from './TargetsManagement';
 import { WeekManagement } from './WeekManagement';
 import { MetricsTrendGraph } from './MetricsTrendGraph';
@@ -102,10 +102,24 @@ export function AdminDashboard() {
   const [selectedMetric, setSelectedMetric] = useState<'qtd' | 'mtd' | 'pipeline' | 'dealsWon' | 'dealsAdvancing'>('qtd');
   const [showExecutiveSummary, setShowExecutiveSummary] = useState(false);
   const [executiveSummary, setExecutiveSummary] = useState('');
+  const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadAvailableWeeks();
   }, []);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('weekly_submissions_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'weekly_submissions' }, () => {
+        loadDashboardData();
+        setLastRefreshed(new Date());
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [currentWeek?.id]);
 
   useEffect(() => {
     if (currentWeek) {
@@ -856,7 +870,24 @@ export function AdminDashboard() {
             </select>
           </div>
 
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
+            <button
+              onClick={async () => {
+                setRefreshing(true);
+                await loadDashboardData();
+                setLastRefreshed(new Date());
+                setRefreshing(false);
+              }}
+              className="inline-flex items-center gap-1.5 h-10 px-3 rounded-lg border border-slate-300 bg-white text-sm text-slate-600 hover:bg-slate-50 hover:border-slate-400 transition-colors"
+              title="Refresh data"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">
+                {lastRefreshed
+                  ? `Updated ${lastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                  : 'Refresh'}
+              </span>
+            </button>
             <Button variant="secondary" size="md" leadingIcon={<Calendar className="w-4 h-4" />} onClick={() => setShowWeekManagement(true)}>
               Manage Weeks
             </Button>
