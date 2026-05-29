@@ -85,8 +85,6 @@ export function AdminDashboard() {
   const [prevQtdMetrics, setPrevQtdMetrics] = useState<AggregatedMetrics | null>(null);
   const [mtdMaxRevenue, setMtdMaxRevenue] = useState<{ [userId: string]: number }>({});
   const [qtdMaxRevenue, setQtdMaxRevenue] = useState<{ [userId: string]: number }>({});
-  const [prevMtdMaxRevenue, setPrevMtdMaxRevenue] = useState<{ [userId: string]: number }>({});
-  const [prevQtdMaxRevenue, setPrevQtdMaxRevenue] = useState<{ [userId: string]: number }>({});
   const [expandedReps, setExpandedReps] = useState<{ [userId: string]: boolean }>({});
   const [loading, setLoading] = useState(true);
   const [showTargetsModal, setShowTargetsModal] = useState(false);
@@ -433,11 +431,6 @@ export function AdminDashboard() {
           const qtdMaxByUser = qtdSubmissions ? latestNonZeroSubByUser(qtdSubmissions, 'revenue_qtd') : {};
           setQtdMaxRevenue(qtdMaxByUser);
 
-          const prevMtdMaxByUser = prevMtdSubmissions ? latestNonZeroSubByUser(prevMtdSubmissions, 'revenue_mtd') : {};
-          setPrevMtdMaxRevenue(prevMtdMaxByUser);
-
-          const prevQtdMaxByUser = prevQtdSubmissions ? latestNonZeroSubByUser(prevQtdSubmissions, 'revenue_qtd') : {};
-          setPrevQtdMaxRevenue(prevQtdMaxByUser);
 
           const quarterWeeks = allWeeks.filter(w => w.end_date >= quarterStartStr);
 
@@ -589,13 +582,8 @@ export function AdminDashboard() {
     const percentToQuotaMTD = totalQuota > 0 ? (totalRevenueMTD / (totalQuota / 3)) * 100 : 0;
     const percentToQuotaQTD = totalQuota > 0 ? (totalRevenueQTD / totalQuota) * 100 : 0;
 
-    const prevTotalRevenueMTD = reps.reduce((sum, rep) => {
-      return sum + (prevMtdMaxRevenue[rep.id] || 0);
-    }, 0);
-
-    const prevTotalRevenueQTD = reps.reduce((sum, rep) => {
-      return sum + (prevQtdMaxRevenue[rep.id] || 0);
-    }, 0);
+    const prevTotalRevenueMTD = Object.values(previousWeekSubmissions).reduce((sum, sub) => sum + (sub.revenue_mtd || 0), 0);
+    const prevTotalRevenueQTD = Object.values(previousWeekSubmissions).reduce((sum, sub) => sum + (sub.revenue_qtd || 0), 0);
 
     const prevTotalPipeline = Object.values(previousWeekSubmissions).reduce((sum, sub) => sum + (sub.pipeline_coverage_ratio || 0), 0);
     const prevTotalDealsWon = Object.values(previousWeekSubmissions).reduce((sum, sub) => sum + (sub.deals_won_this_week || 0), 0);
@@ -679,12 +667,12 @@ export function AdminDashboard() {
       .filter(rep => submissions[rep.id])
       .map(rep => ({
         name: rep.name,
-        qtdRevenue: qtdMaxRevenue[rep.id] || 0,
-        mtdRevenue: mtdMaxRevenue[rep.id] || 0,
+        qtdRevenue: submissions[rep.id]?.revenue_qtd || 0,
+        mtdRevenue: submissions[rep.id]?.revenue_mtd || 0,
         meetings: submissions[rep.id]?.meetings_booked || 0,
         dealsWon: submissions[rep.id]?.deals_won_this_week || 0,
         quota: rep.quarterly_quota,
-        percentToQuota: rep.quarterly_quota > 0 ? ((qtdMaxRevenue[rep.id] || 0) / rep.quarterly_quota) * 100 : 0,
+        percentToQuota: rep.quarterly_quota > 0 ? ((submissions[rep.id]?.revenue_qtd || 0) / rep.quarterly_quota) * 100 : 0,
       }))
       .sort((a, b) => b.percentToQuota - a.percentToQuota);
 
@@ -1344,10 +1332,10 @@ export function AdminDashboard() {
             const status = submission?.status || 'not_started';
             const isExpanded = expandedReps[rep.id];
 
-            const repMtdRevenue = mtdMaxRevenue[rep.id] || 0;
-            const repQtdRevenue = qtdMaxRevenue[rep.id] || 0;
-            const prevRepMtdRevenue = prevMtdMaxRevenue[rep.id] || 0;
-            const prevRepQtdRevenue = prevQtdMaxRevenue[rep.id] || 0;
+            const repMtdRevenue = submission?.revenue_mtd || 0;
+            const repQtdRevenue = submission?.revenue_qtd || 0;
+            const prevRepMtdRevenue = prevSubmission?.revenue_mtd || 0;
+            const prevRepQtdRevenue = prevSubmission?.revenue_qtd || 0;
 
             const percentToQuota = rep.quarterly_quota > 0
               ? (repQtdRevenue / rep.quarterly_quota) * 100
