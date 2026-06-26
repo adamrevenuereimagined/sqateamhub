@@ -1,0 +1,1 @@
+UPDATE users SET is_active = false WHERE id = 'a04a5308-8340-489e-b6e2-86463ddb4907';
