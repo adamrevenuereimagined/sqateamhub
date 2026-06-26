@@ -555,13 +555,9 @@ export function AdminDashboard() {
   const calculateTotals = () => {
     const totalQuota = reps.reduce((sum, rep) => sum + rep.quarterly_quota, 0);
 
-    const totalRevenueMTD = reps.reduce((sum, rep) => {
-      return sum + (mtdMaxRevenue[rep.id] || 0);
-    }, 0);
+    const totalRevenueMTD = Object.values(mtdMaxRevenue).reduce((sum, val) => sum + val, 0);
 
-    const totalRevenueQTD = reps.reduce((sum, rep) => {
-      return sum + (qtdMaxRevenue[rep.id] || 0);
-    }, 0);
+    const totalRevenueQTD = Object.values(qtdMaxRevenue).reduce((sum, val) => sum + val, 0);
 
     const totalColdCalls = Object.values(submissions).reduce((sum, sub) => sum + (sub.cold_calls || 0), 0);
     const totalEmails = Object.values(submissions).reduce((sum, sub) => sum + (sub.emails || 0), 0);
