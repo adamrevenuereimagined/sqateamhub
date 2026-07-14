@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { LogOut, Home, Users, FileDown } from 'lucide-react';
+import { LogOut, Home, Users } from 'lucide-react';
 
 type LayoutProps = {
   children: ReactNode;
@@ -77,16 +77,6 @@ export function Layout({ children, currentView, onNavigate }: LayoutProps) {
                   </div>
                 </div>
               )}
-
-              <a
-                href="/SQA-BD-Team-Hub-PRD.md"
-                download
-                className="hidden sm:inline-flex items-center gap-2 h-9 px-3 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors"
-                title="Download PRD"
-              >
-                <FileDown className="h-4 w-4" />
-                <span className="hidden lg:inline">PRD</span>
-              </a>
 
               <button
                 onClick={signOut}
